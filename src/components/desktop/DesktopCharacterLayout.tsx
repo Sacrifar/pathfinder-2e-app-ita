@@ -11,6 +11,9 @@ import { SpellsPanel } from './SpellsPanel';
 import { FeatsPanel } from './FeatsPanel';
 import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
+import { ActiveConditions } from './ActiveConditions';
+import { ConditionBrowser } from './ConditionBrowser';
+import { LoadedCondition } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
 import { ancestries, classes, backgrounds, skills as skillsData } from '../../data';
@@ -40,6 +43,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [activeTab, setActiveTab] = useState<TabId>('weapons');
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
+    const [showConditionBrowser, setShowConditionBrowser] = useState(false);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -158,6 +162,40 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         console.log('Skill clicked:', skill);
     };
 
+    // Condition Handlers
+    const handleAddCondition = (condition: LoadedCondition) => {
+        const currentConditions = character.conditions || [];
+        if (!currentConditions.find(c => c.id === condition.id)) {
+            const newCondition = {
+                id: condition.id,
+                value: condition.isValued ? (condition.value || 1) : undefined
+            };
+            onCharacterUpdate({
+                ...character,
+                conditions: [...currentConditions, newCondition]
+            });
+        }
+        setShowConditionBrowser(false);
+    };
+
+    const handleRemoveCondition = (conditionId: string) => {
+        const currentConditions = character.conditions || [];
+        onCharacterUpdate({
+            ...character,
+            conditions: currentConditions.filter(c => c.id !== conditionId)
+        });
+    };
+
+    const handleUpdateConditionValue = (conditionId: string, value: number) => {
+        const currentConditions = character.conditions || [];
+        onCharacterUpdate({
+            ...character,
+            conditions: currentConditions.map(c =>
+                c.id === conditionId ? { ...c, value } : c
+            )
+        });
+    };
+
     // Helper for proficiency bonus
     const getProficiencyBonus = (prof: Proficiency, level: number) => {
         switch (prof) {
@@ -271,8 +309,14 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         ac={getAC()}
                         heroPoints={1}
                         classDC={getClassDC()}
-                        onAddCondition={() => console.log('Add condition')}
+                        onAddCondition={() => setShowConditionBrowser(true)}
                         onAddCustomBuff={() => console.log('Add custom buff')}
+                    />
+
+                    <ActiveConditions
+                        character={character}
+                        onRemove={handleRemoveCondition}
+                        onUpdateValue={handleUpdateConditionValue}
                     />
 
                     <CharacterTabs
@@ -374,7 +418,18 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     />
                 )}
             </DetailModal>
-        </div>
+
+
+            {/* Condition Browser Modal */}
+            {
+                showConditionBrowser && (
+                    <ConditionBrowser
+                        onClose={() => setShowConditionBrowser(false)}
+                        onAdd={handleAddCondition}
+                    />
+                )
+            }
+        </div >
     );
 };
 

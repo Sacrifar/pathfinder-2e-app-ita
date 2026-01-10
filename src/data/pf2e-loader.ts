@@ -21,6 +21,18 @@ const spellModules = import.meta.glob<{ default: unknown }>(
     { eager: true }
 );
 
+// Import all feat JSON files
+const featModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/feats/**/*.json',
+    { eager: true }
+);
+
+// Import all condition JSON files
+const conditionModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/conditions/*.json',
+    { eager: true }
+);
+
 // ============ Types for raw FoundryVTT data ============
 
 interface RawPF2eItem {
@@ -78,6 +90,23 @@ interface RawSpellSystem {
     description: { value: string };
 }
 
+interface RawFeatSystem {
+    actionType: { value: string };
+    actions: { value: number | null };
+    category: string;
+    level: { value: number };
+    prerequisites: { value: Array<{ value: string }> };
+    traits: { rarity: string; value: string[] };
+    description: { value: string };
+}
+
+interface RawConditionSystem {
+    description: { value: string };
+    group: string;
+    value: { isValued: boolean; value: number | null };
+    rules: any[];
+}
+
 // ============ App-friendly types ============
 
 export interface LoadedWeapon {
@@ -121,6 +150,28 @@ export interface LoadedSpell {
     damage: string | null;
     save: string | null;
     description: string;
+}
+
+export interface LoadedFeat {
+    id: string;
+    name: string;
+    category: 'ancestry' | 'class' | 'skill' | 'general' | 'archetype' | 'mythic' | 'bonus';
+    level: number;
+    actionType: 'passive' | 'action' | 'reaction' | 'free';
+    actionCost: number | null;
+    traits: string[];
+    rarity: string;
+    prerequisites: string[];
+    description: string;
+}
+
+export interface LoadedCondition {
+    id: string;
+    name: string;
+    description: string;
+    isValued: boolean;
+    value: number | null;
+    group: string;
 }
 
 // ============ Transform Functions ============
@@ -221,6 +272,66 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
     };
 }
 
+function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
+    if (raw.type !== 'feat') return null;
+
+    const sys = raw.system as RawFeatSystem;
+
+    // Determine action type
+    let actionType: LoadedFeat['actionType'] = 'passive';
+    if (sys.actionType?.value === 'action') actionType = 'action';
+    else if (sys.actionType?.value === 'reaction') actionType = 'reaction';
+    else if (sys.actionType?.value === 'free') actionType = 'free';
+
+    // Get action cost for action types
+    let actionCost: number | null = null;
+    if (actionType === 'action' && sys.actions?.value) {
+        actionCost = sys.actions.value;
+    }
+
+    // Normalize category
+    let category: LoadedFeat['category'] = 'general';
+    const rawCategory = sys.category?.toLowerCase() || '';
+    if (rawCategory === 'ancestry') category = 'ancestry';
+    else if (rawCategory === 'class') category = 'class';
+    else if (rawCategory === 'skill') category = 'skill';
+    else if (rawCategory === 'general') category = 'general';
+    else if (rawCategory === 'archetype') category = 'archetype';
+    else if (rawCategory === 'mythic') category = 'mythic';
+    else if (rawCategory === 'bonus') category = 'bonus';
+
+    // Extract prerequisites as strings
+    const prerequisites = (sys.prerequisites?.value || []).map(p => p.value);
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        category,
+        level: sys.level?.value || 1,
+        actionType,
+        actionCost,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        prerequisites,
+        description: stripHtml(sys.description?.value || ''),
+    };
+}
+
+function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
+    if (raw.type !== 'condition') return null;
+
+    const sys = raw.system as RawConditionSystem;
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        description: stripHtml(sys.description?.value || ''),
+        isValued: sys.value?.isValued || false,
+        value: sys.value?.value || null,
+        group: sys.group || '',
+    };
+}
+
 function stripHtml(html: string): string {
     return html
         .replace(/<[^>]*>/g, '')
@@ -237,6 +348,8 @@ function stripHtml(html: string): string {
 let cachedWeapons: LoadedWeapon[] | null = null;
 let cachedActions: LoadedAction[] | null = null;
 let cachedSpells: LoadedSpell[] | null = null;
+let cachedFeats: LoadedFeat[] | null = null;
+let cachedConditions: LoadedCondition[] | null = null;
 
 // ============ Public API ============
 
@@ -346,11 +459,84 @@ export function searchSpells(query: string): LoadedSpell[] {
     );
 }
 
+// ============ Feat API ============
+
+export function getFeats(): LoadedFeat[] {
+    if (cachedFeats) return cachedFeats;
+
+    const feats: LoadedFeat[] = [];
+
+    for (const path in featModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = featModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const feat = transformFeat(raw as RawPF2eItem);
+        if (feat) {
+            feats.push(feat);
+        }
+    }
+
+    // Sort by level then name
+    feats.sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return a.name.localeCompare(b.name);
+    });
+
+    cachedFeats = feats;
+    return feats;
+}
+
+export function getFeatsByCategory(category: LoadedFeat['category']): LoadedFeat[] {
+    return getFeats().filter(f => f.category === category);
+}
+
+export function getFeatsByLevel(level: number): LoadedFeat[] {
+    return getFeats().filter(f => f.level === level);
+}
+
+export function searchFeats(query: string): LoadedFeat[] {
+    const q = query.toLowerCase();
+    return getFeats().filter(f =>
+        f.name.toLowerCase().includes(q) ||
+        f.traits.some(t => t.toLowerCase().includes(q))
+    );
+}
+
+// ============ Condition API ============
+
+export function getConditions(): LoadedCondition[] {
+    if (cachedConditions) return cachedConditions;
+
+    const conditions: LoadedCondition[] = [];
+
+    for (const path in conditionModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = conditionModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const condition = transformCondition(raw as RawPF2eItem);
+        if (condition) {
+            conditions.push(condition);
+        }
+    }
+
+    // Sort by name
+    conditions.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedConditions = conditions;
+    return conditions;
+}
+
 // Summary stats
 export function getDataStats() {
     return {
         weapons: getWeapons().length,
         actions: getActions().length,
         spells: getSpells().length,
+        feats: getFeats().length,
+        conditions: getConditions().length,
     };
 }

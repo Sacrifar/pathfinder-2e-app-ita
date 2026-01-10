@@ -142,6 +142,9 @@ export interface Character {
         pp: number;
     };
 
+    // Conditions
+    conditions: { id: string; value?: number }[];
+
     // Spellcasting (optional)
     spellcasting?: {
         tradition: 'arcane' | 'divine' | 'occult' | 'primal';
@@ -198,6 +201,7 @@ export function createEmptyCharacter(): Character {
         feats: [],
         equipment: [],
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
+        conditions: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };

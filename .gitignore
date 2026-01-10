@@ -149,3 +149,9 @@ src/data/pf2e/
 *.map
 *.chunk.js
 *.chunk.css
+
+# Additional Data Folders
+src/data/module/
+src/data/Azioni/
+.gemini/
+

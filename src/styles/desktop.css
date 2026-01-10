@@ -2092,6 +2092,243 @@
     background: var(--desktop-accent-red-hover);
 }
 
+/* ===== Feat Browser Modal ===== */
+.feat-browser-modal {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.feat-browser-list {
+    width: 50%;
+    overflow-y: auto;
+    border-right: 1px solid var(--desktop-border);
+}
+
+.feat-list-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.feat-list-item:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.feat-list-item.selected {
+    background: var(--desktop-bg-tertiary);
+    border-left: 3px solid var(--desktop-accent-red);
+}
+
+.feat-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.feat-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+}
+
+.feat-item-action {
+    font-size: 12px;
+    color: var(--desktop-accent-red);
+}
+
+.feat-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feat-item-level {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 3px;
+}
+
+.feat-item-category {
+    font-size: 11px;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.feat-item-rarity {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.feat-item-rarity.rarity-uncommon {
+    background: rgba(255, 140, 0, 0.2);
+    color: var(--rarity-uncommon);
+}
+
+.feat-item-rarity.rarity-rare {
+    background: rgba(74, 158, 255, 0.2);
+    color: var(--rarity-rare);
+}
+
+.feat-item-rarity.rarity-unique {
+    background: rgba(155, 48, 255, 0.2);
+    color: var(--rarity-unique);
+}
+
+.feat-detail {
+    width: 50%;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.feat-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.feat-detail-header h4 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--desktop-text);
+}
+
+.feat-detail-action {
+    font-size: 18px;
+    color: var(--desktop-accent-red);
+}
+
+.feat-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.detail-level {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+    color: var(--desktop-text);
+}
+
+.detail-category {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.detail-rarity {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.detail-rarity.rarity-uncommon {
+    background: rgba(255, 140, 0, 0.2);
+    color: var(--rarity-uncommon);
+}
+
+.detail-rarity.rarity-rare {
+    background: rgba(74, 158, 255, 0.2);
+    color: var(--rarity-rare);
+}
+
+.detail-rarity.rarity-unique {
+    background: rgba(155, 48, 255, 0.2);
+    color: var(--rarity-unique);
+}
+
+.feat-traits-section {
+    margin-bottom: 16px;
+}
+
+.feat-prerequisites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    padding: 10px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.prereq-label {
+    color: var(--desktop-text-muted);
+    font-weight: 500;
+}
+
+.prereq-list {
+    color: var(--desktop-text-secondary);
+}
+
+.feat-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--desktop-text-secondary);
+    margin-bottom: 16px;
+}
+
+.add-feat-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--desktop-accent-red);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-feat-btn:hover {
+    background: var(--desktop-accent-red-hover);
+}
+
+.level-filter {
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.level-filter:focus {
+    outline: none;
+    border-color: var(--desktop-accent-red);
+}
+
+.no-results {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--desktop-text-muted);
+    font-size: 14px;
+}
+
 /* ===== Utility Classes ===== */
 .desktop-hidden {
     display: none !important;
@@ -2113,4 +2350,88 @@
     .desktop-layout {
         display: none;
     }
+}
+
+/* ===== Condition System ===== */
+
+.condition-browser-modal .feat-detail-panel {
+    /* Reuse existing panel styles but ensure height is correct */
+}
+
+/* Active Conditions List */
+.active-conditions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 16px 16px 16px;
+    /* Below StatsHeader */
+}
+
+.active-condition-card {
+    background: var(--desktop-card);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+}
+
+.active-condition-card .condition-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.condition-name {
+    font-weight: 500;
+    color: var(--desktop-text);
+}
+
+.remove-condition-btn {
+    background: transparent;
+    border: none;
+    color: var(--desktop-text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+}
+
+.remove-condition-btn:hover {
+    color: var(--desktop-accent-red);
+}
+
+.condition-value-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--desktop-bg);
+    border-radius: 12px;
+    padding: 2px 4px;
+}
+
+.condition-value-control button {
+    background: transparent;
+    border: none;
+    color: var(--desktop-text);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.condition-value-control button:hover:not(:disabled) {
+    color: var(--desktop-accent-blue);
+}
+
+.condition-value-control button:disabled {
+    color: var(--desktop-text-muted);
+    cursor: default;
 }
