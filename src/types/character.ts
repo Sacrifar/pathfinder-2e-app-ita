@@ -134,7 +134,10 @@ export interface Character {
     feats: CharacterFeat[];
 
     // Equipment
+    // Equipment
     equipment: EquippedItem[];
+    equippedArmor?: string;
+    equippedShield?: string;
     currency: {
         cp: number;
         sp: number;
@@ -200,6 +203,8 @@ export function createEmptyCharacter(): Character {
         armorProficiencies: [],
         feats: [],
         equipment: [],
+        equippedArmor: '',
+        equippedShield: '',
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
         createdAt: new Date().toISOString(),

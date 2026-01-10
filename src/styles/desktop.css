@@ -2435,3 +2435,339 @@
     color: var(--desktop-text-muted);
     cursor: default;
 }
+
+/* ===== Equipment Browser ===== */
+.equipment-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    background: var(--desktop-bg-tertiary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.stat-box label {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin: 0;
+}
+
+.stat-box span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-text);
+}
+
+/* Equipment Browser Modal Layout */
+.browser-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.browser-list-column {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--desktop-border);
+    overflow: hidden;
+}
+
+.browser-detail-column {
+    width: 55%;
+    overflow-y: auto;
+}
+
+/* Browser Filters */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.filter-tab {
+    padding: 8px 16px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.filter-tab:hover {
+    background: var(--desktop-bg-secondary);
+    color: var(--desktop-text);
+}
+
+.filter-tab.active {
+    background: var(--desktop-accent-red);
+    color: white;
+    border-color: var(--desktop-accent-red);
+}
+
+.filter-select {
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--desktop-accent-red);
+}
+
+/* Search Bar */
+.search-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 14px;
+    color: var(--desktop-text-muted);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 10px 14px 10px 36px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    font-size: 14px;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--desktop-accent-red);
+}
+
+/* Browser List */
+.browser-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Equipment Detail Panel */
+.feat-detail-panel {
+    padding: 20px;
+}
+
+.feat-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.rarity-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.rarity-badge.common {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--rarity-common);
+}
+
+.rarity-badge.uncommon {
+    background: rgba(255, 140, 0, 0.2);
+    color: var(--rarity-uncommon);
+}
+
+.rarity-badge.rare {
+    background: rgba(74, 158, 255, 0.2);
+    color: var(--rarity-rare);
+}
+
+.rarity-badge.unique {
+    background: rgba(155, 48, 255, 0.2);
+    color: var(--rarity-unique);
+}
+
+.level-badge {
+    padding: 4px 10px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--desktop-text);
+}
+
+.feat-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.feat-actions {
+    margin-top: 16px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--desktop-text-secondary);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    color: var(--desktop-text);
+    background: var(--desktop-bg-tertiary);
+}
+
+/* Defense Panel Slots */
+.equipment-slots {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.equipment-slot {
+    background: var(--desktop-card);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.slot-stats {
+    color: #4ade80;
+    /* Green */
+    background: rgba(74, 222, 128, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.equip-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px dashed var(--desktop-border);
+    color: var(--desktop-text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.equip-btn:hover {
+    background: var(--desktop-bg-secondary);
+    border-style: solid;
+    color: var(--desktop-text);
+    border-color: var(--desktop-accent-blue);
+}
+
+.equipped-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.equipped-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+    flex: 1;
+}
+
+.equipped-item:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-border);
+}
+
+.equipped-item .item-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--desktop-text);
+}
+
+.equipped-item .item-details {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    display: flex;
+    gap: 8px;
+}
+
+.unequip-btn {
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.unequip-btn:hover {
+    background: var(--desktop-accent-red);
+    color: white;
+    border-color: var(--desktop-accent-red);
+}

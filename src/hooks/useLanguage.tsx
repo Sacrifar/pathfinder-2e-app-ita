@@ -216,6 +216,17 @@ const translations: Record<Language, Record<string, string>> = {
         'character.name': 'Name',
         'character.player': 'Player',
         'character.notes': 'Notes',
+
+        // Equipment
+        'equipment.armor': 'Armor',
+        'equipment.shield': 'Shield',
+        'actions.equipArmor': 'Equip Armor',
+        'actions.equipShield': 'Equip Shield',
+        'actions.equip': 'Equip',
+        'actions.unequip': 'Unequip',
+        'browser.equipment': 'Equipment Browser',
+        'browser.search': 'Search...',
+        'browser.selectItem': 'Select an item to view details',
     },
     it: {
         // Navigation
@@ -423,6 +434,17 @@ const translations: Record<Language, Record<string, string>> = {
         'character.name': 'Nome',
         'character.player': 'Giocatore',
         'character.notes': 'Note',
+
+        // Equipment
+        'equipment.armor': 'Armatura',
+        'equipment.shield': 'Scudo',
+        'actions.equipArmor': 'Equipaggia Armatura',
+        'actions.equipShield': 'Equipaggia Scudo',
+        'actions.equip': 'Equipaggia',
+        'actions.unequip': 'Rimuovi',
+        'browser.equipment': 'Browser Equipaggiamento',
+        'browser.search': 'Cerca...',
+        'browser.selectItem': 'Seleziona un oggetto per vedere i dettagli',
     }
 };
 

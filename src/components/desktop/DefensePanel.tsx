@@ -1,17 +1,80 @@
-import React from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
+import { EquipmentBrowser } from './EquipmentBrowser';
+import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
 
 interface DefensePanelProps {
     character: Character;
     ac: number;
+    onCharacterUpdate: (character: Character) => void;
 }
 
 export const DefensePanel: React.FC<DefensePanelProps> = ({
     character,
     ac,
+    onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
+    const [showBrowser, setShowBrowser] = useState(false);
+    const [browserTab, setBrowserTab] = useState<'armor' | 'shield'>('armor');
+
+    // Resolve equipped items
+    const equippedArmor = useMemo(() => {
+        if (!character.equippedArmor) return null;
+        return getArmor().find(a => a.id === character.equippedArmor);
+    }, [character.equippedArmor]);
+
+    const equippedShield = useMemo(() => {
+        if (!character.equippedShield) return null;
+        return getShields().find(s => s.id === character.equippedShield);
+    }, [character.equippedShield]);
+
+    const handleEquipArmor = (armor: LoadedArmor) => {
+        onCharacterUpdate({
+            ...character,
+            equippedArmor: armor.id,
+            armorClass: {
+                ...character.armorClass,
+                itemBonus: armor.acBonus,
+                dexCap: armor.dexCap,
+                // checkPenalty: armor.checkPenalty // Not stored in AC currently
+            }
+        });
+        setShowBrowser(false);
+    };
+
+    const handleEquipShield = (shield: LoadedShield) => {
+        onCharacterUpdate({
+            ...character,
+            equippedShield: shield.id
+        });
+        setShowBrowser(false);
+    };
+
+    const handleUnequipArmor = () => {
+        onCharacterUpdate({
+            ...character,
+            equippedArmor: undefined,
+            armorClass: {
+                ...character.armorClass,
+                itemBonus: 0,
+                dexCap: 99
+            }
+        });
+    };
+
+    const handleUnequipShield = () => {
+        onCharacterUpdate({
+            ...character,
+            equippedShield: undefined
+        });
+    };
+
+    const openBrowser = (tab: 'armor' | 'shield') => {
+        setBrowserTab(tab);
+        setShowBrowser(true);
+    };
 
     // Get proficiency bonus
     const getProficiencyBonus = (prof: Proficiency, level: number) => {
@@ -111,6 +174,58 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         )}
                     </div>
                 </div>
+
+                <div className="equipment-slots">
+                    {/* Armor Slot */}
+                    <div className="equipment-slot">
+                        <div className="slot-header">
+                            <span className="slot-label"><span style={{ marginRight: 6 }}>👕</span> {t('equipment.armor') || 'Armor'}</span>
+                            {equippedArmor && <span className="slot-stats">+{equippedArmor.acBonus} AC</span>}
+                        </div>
+                        <div className="slot-content">
+                            {equippedArmor ? (
+                                <div className="equipped-item-wrapper">
+                                    <div className="equipped-item" onClick={() => openBrowser('armor')}>
+                                        <span className="item-name">{equippedArmor.name}</span>
+                                        <span className="item-details">{equippedArmor.category} • Dex Cap: {equippedArmor.dexCap === 99 ? '-' : equippedArmor.dexCap}</span>
+                                    </div>
+                                    <button className="unequip-btn" onClick={handleUnequipArmor} title={t('actions.unequip') || 'Unequip'}>
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <button className="equip-btn" onClick={() => openBrowser('armor')}>
+                                    {t('actions.equipArmor') || 'Equip Armor'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Shield Slot */}
+                    <div className="equipment-slot">
+                        <div className="slot-header">
+                            <span className="slot-label"><span style={{ marginRight: 6 }}>🛡️</span> {t('equipment.shield') || 'Shield'}</span>
+                            {equippedShield && <span className="slot-stats">Hardness {equippedShield.hardness}</span>}
+                        </div>
+                        <div className="slot-content">
+                            {equippedShield ? (
+                                <div className="equipped-item-wrapper">
+                                    <div className="equipped-item" onClick={() => openBrowser('shield')}>
+                                        <span className="item-name">{equippedShield.name}</span>
+                                        <span className="item-details">HP {equippedShield.hp}/{equippedShield.maxHp}</span>
+                                    </div>
+                                    <button className="unequip-btn" onClick={handleUnequipShield} title={t('actions.unequip') || 'Unequip'}>
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <button className="equip-btn" onClick={() => openBrowser('shield')}>
+                                    {t('actions.equipShield') || 'Equip Shield'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Saving Throws */}
@@ -144,7 +259,19 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     <span className="text-muted">{t('builder.noResistances') || 'None'}</span>
                 </div>
             </div>
-        </div>
+
+
+            {
+                showBrowser && (
+                    <EquipmentBrowser
+                        onClose={() => setShowBrowser(false)}
+                        onEquipArmor={handleEquipArmor}
+                        onEquipShield={handleEquipShield}
+                        initialTab={browserTab}
+                    />
+                )
+            }
+        </div >
     );
 };
 

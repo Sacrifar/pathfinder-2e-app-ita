@@ -107,6 +107,33 @@ interface RawConditionSystem {
     rules: any[];
 }
 
+interface RawArmorSystem {
+    acBonus: number;
+    dexCap: number | null;
+    checkPenalty: number | null;
+    speedPenalty: number | null;
+    strength: number | null;
+    bulk: { value: number };
+    category: string;
+    group: string | null;
+    price: { value: { gp?: number; sp?: number; cp?: number } };
+    level: { value: number };
+    description: { value: string };
+    traits: { rarity: string; value: string[] };
+}
+
+interface RawShieldSystem {
+    acBonus: number;
+    hardness: number;
+    hp: { max: number; value: number };
+    speedPenalty: number;
+    bulk: { value: number };
+    price: { value: { gp?: number; sp?: number; cp?: number } };
+    level: { value: number };
+    description: { value: string };
+    traits: { rarity: string; value: string[] };
+}
+
 // ============ App-friendly types ============
 
 export interface LoadedWeapon {
@@ -172,6 +199,40 @@ export interface LoadedCondition {
     isValued: boolean;
     value: number | null;
     group: string;
+}
+
+export interface LoadedArmor {
+    id: string;
+    name: string;
+    category: 'light' | 'medium' | 'heavy' | 'unarmored';
+    group: string;
+    acBonus: number;
+    dexCap: number;
+    checkPenalty: number;
+    speedPenalty: number;
+    strength: number;
+    bulk: number;
+    priceGp: number;
+    level: number;
+    traits: string[];
+    rarity: string;
+    description: string;
+}
+
+export interface LoadedShield {
+    id: string;
+    name: string;
+    acBonus: number;
+    hardness: number;
+    hp: number;
+    maxHp: number;
+    speedPenalty: number;
+    bulk: number;
+    priceGp: number;
+    level: number;
+    traits: string[];
+    rarity: string;
+    description: string;
 }
 
 // ============ Transform Functions ============
@@ -332,6 +393,56 @@ function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
     };
 }
 
+function transformArmor(raw: RawPF2eItem): LoadedArmor | null {
+    if (raw.type !== 'armor') return null;
+
+    const sys = raw.system as RawArmorSystem;
+    const price = sys.price?.value || {};
+    const priceGp = (price.gp || 0) + (price.sp || 0) / 10 + (price.cp || 0) / 100;
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        category: (sys.category || 'unarmored') as LoadedArmor['category'],
+        group: sys.group || '',
+        acBonus: sys.acBonus || 0,
+        dexCap: sys.dexCap !== undefined && sys.dexCap !== null ? sys.dexCap : 99,
+        checkPenalty: sys.checkPenalty || 0,
+        speedPenalty: sys.speedPenalty || 0,
+        strength: sys.strength || 0,
+        bulk: sys.bulk?.value || 0,
+        priceGp,
+        level: sys.level?.value || 0,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+    };
+}
+
+function transformShield(raw: RawPF2eItem): LoadedShield | null {
+    if (raw.type !== 'shield') return null;
+
+    const sys = raw.system as RawShieldSystem;
+    const price = sys.price?.value || {};
+    const priceGp = (price.gp || 0) + (price.sp || 0) / 10 + (price.cp || 0) / 100;
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        acBonus: sys.acBonus || 0,
+        hardness: sys.hardness || 0,
+        hp: sys.hp?.value || 0,
+        maxHp: sys.hp?.max || 0,
+        speedPenalty: sys.speedPenalty || 0,
+        bulk: sys.bulk?.value || 0,
+        priceGp,
+        level: sys.level?.value || 0,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+    };
+}
+
 function stripHtml(html: string): string {
     return html
         .replace(/<[^>]*>/g, '')
@@ -350,6 +461,8 @@ let cachedActions: LoadedAction[] | null = null;
 let cachedSpells: LoadedSpell[] | null = null;
 let cachedFeats: LoadedFeat[] | null = null;
 let cachedConditions: LoadedCondition[] | null = null;
+let cachedArmor: LoadedArmor[] | null = null;
+let cachedShields: LoadedShield[] | null = null;
 
 // ============ Public API ============
 
@@ -530,6 +643,60 @@ export function getConditions(): LoadedCondition[] {
     return conditions;
 }
 
+export function getArmor(): LoadedArmor[] {
+    if (cachedArmor) return cachedArmor;
+
+    const armorList: LoadedArmor[] = [];
+
+    for (const path in equipmentModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = equipmentModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const armor = transformArmor(raw as RawPF2eItem);
+        if (armor) {
+            armorList.push(armor);
+        }
+    }
+
+    // Sort by level then name
+    armorList.sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return a.name.localeCompare(b.name);
+    });
+
+    cachedArmor = armorList;
+    return armorList;
+}
+
+export function getShields(): LoadedShield[] {
+    if (cachedShields) return cachedShields;
+
+    const shields: LoadedShield[] = [];
+
+    for (const path in equipmentModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = equipmentModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const shield = transformShield(raw as RawPF2eItem);
+        if (shield) {
+            shields.push(shield);
+        }
+    }
+
+    // Sort by level then name
+    shields.sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return a.name.localeCompare(b.name);
+    });
+
+    cachedShields = shields;
+    return shields;
+}
+
 // Summary stats
 export function getDataStats() {
     return {
@@ -538,5 +705,7 @@ export function getDataStats() {
         spells: getSpells().length,
         feats: getFeats().length,
         conditions: getConditions().length,
+        armor: getArmor().length,
+        shields: getShields().length,
     };
 }

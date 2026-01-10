@@ -244,6 +244,11 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         const profBonus = getProficiencyBonus(character.armorClass.proficiency, character.level || 1);
         const itemBonus = character.armorClass.itemBonus || 0;
 
+        // Add shield AC bonus if shield is equipped (when raised)
+        // Note: In PF2e, shields don't add to AC unless raised (an action)
+        // For now, we don't auto-add shield AC to the base AC
+        // The shield bonus would be applied when using the Raise Shield action
+
         return 10 + effectiveDex + profBonus + itemBonus;
     };
 
@@ -344,6 +349,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 <DefensePanel
                                     character={character}
                                     ac={getAC()}
+                                    onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
 
