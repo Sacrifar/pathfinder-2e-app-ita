@@ -144,6 +144,78 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.generalFeat': 'General Feat',
         'builder.futureChoices': 'Future choices...',
         'builder.noWeapons': 'No weapons equipped. Add a weapon to get started.',
+        'builder.addWeaponHint': 'Add a weapon to calculate attack bonuses.',
+        'builder.noGear': 'No gear in inventory.',
+        'builder.addGearHint': 'Add equipment, consumables, and treasure.',
+        'builder.noSpellcasting': 'This character is not a spellcaster.',
+        'builder.noSpellsKnown': 'No spells known yet.',
+        'builder.noFeats': 'No feats selected yet.',
+        'builder.addFeatHint': 'Select feats from the build sidebar.',
+        'builder.noNotes': 'No notes yet.',
+        'builder.noResistances': 'None',
+
+        // Stats Extended
+        'stats.armorClass': 'Armor Class',
+        'stats.attack': 'Attack',
+        'stats.damage': 'Damage',
+        'stats.hands': 'Hands',
+        'stats.bulk': 'Bulk',
+        'stats.currency': 'Currency',
+        'stats.invested': 'Invested',
+        'stats.base': 'Base',
+        'stats.proficiency': 'Prof',
+        'stats.armor': 'Armor',
+        'stats.savingThrows': 'Saving Throws',
+        'stats.resistances': 'Resistances & Immunities',
+        'stats.level': 'Level',
+        'stats.tradition': 'Tradition',
+        'stats.spellAttack': 'Spell Attack',
+        'stats.spellDC': 'Spell DC',
+        'stats.focusPoints': 'Focus Points',
+        'stats.spellSlots': 'Spell Slots',
+        'stats.rank': 'Rank',
+        'stats.knownSpells': 'Known Spells',
+
+        // Saves
+        'saves.fortitude': 'Fortitude',
+        'saves.reflex': 'Reflex',
+        'saves.will': 'Will',
+
+        // Actions Extended
+        'actions.strike': 'Strike',
+        'actions.details': 'Details',
+        'actions.addGear': 'Add Gear',
+        'actions.addSpell': 'Add Spell',
+        'actions.cast': 'Cast',
+        'actions.action': 'Action',
+        'actions.actions': 'Actions',
+        'actions.free': 'Free',
+        'actions.reaction': 'Reaction',
+
+        // Filters
+        'filters.all': 'All',
+        'filters.skill': 'Skill',
+
+        // Status
+        'status.encumbered': 'Encumbered',
+        'status.overloaded': 'Overloaded',
+        'status.worn': 'Worn',
+
+        // Feats Categories
+        'feats.ancestry': 'Ancestry Feats',
+        'feats.class': 'Class Feats',
+        'feats.general': 'General Feats',
+        'feats.skill': 'Skill Feats',
+        'feats.bonus': 'Bonus Feats',
+        'feats.total': 'total',
+
+        // Reference
+        'reference.attackBonus': 'Attack Bonus Reference',
+
+        // Character
+        'character.name': 'Name',
+        'character.player': 'Player',
+        'character.notes': 'Notes',
     },
     it: {
         // Navigation
@@ -279,6 +351,78 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.generalFeat': 'Talento Generale',
         'builder.futureChoices': 'Scelte future...',
         'builder.noWeapons': 'Nessuna arma equipaggiata. Aggiungi un\'arma per iniziare.',
+        'builder.addWeaponHint': 'Aggiungi un\'arma per calcolare i bonus d\'attacco.',
+        'builder.noGear': 'Nessun equipaggiamento nell\'inventario.',
+        'builder.addGearHint': 'Aggiungi equipaggiamento, consumabili e tesori.',
+        'builder.noSpellcasting': 'Questo personaggio non è un incantatore.',
+        'builder.noSpellsKnown': 'Nessun incantesimo conosciuto.',
+        'builder.noFeats': 'Nessun talento selezionato.',
+        'builder.addFeatHint': 'Seleziona i talenti dalla barra laterale.',
+        'builder.noNotes': 'Nessuna nota.',
+        'builder.noResistances': 'Nessuna',
+
+        // Stats Extended
+        'stats.armorClass': 'Classe Armatura',
+        'stats.attack': 'Attacco',
+        'stats.damage': 'Danni',
+        'stats.hands': 'Mani',
+        'stats.bulk': 'Ingombro',
+        'stats.currency': 'Valuta',
+        'stats.invested': 'Investiti',
+        'stats.base': 'Base',
+        'stats.proficiency': 'Comp',
+        'stats.armor': 'Armatura',
+        'stats.savingThrows': 'Tiri Salvezza',
+        'stats.resistances': 'Resistenze e Immunità',
+        'stats.level': 'Livello',
+        'stats.tradition': 'Tradizione',
+        'stats.spellAttack': 'Attacco Incantesimo',
+        'stats.spellDC': 'CD Incantesimo',
+        'stats.focusPoints': 'Punti Focalizzazione',
+        'stats.spellSlots': 'Slot Incantesimo',
+        'stats.rank': 'Grado',
+        'stats.knownSpells': 'Incantesimi Conosciuti',
+
+        // Saves
+        'saves.fortitude': 'Tempra',
+        'saves.reflex': 'Riflessi',
+        'saves.will': 'Volontà',
+
+        // Actions Extended
+        'actions.strike': 'Colpire',
+        'actions.details': 'Dettagli',
+        'actions.addGear': 'Aggiungi Equip.',
+        'actions.addSpell': 'Aggiungi Incantesimo',
+        'actions.cast': 'Lancia',
+        'actions.action': 'Azione',
+        'actions.actions': 'Azioni',
+        'actions.free': 'Gratuita',
+        'actions.reaction': 'Reazione',
+
+        // Filters
+        'filters.all': 'Tutti',
+        'filters.skill': 'Abilità',
+
+        // Status
+        'status.encumbered': 'Ingombrato',
+        'status.overloaded': 'Sovraccarico',
+        'status.worn': 'Indossato',
+
+        // Feats Categories
+        'feats.ancestry': 'Talenti di Stirpe',
+        'feats.class': 'Talenti di Classe',
+        'feats.general': 'Talenti Generali',
+        'feats.skill': 'Talenti di Abilità',
+        'feats.bonus': 'Talenti Bonus',
+        'feats.total': 'totali',
+
+        // Reference
+        'reference.attackBonus': 'Riferimento Bonus Attacco',
+
+        // Character
+        'character.name': 'Nome',
+        'character.player': 'Giocatore',
+        'character.notes': 'Note',
     }
 };
 

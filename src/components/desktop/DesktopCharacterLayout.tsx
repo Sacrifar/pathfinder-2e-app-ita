@@ -3,11 +3,26 @@ import { TopBar } from './TopBar';
 import { LevelSidebar } from './LevelSidebar';
 import { StatsHeader } from './StatsHeader';
 import { CharacterTabs, TabId } from './CharacterTabs';
-import { SkillsPanel } from './SkillsPanel';
+import { SkillsPanel, SkillDisplay } from './SkillsPanel';
+import { WeaponsPanel } from './WeaponsPanel';
+import { DefensePanel } from './DefensePanel';
+import { GearPanel } from './GearPanel';
+import { SpellsPanel } from './SpellsPanel';
+import { FeatsPanel } from './FeatsPanel';
+import { ActionsPanel } from './ActionsPanel';
+import { DetailModal, ActionDetailContent } from './DetailModal';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
 import { ancestries, classes, backgrounds, skills as skillsData } from '../../data';
-import { SkillDisplay } from './SkillsPanel';
+
+interface ActionData {
+    id: string;
+    name: string;
+    cost: string;
+    description: string;
+    traits: string[];
+    skill?: string;
+}
 
 interface DesktopCharacterLayoutProps {
     character: Character;
@@ -24,6 +39,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const getName = useLocalizedName();
     const [activeTab, setActiveTab] = useState<TabId>('weapons');
     const [menuOpen, setMenuOpen] = useState(false);
+    const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -274,65 +290,90 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
                         <div className="main-content-area">
                             {activeTab === 'weapons' && (
-                                <div>
-                                    <h3>{t('tabs.weapons')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        {t('builder.noWeapons') || 'No weapons equipped. Add a weapon to get started.'}
-                                    </p>
-                                    <button className="header-btn" style={{ marginTop: '16px' }}>
-                                        + {t('actions.addWeapon') || 'Add Weapon'}
-                                    </button>
-                                </div>
+                                <WeaponsPanel
+                                    character={character}
+                                    onAddWeapon={() => console.log('Add weapon')}
+                                />
                             )}
 
                             {activeTab === 'defense' && (
-                                <div>
-                                    <h3>{t('tabs.defense')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        Defense stats and armor configuration.
-                                    </p>
-                                </div>
+                                <DefensePanel
+                                    character={character}
+                                    ac={getAC()}
+                                />
                             )}
 
                             {activeTab === 'gear' && (
-                                <div>
-                                    <h3>{t('tabs.gear')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        Inventory and equipment management.
-                                    </p>
-                                </div>
+                                <GearPanel
+                                    character={character}
+                                    onAddGear={() => console.log('Add gear')}
+                                />
+                            )}
+
+                            {activeTab === 'spells' && (
+                                <SpellsPanel
+                                    character={character}
+                                    onCastSpell={(spellId) => console.log('Cast:', spellId)}
+                                    onAddSpell={() => console.log('Add spell')}
+                                />
                             )}
 
                             {activeTab === 'feats' && (
-                                <div>
-                                    <h3>{t('tabs.feats')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        {character.feats?.length || 0} feats selected.
-                                    </p>
-                                </div>
+                                <FeatsPanel
+                                    character={character}
+                                    onFeatClick={(feat) => console.log('Feat:', feat)}
+                                />
                             )}
 
                             {activeTab === 'details' && (
-                                <div>
-                                    <h3>{t('tabs.details')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        Character notes and description.
-                                    </p>
+                                <div className="details-panel">
+                                    <div className="panel-header">
+                                        <h3>{t('tabs.details') || 'Details'}</h3>
+                                    </div>
+                                    <div className="details-content">
+                                        <div className="detail-field">
+                                            <label>{t('character.name') || 'Name'}</label>
+                                            <span>{character.name || t('character.unnamed')}</span>
+                                        </div>
+                                        <div className="detail-field">
+                                            <label>{t('character.player') || 'Player'}</label>
+                                            <span>{character.player || '-'}</span>
+                                        </div>
+                                        <div className="detail-field">
+                                            <label>{t('character.notes') || 'Notes'}</label>
+                                            <p className="notes-text">{character.notes || t('builder.noNotes') || 'No notes yet.'}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             {activeTab === 'actions' && (
-                                <div>
-                                    <h3>{t('tabs.actions')}</h3>
-                                    <p style={{ color: 'var(--desktop-text-secondary)' }}>
-                                        Available actions reference.
-                                    </p>
-                                </div>
+                                <ActionsPanel
+                                    character={character}
+                                    onActionClick={(action) => setSelectedAction(action as ActionData)}
+                                />
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Action Detail Modal */}
+            <DetailModal
+                isOpen={selectedAction !== null}
+                onClose={() => setSelectedAction(null)}
+                title={selectedAction?.name || ''}
+            >
+                {selectedAction && (
+                    <ActionDetailContent
+                        name={selectedAction.name}
+                        cost={selectedAction.cost === '1' ? '◆' : selectedAction.cost === '2' ? '◆◆' : selectedAction.cost === '3' ? '◆◆◆' : selectedAction.cost === 'reaction' ? '⟲' : '◇'}
+                        description={selectedAction.description}
+                        traits={selectedAction.traits}
+                        skill={selectedAction.skill}
+                    />
+                )}
+            </DetailModal>
         </div>
     );
 };

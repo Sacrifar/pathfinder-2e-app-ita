@@ -594,6 +594,257 @@
     background: var(--desktop-card);
 }
 
+/* ===== Detail Modal ===== */
+.detail-modal {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.2s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-title-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-subtitle {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+    margin-top: 2px;
+}
+
+.modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+/* Action Detail */
+.action-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.action-cost-display {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 8px;
+}
+
+.cost-icon {
+    font-size: 32px;
+    color: var(--desktop-accent-red);
+}
+
+.action-full-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--desktop-text);
+    margin: 0;
+}
+
+.action-skill-info,
+.action-traits-list {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.skill-label,
+.traits-label {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.skill-value {
+    text-transform: capitalize;
+    color: var(--desktop-accent-blue);
+}
+
+.traits-container {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.trait-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+    color: var(--desktop-text-secondary);
+}
+
+/* Weapon Detail */
+.weapon-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.weapon-main-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+}
+
+.stat-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--desktop-card);
+    border-radius: 8px;
+}
+
+.stat-block .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.stat-block.attack .stat-value {
+    color: var(--desktop-accent-green);
+}
+
+.stat-block.damage .stat-value {
+    color: var(--desktop-accent-orange);
+}
+
+.stat-block .stat-label {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+.weapon-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+}
+
+.info-label {
+    color: var(--desktop-text-secondary);
+    font-size: 13px;
+}
+
+.info-value {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.weapon-traits-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Skill Detail */
+.skill-detail-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.skill-main-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.skill-modifier-large {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--desktop-accent-green);
+}
+
+.skill-proficiency-badge {
+    font-size: 14px;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: var(--desktop-accent-blue);
+    color: white;
+    border-radius: 4px;
+}
+
+.skill-breakdown {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.ability-key {
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 2px;
+}
+
+.skill-actions-section {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.skill-actions-section h4 {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    margin: 0 0 8px 0;
+}
+
+.skill-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.skill-action-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.skill-action-item:hover {
+    background: var(--desktop-card);
+}
+
+.action-cost-mini {
+    color: var(--desktop-accent-red);
+    font-size: 14px;
+}
+
 /* ===== Weapon Cards ===== */
 .weapon-card {
     background: var(--desktop-card);
@@ -657,6 +908,717 @@
 .weapon-action-btn:hover {
     background: var(--desktop-card-hover);
     color: var(--desktop-text);
+}
+
+/* ===== Panel Common Styles ===== */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--desktop-text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 8px 0;
+}
+
+.empty-state-hint {
+    font-size: 13px;
+    color: var(--desktop-text-muted);
+}
+
+.text-muted {
+    color: var(--desktop-text-muted);
+}
+
+/* ===== Weapons Panel ===== */
+.weapons-panel {
+    padding: 16px;
+}
+
+.weapons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.weapon-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.weapon-stat-label {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+}
+
+.weapon-stat-value {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.weapon-stat-value.attack-bonus {
+    color: var(--desktop-accent-green);
+}
+
+.attack-reference {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+}
+
+.attack-reference h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: var(--desktop-text-secondary);
+}
+
+.reference-grid {
+    display: flex;
+    gap: 16px;
+}
+
+.reference-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ref-label {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+}
+
+.ref-value {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* ===== Defense Panel ===== */
+.defense-panel {
+    padding: 16px;
+}
+
+.defense-section {
+    margin-bottom: 24px;
+}
+
+.defense-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: var(--desktop-text-secondary);
+    text-transform: uppercase;
+}
+
+.ac-display {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.ac-total {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--desktop-card);
+    border-radius: 8px;
+    border: 2px solid var(--desktop-accent-blue);
+}
+
+.ac-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--desktop-accent-blue);
+}
+
+.ac-label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    text-transform: uppercase;
+}
+
+.ac-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 13px;
+}
+
+.breakdown-label {
+    color: var(--desktop-text-secondary);
+}
+
+.breakdown-value {
+    font-weight: 500;
+}
+
+.dex-cap {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+}
+
+.saves-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.save-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+}
+
+.save-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.save-name {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.save-prof {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.save-modifier {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.save-ability {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+}
+
+.empty-resistances {
+    padding: 12px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* ===== Gear Panel ===== */
+.gear-panel {
+    padding: 16px;
+}
+
+.bulk-tracker {
+    margin-bottom: 16px;
+}
+
+.bulk-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.bulk-label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+}
+
+.bulk-value {
+    font-weight: 600;
+}
+
+.bulk-value.encumbered {
+    color: var(--desktop-accent-orange);
+}
+
+.bulk-value.overloaded {
+    color: var(--desktop-accent-red);
+}
+
+.bulk-bar {
+    position: relative;
+    height: 8px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bulk-fill {
+    height: 100%;
+    background: var(--desktop-accent-green);
+    transition: width 0.3s, background 0.3s;
+}
+
+.bulk-fill.encumbered {
+    background: var(--desktop-accent-orange);
+}
+
+.bulk-fill.overloaded {
+    background: var(--desktop-accent-red);
+}
+
+.bulk-encumbered-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--desktop-accent-orange);
+}
+
+.bulk-warning {
+    font-size: 11px;
+    color: var(--desktop-accent-orange);
+    margin-top: 4px;
+}
+
+.bulk-danger {
+    font-size: 11px;
+    color: var(--desktop-accent-red);
+    margin-top: 4px;
+}
+
+.currency-display,
+.invested-tracker {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.currency-label,
+.invested-label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+}
+
+.currency-value,
+.invested-value {
+    font-weight: 500;
+}
+
+.gear-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gear-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.gear-item:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.gear-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gear-name {
+    font-size: 13px;
+}
+
+.invested-dot {
+    color: var(--desktop-accent-blue);
+    margin-right: 4px;
+}
+
+.gear-bulk {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+}
+
+.gear-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Spells Panel ===== */
+.spells-panel {
+    padding: 16px;
+}
+
+.spellcasting-info {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.spell-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+}
+
+.spell-stat-label {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+}
+
+.spell-stat-value {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.tradition-badge {
+    text-transform: capitalize;
+    color: var(--desktop-accent-blue);
+}
+
+.focus-pool {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--desktop-card);
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.focus-label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+}
+
+.focus-pips {
+    display: flex;
+    gap: 6px;
+}
+
+.focus-pip {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--desktop-accent-blue);
+}
+
+.focus-pip.empty {
+    background: var(--desktop-border);
+}
+
+.spell-slots-section,
+.known-spells-section {
+    margin-bottom: 16px;
+}
+
+.spell-slots-section h4,
+.known-spells-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: var(--desktop-text-secondary);
+}
+
+.spell-slots-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.spell-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+}
+
+.slot-level {
+    width: 80px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.slot-pips {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.slot-pip {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--desktop-accent-blue);
+}
+
+.slot-pip.used {
+    background: var(--desktop-border);
+}
+
+.slot-count {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.spells-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.spell-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+}
+
+.spell-name {
+    font-size: 13px;
+}
+
+.spell-cast-btn {
+    padding: 4px 12px;
+    background: var(--desktop-accent-blue);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.spell-cast-btn:hover {
+    background: #3a8eef;
+}
+
+/* ===== Feats Panel ===== */
+.feats-panel {
+    padding: 16px;
+}
+
+.feat-count {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.feat-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.feat-group {
+    background: var(--desktop-bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.feat-group-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border-left: 3px solid;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.group-count {
+    color: var(--desktop-text-muted);
+}
+
+.feat-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.feat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.feat-item:last-child {
+    border-bottom: none;
+}
+
+.feat-item:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.feat-level {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+    background: var(--desktop-card);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.feat-name {
+    flex: 1;
+    font-size: 13px;
+}
+
+.feat-choices {
+    font-size: 11px;
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Actions Panel ===== */
+.actions-panel {
+    padding: 16px;
+}
+
+.actions-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.action-card {
+    background: var(--desktop-card);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-card:hover {
+    background: var(--desktop-card-hover);
+    border-color: var(--desktop-border-light);
+}
+
+.action-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.action-cost {
+    font-size: 16px;
+    color: var(--desktop-accent-red);
+}
+
+.action-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.action-description {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.action-skill {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--desktop-accent-blue);
+    text-transform: capitalize;
+    margin-bottom: 8px;
+}
+
+.action-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.action-trait {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 2px;
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Details Panel ===== */
+.details-panel {
+    padding: 16px;
+}
+
+.details-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.detail-field span {
+    font-size: 14px;
+}
+
+.notes-text {
+    font-size: 13px;
+    color: var(--desktop-text-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin: 0;
 }
 
 /* ===== Utility Classes ===== */
