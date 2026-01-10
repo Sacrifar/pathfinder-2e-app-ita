@@ -1621,6 +1621,477 @@
     margin: 0;
 }
 
+/* ===== Compact Actions Panel ===== */
+.actions-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+}
+
+.actions-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 8px 12px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-border-light);
+}
+
+.filter-btn.active {
+    background: var(--desktop-accent-red);
+    border-color: var(--desktop-accent-red);
+    color: white;
+}
+
+.filter-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.filter-btn.active .filter-icon {
+    filter: brightness(10);
+}
+
+/* Compact Actions Grid */
+.actions-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.action-card-compact {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-card-compact:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-accent-red);
+    transform: translateY(-1px);
+}
+
+.action-cost-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.action-card-compact .action-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--desktop-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== Weapon Browser Modal ===== */
+.weapon-browser-modal {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.browser-filters {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--desktop-border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    font-size: 14px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--desktop-accent-red);
+}
+
+.category-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.browser-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.weapon-list {
+    width: 50%;
+    overflow-y: auto;
+    border-right: 1px solid var(--desktop-border);
+}
+
+.weapon-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.weapon-list-item:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.weapon-list-item.selected {
+    background: var(--desktop-bg-tertiary);
+    border-left: 3px solid var(--desktop-accent-red);
+}
+
+.weapon-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+}
+
+.weapon-item-category {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    text-transform: capitalize;
+    margin-right: 10px;
+}
+
+.weapon-item-damage {
+    font-size: 12px;
+    color: var(--desktop-accent-red);
+    font-weight: 500;
+}
+
+.weapon-detail {
+    width: 50%;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.weapon-detail h4 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: var(--desktop-text);
+}
+
+.weapon-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.detail-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--desktop-text);
+}
+
+.weapon-traits-section {
+    margin-bottom: 16px;
+}
+
+.traits-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.trait-tag {
+    padding: 4px 10px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--desktop-text-secondary);
+    text-transform: capitalize;
+}
+
+.weapon-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--desktop-text-secondary);
+    margin-bottom: 16px;
+}
+
+.add-weapon-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--desktop-accent-red);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-weapon-btn:hover {
+    background: var(--desktop-accent-red-hover);
+}
+
+.add-btn {
+    padding: 10px 20px;
+    background: var(--desktop-accent-red);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+/* ===== Spell Browser Modal ===== */
+.spell-browser-modal {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.filter-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.rank-filters {
+    display: flex;
+    gap: 4px;
+}
+
+.rank-btn {
+    width: 32px;
+    padding: 6px;
+    font-size: 12px;
+}
+
+.tradition-filters {
+    display: flex;
+    gap: 6px;
+}
+
+.tradition-btn {
+    text-transform: capitalize;
+}
+
+.spell-list {
+    width: 45%;
+    overflow-y: auto;
+    border-right: 1px solid var(--desktop-border);
+}
+
+.spell-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.spell-list-item:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.spell-list-item.selected {
+    background: var(--desktop-bg-tertiary);
+    border-left: 3px solid var(--desktop-accent-red);
+}
+
+.spell-item-rank {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-text-secondary);
+}
+
+.spell-item-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.spell-item-traditions {
+    display: flex;
+    gap: 4px;
+}
+
+.tradition-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.tradition-dot.arcane,
+.tradition-tag.arcane {
+    background: #7b68ee;
+}
+
+.tradition-dot.divine,
+.tradition-tag.divine {
+    background: #ffd700;
+}
+
+.tradition-dot.occult,
+.tradition-tag.occult {
+    background: #9370db;
+}
+
+.tradition-dot.primal,
+.tradition-tag.primal {
+    background: #32cd32;
+}
+
+.spell-detail {
+    width: 55%;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.spell-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.spell-detail-header h4 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.spell-rank-badge {
+    padding: 4px 10px;
+    background: var(--desktop-accent-red);
+    border-radius: 12px;
+    font-size: 11px;
+    color: white;
+    font-weight: 500;
+}
+
+.spell-traditions-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.tradition-tag {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: white;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.spell-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.damage-value {
+    color: var(--desktop-accent-red);
+}
+
+.spell-traits-section {
+    margin-bottom: 16px;
+}
+
+.spell-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--desktop-text-secondary);
+    margin-bottom: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.add-spell-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--desktop-accent-red);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-spell-btn:hover {
+    background: var(--desktop-accent-red-hover);
+}
+
 /* ===== Utility Classes ===== */
 .desktop-hidden {
     display: none !important;

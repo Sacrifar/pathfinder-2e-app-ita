@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
+import { getActions } from '../../data/pf2e-loader';
+
+// Import action icons
+import actionSingle from '../../data/Azioni/action_single.png';
+import actionDouble from '../../data/Azioni/action_double.png';
+import actionTriple from '../../data/Azioni/action_triple.png';
+import actionFree from '../../data/Azioni/action_free.png';
+import actionReaction from '../../data/Azioni/action_reaction.png';
 
 type ActionCost = 'free' | 'reaction' | '1' | '2' | '3';
 
@@ -18,72 +26,75 @@ interface ActionsPanelProps {
     onActionClick: (action: Action) => void;
 }
 
-// Common PF2e actions reference
-const commonActions: Action[] = [
-    { id: 'strike', name: 'Strike', cost: '1', description: 'Attack with a weapon or unarmed attack.', traits: ['attack'] },
-    { id: 'stride', name: 'Stride', cost: '1', description: 'Move up to your Speed.', traits: ['move'] },
-    { id: 'step', name: 'Step', cost: '1', description: 'Move 5 feet without triggering reactions.', traits: ['move'] },
-    { id: 'interact', name: 'Interact', cost: '1', description: 'Grab an object, open a door, draw a weapon, or manipulate.', traits: ['manipulate'] },
-    { id: 'seek', name: 'Seek', cost: '1', description: 'Scan an area for creatures or objects.', traits: ['concentrate'] },
-    { id: 'raise-shield', name: 'Raise a Shield', cost: '1', description: 'Raise a shield to gain its circumstance bonus to AC.', traits: [] },
-    { id: 'take-cover', name: 'Take Cover', cost: '1', description: 'Gain cover or improve cover.', traits: [] },
-    { id: 'ready', name: 'Ready', cost: '2', description: 'Prepare to take an action when a trigger occurs.', traits: ['concentrate'] },
-    { id: 'sustain', name: 'Sustain', cost: '1', description: 'Maintain a spell or effect.', traits: ['concentrate'] },
-    { id: 'delay', name: 'Delay', cost: 'free', description: 'Wait to act later in the round.', traits: [] },
-    { id: 'drop-prone', name: 'Drop Prone', cost: '1', description: 'Fall prone for +2 to AC vs ranged, -2 vs melee.', traits: ['move'] },
-    { id: 'stand', name: 'Stand', cost: '1', description: 'Stand up from prone.', traits: ['move'] },
-    { id: 'escape', name: 'Escape', cost: '1', description: 'Escape from being grabbed, restrained, or immobilized.', traits: ['attack'] },
-    { id: 'aid', name: 'Aid', cost: 'reaction', description: 'Help an ally with a check.', traits: [] },
-];
-
-// Skill actions
-const skillActions: Action[] = [
-    { id: 'recall-knowledge', name: 'Recall Knowledge', cost: '1', skill: 'various', description: 'Attempt to remember information.', traits: ['concentrate'] },
-    { id: 'balance', name: 'Balance', cost: '1', skill: 'acrobatics', description: 'Move across a narrow or unsteady surface.', traits: ['move'] },
-    { id: 'tumble-through', name: 'Tumble Through', cost: '1', skill: 'acrobatics', description: 'Move through an enemy\'s space.', traits: ['move'] },
-    { id: 'climb', name: 'Climb', cost: '1', skill: 'athletics', description: 'Move up, down, or across an incline.', traits: ['move'] },
-    { id: 'grapple', name: 'Grapple', cost: '1', skill: 'athletics', description: 'Grab a creature using Athletics.', traits: ['attack'] },
-    { id: 'shove', name: 'Shove', cost: '1', skill: 'athletics', description: 'Push a creature away or to the ground.', traits: ['attack'] },
-    { id: 'trip', name: 'Trip', cost: '1', skill: 'athletics', description: 'Try to knock a creature prone.', traits: ['attack'] },
-    { id: 'disarm', name: 'Disarm', cost: '1', skill: 'athletics', description: 'Knock something out of a creature\'s grasp.', traits: ['attack'] },
-    { id: 'demoralize', name: 'Demoralize', cost: '1', skill: 'intimidation', description: 'Cow a creature with threats.', traits: ['auditory', 'concentrate', 'emotion', 'mental'] },
-    { id: 'feint', name: 'Feint', cost: '1', skill: 'deception', description: 'Fake out an opponent.', traits: ['mental'] },
-    { id: 'hide', name: 'Hide', cost: '1', skill: 'stealth', description: 'Become hidden from creatures.', traits: [] },
-    { id: 'sneak', name: 'Sneak', cost: '1', skill: 'stealth', description: 'Move while hidden.', traits: ['move'] },
-];
-
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     character,
     onActionClick,
 }) => {
     const { t } = useLanguage();
     const [filter, setFilter] = useState<ActionCost | 'all' | 'skill'>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
+    // Load actions from pf2e data
+    const allActions = useMemo(() => {
+        const loaded = getActions();
+        return loaded.map((a): Action => ({
+            id: a.id,
+            name: a.name,
+            cost: a.cost,
+            description: a.description,
+            traits: a.traits,
+        }));
+    }, []);
+
+    // Skill actions (those with skill-related traits or categories)
+    const skillActions = useMemo(() => {
+        return allActions.filter(a =>
+            a.traits.some(t => ['skill', 'trained-only'].includes(t)) ||
+            ['offensive', 'defensive'].includes(a.traits[0] || '')
+        );
+    }, [allActions]);
+
+    // Basic/common actions
+    const commonActions = useMemo(() => {
+        const basicNames = ['Strike', 'Stride', 'Step', 'Interact', 'Seek', 'Raise a Shield',
+            'Take Cover', 'Ready', 'Sustain', 'Delay', 'Drop Prone', 'Stand', 'Escape', 'Aid',
+            'Crawl', 'Leap', 'Release', 'Point Out', 'Avert Gaze'];
+        return allActions.filter(a => basicNames.includes(a.name));
+    }, [allActions]);
+
+    // Get the icon image for action cost
     const getCostIcon = (cost: ActionCost): string => {
         switch (cost) {
-            case 'free': return '◇';
-            case 'reaction': return '⟲';
-            case '1': return '◆';
-            case '2': return '◆◆';
-            case '3': return '◆◆◆';
-        }
-    };
-
-    const getCostLabel = (cost: ActionCost): string => {
-        switch (cost) {
-            case 'free': return t('actions.free') || 'Free';
-            case 'reaction': return t('actions.reaction') || 'Reaction';
-            case '1': return '1 ' + (t('actions.action') || 'Action');
-            case '2': return '2 ' + (t('actions.actions') || 'Actions');
-            case '3': return '3 ' + (t('actions.actions') || 'Actions');
+            case 'free': return actionFree;
+            case 'reaction': return actionReaction;
+            case '1': return actionSingle;
+            case '2': return actionDouble;
+            case '3': return actionTriple;
         }
     };
 
     // Filter actions based on selection
     const getFilteredActions = (): Action[] => {
-        if (filter === 'all') return commonActions;
-        if (filter === 'skill') return skillActions;
-        return commonActions.filter(a => a.cost === filter);
+        let actions: Action[];
+        if (filter === 'all') {
+            actions = commonActions.length > 0 ? commonActions : allActions.slice(0, 20);
+        } else if (filter === 'skill') {
+            actions = skillActions.length > 0 ? skillActions : allActions.filter(a => a.traits.length > 0).slice(0, 20);
+        } else {
+            actions = allActions.filter(a => a.cost === filter);
+        }
+
+        // Apply search filter
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            actions = actions.filter(a =>
+                a.name.toLowerCase().includes(q) ||
+                a.description.toLowerCase().includes(q) ||
+                a.traits.some(t => t.toLowerCase().includes(q))
+            );
+        }
+
+        return actions;
     };
 
     const filteredActions = getFilteredActions();
@@ -106,31 +117,31 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                     className={`filter-btn ${filter === '1' ? 'active' : ''}`}
                     onClick={() => setFilter('1')}
                 >
-                    ◆
+                    <img src={actionSingle} alt="1 Action" className="filter-icon" />
                 </button>
                 <button
                     className={`filter-btn ${filter === '2' ? 'active' : ''}`}
                     onClick={() => setFilter('2')}
                 >
-                    ◆◆
+                    <img src={actionDouble} alt="2 Actions" className="filter-icon" />
                 </button>
                 <button
                     className={`filter-btn ${filter === '3' ? 'active' : ''}`}
                     onClick={() => setFilter('3')}
                 >
-                    ◆◆◆
+                    <img src={actionTriple} alt="3 Actions" className="filter-icon" />
                 </button>
                 <button
                     className={`filter-btn ${filter === 'reaction' ? 'active' : ''}`}
                     onClick={() => setFilter('reaction')}
                 >
-                    ⟲
+                    <img src={actionReaction} alt="Reaction" className="filter-icon" />
                 </button>
                 <button
                     className={`filter-btn ${filter === 'free' ? 'active' : ''}`}
                     onClick={() => setFilter('free')}
                 >
-                    ◇
+                    <img src={actionFree} alt="Free Action" className="filter-icon" />
                 </button>
                 <button
                     className={`filter-btn ${filter === 'skill' ? 'active' : ''}`}
@@ -140,29 +151,20 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 </button>
             </div>
 
-            {/* Actions Grid */}
-            <div className="actions-grid">
+            {/* Actions Grid - Simplified: only icon + name */}
+            <div className="actions-grid actions-grid-compact">
                 {filteredActions.map(action => (
                     <div
                         key={action.id}
-                        className="action-card"
+                        className="action-card action-card-compact"
                         onClick={() => onActionClick(action)}
                     >
-                        <div className="action-header">
-                            <span className="action-cost">{getCostIcon(action.cost)}</span>
-                            <span className="action-name">{action.name}</span>
-                        </div>
-                        <p className="action-description">{action.description}</p>
-                        {action.skill && (
-                            <span className="action-skill">{action.skill}</span>
-                        )}
-                        {action.traits.length > 0 && (
-                            <div className="action-traits">
-                                {action.traits.map(trait => (
-                                    <span key={trait} className="action-trait">{trait}</span>
-                                ))}
-                            </div>
-                        )}
+                        <img
+                            src={getCostIcon(action.cost)}
+                            alt={action.cost}
+                            className="action-cost-icon"
+                        />
+                        <span className="action-name">{action.name}</span>
                     </div>
                 ))}
             </div>

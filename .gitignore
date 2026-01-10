@@ -129,3 +129,23 @@ dist
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
+
+# Heavy PF2e data files (15000+ JSON files)
+src/data/pf2e/
+
+# Large media files
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+
+# Large image archives
+*.psd
+*.ai
+*.sketch
+
+# Build artifacts
+*.map
+*.chunk.js
+*.chunk.css

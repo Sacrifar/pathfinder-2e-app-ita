@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
+import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 
 interface WeaponDisplay {
     id: string;
@@ -22,6 +23,35 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     onAddWeapon,
 }) => {
     const { t } = useLanguage();
+    const [showBrowser, setShowBrowser] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'simple' | 'martial' | 'advanced'>('all');
+    const [selectedWeapon, setSelectedWeapon] = useState<LoadedWeapon | null>(null);
+
+    // Load all weapons from pf2e data
+    const allWeapons = useMemo(() => getWeapons(), []);
+
+    // Filter weapons based on search and category
+    const filteredWeapons = useMemo(() => {
+        let weapons = allWeapons;
+
+        // Filter by category
+        if (categoryFilter !== 'all') {
+            weapons = weapons.filter(w => w.category === categoryFilter);
+        }
+
+        // Filter by search
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            weapons = weapons.filter(w =>
+                w.name.toLowerCase().includes(q) ||
+                w.traits.some(t => t.toLowerCase().includes(q)) ||
+                w.group.toLowerCase().includes(q)
+            );
+        }
+
+        return weapons.slice(0, 50); // Limit for performance
+    }, [allWeapons, categoryFilter, searchQuery]);
 
     // Get proficiency bonus
     const getProficiencyBonus = (prof: Proficiency, level: number) => {
@@ -47,20 +77,19 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         const profBonus = getProficiencyBonus(proficiency, character.level || 1);
 
         // Use DEX for finesse/ranged, STR otherwise
-        // For simplicity, we'll use the higher modifier
         const abilityMod = Math.max(strMod, dexMod);
 
         return abilityMod + profBonus;
     };
 
-    // Mock weapons from equipment (in real app, we'd parse character.equipment)
+    // Parse equipped weapons
     const equippedWeapons: WeaponDisplay[] = character.equipment
         .filter(item => item.wielded)
         .map(item => ({
             id: item.id,
             name: item.name,
-            attackBonus: calculateAttackBonus('martial'), // Simplified
-            damage: '1d8', // Would come from weapon data
+            attackBonus: calculateAttackBonus('martial'),
+            damage: '1d8',
             damageType: 'slashing',
             traits: [],
             hands: item.wielded?.hands || 1,
@@ -74,7 +103,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         <div className="weapons-panel">
             <div className="panel-header">
                 <h3>{t('tabs.weapons') || 'Weapons'}</h3>
-                <button className="header-btn" onClick={onAddWeapon}>
+                <button className="header-btn" onClick={() => setShowBrowser(true)}>
                     + {t('actions.addWeapon') || 'Add Weapon'}
                 </button>
             </div>
@@ -86,6 +115,9 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                     <p className="empty-state-hint">
                         {t('builder.addWeaponHint') || 'Add a weapon to calculate attack bonuses.'}
                     </p>
+                    <button className="add-btn" onClick={() => setShowBrowser(true)}>
+                        + {t('actions.addWeapon') || 'Add Weapon'}
+                    </button>
                 </div>
             ) : (
                 <div className="weapons-list">
@@ -123,14 +155,6 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                     <span className="weapon-stat-value">{weapon.hands}</span>
                                 </div>
                             </div>
-                            <div className="weapon-actions">
-                                <button className="weapon-action-btn">
-                                    {t('actions.strike') || 'Strike'}
-                                </button>
-                                <button className="weapon-action-btn">
-                                    {t('actions.details') || 'Details'}
-                                </button>
-                            </div>
                         </div>
                     ))}
                 </div>
@@ -158,6 +182,107 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Weapon Browser Modal */}
+            {showBrowser && (
+                <div className="modal-overlay" onClick={() => setShowBrowser(false)}>
+                    <div className="weapon-browser-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>{t('browser.weapons') || 'Weapon Browser'}</h3>
+                            <button className="modal-close" onClick={() => setShowBrowser(false)}>×</button>
+                        </div>
+
+                        <div className="browser-filters">
+                            <input
+                                type="text"
+                                placeholder={t('search.placeholder') || 'Search weapons...'}
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="search-input"
+                            />
+                            <div className="category-filters">
+                                {(['all', 'simple', 'martial', 'advanced'] as const).map(cat => (
+                                    <button
+                                        key={cat}
+                                        className={`filter-btn ${categoryFilter === cat ? 'active' : ''}`}
+                                        onClick={() => setCategoryFilter(cat)}
+                                    >
+                                        {cat === 'all' ? t('filters.all') || 'All' : cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="browser-content">
+                            <div className="weapon-list">
+                                {filteredWeapons.map(weapon => (
+                                    <div
+                                        key={weapon.id}
+                                        className={`weapon-list-item ${selectedWeapon?.id === weapon.id ? 'selected' : ''}`}
+                                        onClick={() => setSelectedWeapon(weapon)}
+                                    >
+                                        <span className="weapon-item-name">{weapon.name}</span>
+                                        <span className="weapon-item-category">{weapon.category}</span>
+                                        <span className="weapon-item-damage">{weapon.damage}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {selectedWeapon && (
+                                <div className="weapon-detail">
+                                    <h4>{selectedWeapon.name}</h4>
+                                    <div className="weapon-detail-grid">
+                                        <div className="detail-row">
+                                            <span className="detail-label">Category</span>
+                                            <span className="detail-value">{selectedWeapon.category}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Group</span>
+                                            <span className="detail-value">{selectedWeapon.group}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Damage</span>
+                                            <span className="detail-value">{selectedWeapon.damage} {selectedWeapon.damageType}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Hands</span>
+                                            <span className="detail-value">{selectedWeapon.hands}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Price</span>
+                                            <span className="detail-value">{selectedWeapon.priceGp} gp</span>
+                                        </div>
+                                        {selectedWeapon.range && (
+                                            <div className="detail-row">
+                                                <span className="detail-label">Range</span>
+                                                <span className="detail-value">{selectedWeapon.range} ft</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {selectedWeapon.traits.length > 0 && (
+                                        <div className="weapon-traits-section">
+                                            <span className="detail-label">Traits</span>
+                                            <div className="traits-list">
+                                                {selectedWeapon.traits.map(trait => (
+                                                    <span key={trait} className="trait-tag">{trait}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <p className="weapon-description">{selectedWeapon.description}</p>
+                                    <button className="add-weapon-btn" onClick={() => {
+                                        // TODO: Add weapon to character
+                                        setShowBrowser(false);
+                                        setSelectedWeapon(null);
+                                    }}>
+                                        + {t('actions.addToInventory') || 'Add to Inventory'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
