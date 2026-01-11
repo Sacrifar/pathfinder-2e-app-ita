@@ -468,3 +468,103 @@
     background: var(--border-primary);
     margin: var(--space-4) 0;
 }
+
+/* === Extra Large Button === */
+.btn-xl {
+    padding: var(--space-5) var(--space-8);
+    font-size: var(--font-size-xl);
+    min-height: 64px;
+    border-radius: var(--radius-xl);
+}
+
+/* === Minimal Home Page === */
+.home-page-minimal {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+    position: relative;
+    background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
+}
+
+.hero-minimal {
+    text-align: center;
+    max-width: 600px;
+}
+
+.hero-title {
+    font-family: var(--font-family-display);
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: var(--font-weight-bold);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-text) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-4);
+    line-height: 1.1;
+}
+
+.hero-subtitle {
+    font-size: var(--font-size-xl);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-10);
+    line-height: var(--line-height-relaxed);
+}
+
+.hero-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+}
+
+.hero-buttons .btn {
+    width: 100%;
+    max-width: 320px;
+}
+
+@media (min-width: 480px) {
+    .hero-buttons {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .hero-buttons .btn {
+        width: auto;
+    }
+}
+
+/* Language Toggle Container */
+.language-toggle-container {
+    position: fixed;
+    bottom: var(--space-6);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.language-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
+}
+
+.language-toggle-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.language-flag {
+    font-size: var(--font-size-xl);
+}
+
+.language-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}

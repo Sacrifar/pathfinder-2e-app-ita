@@ -1,201 +1,68 @@
-import { Link } from 'react-router-dom';
-import { classes, ancestries } from '../data';
-import { useLanguage, useLocalizedName, useLocalizedDescription } from '../hooks/useLanguage';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../hooks/useLanguage';
+import { createEmptyCharacter } from '../types';
+import type { Character } from '../types';
 
 export function HomePage() {
-    const { t } = useLanguage();
-    const getName = useLocalizedName();
-    const getDescription = useLocalizedDescription();
+    const navigate = useNavigate();
+    const { t, language, toggleLanguage } = useLanguage();
 
-    // Pick a few featured items
-    const featuredClasses = classes.slice(0, 4);
-    const featuredAncestries = ancestries.slice(0, 4);
+    const handleCreateCharacter = () => {
+        // Create a new empty character
+        const newCharacter = createEmptyCharacter();
+
+        // Save it to localStorage
+        const saved = localStorage.getItem('pf2e-characters');
+        const chars: Character[] = saved ? JSON.parse(saved) : [];
+        chars.push(newCharacter);
+        localStorage.setItem('pf2e-characters', JSON.stringify(chars));
+
+        // Navigate directly to the character sheet
+        navigate(`/sheet/${newCharacter.id}`);
+    };
 
     return (
-        <div className="home-page">
-            {/* Hero Section */}
-            <section className="hero" style={{
-                textAlign: 'center',
-                padding: 'var(--space-12) 0',
-                marginBottom: 'var(--space-8)'
-            }}>
-                <h1 className="page-title" style={{ fontSize: 'var(--font-size-5xl)' }}>
+        <div className="home-page home-page-minimal">
+            {/* Hero Section - Centered */}
+            <section className="hero-minimal">
+                <h1 className="hero-title">
                     {t('home.title')}
                 </h1>
-                <p style={{
-                    fontSize: 'var(--font-size-xl)',
-                    color: 'var(--text-secondary)',
-                    maxWidth: '600px',
-                    margin: '0 auto var(--space-8)'
-                }}>
+                <p className="hero-subtitle">
                     {t('home.subtitle')}
                 </p>
-                <div className="flex justify-center gap-4" style={{ flexWrap: 'wrap' }}>
-                    <Link to="/builder" className="btn btn-primary btn-lg">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
+
+                <div className="hero-buttons">
+                    <button onClick={handleCreateCharacter} className="btn btn-primary btn-xl">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24 }}>
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="8" x2="12" y2="16" />
                             <line x1="8" y1="12" x2="16" y2="12" />
                         </svg>
-                        {t('home.newCharacter')}
-                    </Link>
-                    <Link to="/characters" className="btn btn-secondary btn-lg">
-                        {t('home.myCharacters')}
-                    </Link>
+                        {t('home.createCharacter') || 'Crea Personaggio'}
+                    </button>
+                    <button onClick={() => navigate('/characters')} className="btn btn-secondary btn-xl">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24 }}>
+                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        {t('home.loadCharacter') || 'Carica Personaggio'}
+                    </button>
                 </div>
             </section>
 
-            {/* Quick Stats */}
-            <section className="quick-stats" style={{ marginBottom: 'var(--space-8)' }}>
-                <div className="grid grid-3" style={{ gap: 'var(--space-4)' }}>
-                    <div className="stat-card">
-                        <span className="stat-value">{classes.length}</span>
-                        <span className="stat-label">{t('home.classes')}</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-value">{ancestries.length}</span>
-                        <span className="stat-label">{t('home.ancestries')}</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-value">20+</span>
-                        <span className="stat-label">{t('home.backgrounds')}</span>
-                    </div>
-                </div>
-            </section>
-
-            {/* Featured Classes */}
-            <section style={{ marginBottom: 'var(--space-8)' }}>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 style={{ fontSize: 'var(--font-size-2xl)' }}>{t('home.classes')}</h2>
-                    <Link to="/browse/classes" className="btn btn-ghost btn-sm">
-                        {t('home.viewAll')}
-                    </Link>
-                </div>
-                <div className="grid grid-2">
-                    {featuredClasses.map(cls => (
-                        <ClassCard key={cls.id} cls={cls} getName={getName} getDescription={getDescription} />
-                    ))}
-                </div>
-            </section>
-
-            {/* Featured Ancestries */}
-            <section style={{ marginBottom: 'var(--space-8)' }}>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 style={{ fontSize: 'var(--font-size-2xl)' }}>{t('home.ancestries')}</h2>
-                    <Link to="/browse/ancestries" className="btn btn-ghost btn-sm">
-                        {t('home.viewAll')}
-                    </Link>
-                </div>
-                <div className="grid grid-2">
-                    {featuredAncestries.map(ancestry => (
-                        <AncestryCard key={ancestry.id} ancestry={ancestry} getName={getName} getDescription={getDescription} />
-                    ))}
-                </div>
-            </section>
-
-            {/* Features */}
-            <section style={{ marginBottom: 'var(--space-8)' }}>
-                <h2 style={{ fontSize: 'var(--font-size-2xl)', marginBottom: 'var(--space-4)' }}>
-                    {t('home.features')}
-                </h2>
-                <div className="grid grid-3">
-                    <FeatureCard
-                        title={t('home.feature.wizard')}
-                        description={t('home.feature.wizardDesc')}
-                        icon="✨"
-                    />
-                    <FeatureCard
-                        title={t('home.feature.responsive')}
-                        description={t('home.feature.responsiveDesc')}
-                        icon="📱"
-                    />
-                    <FeatureCard
-                        title={t('home.feature.bilingual')}
-                        description={t('home.feature.bilingualDesc')}
-                        icon="🌐"
-                    />
-                </div>
-            </section>
-        </div>
-    );
-}
-
-// Class Card Component
-function ClassCard({ cls, getName, getDescription }: {
-    cls: typeof classes[0];
-    getName: (entity: { name: string; nameIt?: string }) => string;
-    getDescription: (entity: { description: string; descriptionIt?: string }) => string;
-}) {
-    return (
-        <div className="card card-interactive">
-            <div className="card-header">
-                <div>
-                    <h3 className="card-title">{getName(cls)}</h3>
-                    <p className="card-subtitle">{cls.name}</p>
-                </div>
-                <span className="tag tag-primary">HP {cls.hitPoints}</span>
-            </div>
-            <p className="card-body line-clamp-2">
-                {getDescription(cls)}
-            </p>
-            <div className="card-footer flex gap-2" style={{ flexWrap: 'wrap' }}>
-                {cls.spellcasting && (
-                    <span className="trait trait-uncommon">
-                        {cls.spellcasting.tradition}
+            {/* Language Toggle - Bottom */}
+            <div className="language-toggle-container">
+                <button
+                    className="btn btn-ghost language-toggle-btn"
+                    onClick={toggleLanguage}
+                >
+                    <span className="language-flag">{language === 'en' ? '🇬🇧' : '🇮🇹'}</span>
+                    <span className="language-label">
+                        {language === 'en' ? 'English' : 'Italiano'}
                     </span>
-                )}
-                <span className="tag">
-                    {Array.isArray(cls.keyAbility)
-                        ? cls.keyAbility.join('/').toUpperCase()
-                        : cls.keyAbility.toUpperCase()}
-                </span>
+                </button>
             </div>
         </div>
     );
 }
 
-// Ancestry Card Component
-function AncestryCard({ ancestry, getName, getDescription }: {
-    ancestry: typeof ancestries[0];
-    getName: (entity: { name: string; nameIt?: string }) => string;
-    getDescription: (entity: { description: string; descriptionIt?: string }) => string;
-}) {
-    return (
-        <div className="card card-interactive">
-            <div className="card-header">
-                <div>
-                    <h3 className="card-title">{getName(ancestry)}</h3>
-                    <p className="card-subtitle">{ancestry.name}</p>
-                </div>
-                <span className="tag tag-primary">HP {ancestry.hitPoints}</span>
-            </div>
-            <p className="card-body line-clamp-2">
-                {getDescription(ancestry)}
-            </p>
-            <div className="card-footer flex gap-2" style={{ flexWrap: 'wrap' }}>
-                <span className="tag">{ancestry.size}</span>
-                <span className="tag">Speed {ancestry.speed}</span>
-                {ancestry.features.slice(0, 1).map((f, i) => (
-                    <span key={i} className="trait trait-common">
-                        {getName(f)}
-                    </span>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-// Feature Card Component
-function FeatureCard({ title, description, icon }: {
-    title: string;
-    description: string;
-    icon: string;
-}) {
-    return (
-        <div className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-3)' }}>{icon}</div>
-            <h3 className="card-title" style={{ marginBottom: 'var(--space-2)' }}>{title}</h3>
-            <p className="text-secondary text-sm">{description}</p>
-        </div>
-    );
-}

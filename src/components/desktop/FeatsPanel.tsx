@@ -177,21 +177,25 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
                             <div className="feat-list">
                                 {group.feats
                                     .sort((a, b) => a.level - b.level)
-                                    .map(feat => (
-                                        <div
-                                            key={feat.featId}
-                                            className="feat-item"
-                                            onClick={() => onFeatClick(feat)}
-                                        >
-                                            <span className="feat-level">Lv {feat.level}</span>
-                                            <span className="feat-name">{feat.featId}</span>
-                                            {feat.choices && feat.choices.length > 0 && (
-                                                <span className="feat-choices">
-                                                    ({feat.choices.join(', ')})
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
+                                    .map(feat => {
+                                        const featData = allFeats.find(f => f.id === feat.featId);
+                                        const featName = featData?.name || feat.featId;
+                                        return (
+                                            <div
+                                                key={feat.featId}
+                                                className="feat-item"
+                                                onClick={() => onFeatClick(feat)}
+                                            >
+                                                <span className="feat-level">Lv {feat.level}</span>
+                                                <span className="feat-name">{featName}</span>
+                                                {feat.choices && feat.choices.length > 0 && (
+                                                    <span className="feat-choices">
+                                                        ({feat.choices.join(', ')})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         </div>
                     ))}

@@ -192,6 +192,27 @@ export interface LoadedFeat {
     description: string;
 }
 
+export type ConditionRuleSelector =
+    | 'all'
+    | 'dex-based'
+    | 'str-based'
+    | 'con-based'
+    | 'int-based'
+    | 'wis-based'
+    | 'cha-based'
+    | 'attack'
+    | 'ac'
+    | 'saving-throw'
+    | 'perception'
+    | 'skill'
+    | 'speed';
+
+export interface ConditionRule {
+    selector: ConditionRuleSelector;
+    type: 'status' | 'circumstance' | 'item' | 'untyped';
+    value: number; // Parsed value (already negative for penalties)
+}
+
 export interface LoadedCondition {
     id: string;
     name: string;
@@ -199,6 +220,7 @@ export interface LoadedCondition {
     isValued: boolean;
     value: number | null;
     group: string;
+    rules: ConditionRule[];
 }
 
 export interface LoadedArmor {
@@ -383,6 +405,48 @@ function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
 
     const sys = raw.system as RawConditionSystem;
 
+    // Parse rules into our format
+    const rules: ConditionRule[] = [];
+    if (sys.rules && Array.isArray(sys.rules)) {
+        for (const rule of sys.rules) {
+            if (rule.key === 'FlatModifier' && rule.selector && rule.value) {
+                // Map FoundryVTT selectors to our types
+                let selector: ConditionRuleSelector = 'all';
+                const rawSelector = String(rule.selector).toLowerCase();
+
+                if (rawSelector === 'all') selector = 'all';
+                else if (rawSelector === 'dex-based') selector = 'dex-based';
+                else if (rawSelector === 'str-based') selector = 'str-based';
+                else if (rawSelector === 'con-based') selector = 'con-based';
+                else if (rawSelector === 'int-based') selector = 'int-based';
+                else if (rawSelector === 'wis-based') selector = 'wis-based';
+                else if (rawSelector === 'cha-based') selector = 'cha-based';
+                else if (rawSelector === 'attack' || rawSelector === 'attack-roll') selector = 'attack';
+                else if (rawSelector === 'ac') selector = 'ac';
+                else if (rawSelector.includes('save') || rawSelector.includes('saving')) selector = 'saving-throw';
+                else if (rawSelector === 'perception') selector = 'perception';
+                else if (rawSelector === 'speed') selector = 'speed';
+                else selector = 'all'; // Default fallback
+
+                // Parse type
+                const ruleType = (rule.type || 'status') as ConditionRule['type'];
+
+                // Parse value - handle formulas like "-@item.badge.value"
+                let value = 0;
+                if (typeof rule.value === 'number') {
+                    value = rule.value;
+                } else if (typeof rule.value === 'string') {
+                    // For formulas, we'll store -1 as placeholder (actual value computed at runtime)
+                    if (rule.value.includes('@item.badge.value')) {
+                        value = -1; // Marker that this uses the condition's value
+                    }
+                }
+
+                rules.push({ selector, type: ruleType, value });
+            }
+        }
+    }
+
     return {
         id: raw._id,
         name: raw.name,
@@ -390,6 +454,7 @@ function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
         isValued: sys.value?.isValued || false,
         value: sys.value?.value || null,
         group: sys.group || '',
+        rules,
     };
 }
 

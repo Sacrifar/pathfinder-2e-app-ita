@@ -78,6 +78,20 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
         return location.pathname.startsWith(path);
     };
 
+    // Check if we're on the home page - render without sidebar/navigation
+    const isHomePage = location.pathname === '/';
+
+    if (isHomePage) {
+        // Full-screen home page without sidebar
+        return (
+            <div className="app-container app-fullscreen">
+                <main className="main-content main-content-fullscreen">
+                    {children}
+                </main>
+            </div>
+        );
+    }
+
     if (isDesktop) {
         // Desktop Layout with Sidebar
         return (

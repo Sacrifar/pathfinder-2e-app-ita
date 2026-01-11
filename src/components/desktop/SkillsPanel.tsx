@@ -6,6 +6,7 @@ import { Proficiency } from '../../types';
 export interface SkillDisplay extends SkillDefinition {
     modifier: number;
     proficiency: Proficiency;
+    hasPenalty?: boolean;
 }
 
 interface SkillsPanelProps {
@@ -39,11 +40,11 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
                     {leftColumn.map((skill) => (
                         <div
                             key={skill.id}
-                            className="skill-row"
+                            className={`skill-row ${skill.hasPenalty ? 'has-penalty' : ''}`}
                             onClick={() => onSkillClick(skill)}
                         >
                             <span className="skill-name">{getSkillName(skill)}</span>
-                            <span className={`skill-modifier ${skill.modifier >= 0 ? 'positive' : 'negative'}`}>
+                            <span className={`skill-modifier ${skill.hasPenalty ? 'penalty' : skill.modifier >= 0 ? 'positive' : 'negative'}`}>
                                 {formatModifier(skill.modifier)}
                             </span>
                         </div>
@@ -53,11 +54,11 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
                     {rightColumn.map((skill) => (
                         <div
                             key={skill.id}
-                            className="skill-row"
+                            className={`skill-row ${skill.hasPenalty ? 'has-penalty' : ''}`}
                             onClick={() => onSkillClick(skill)}
                         >
                             <span className="skill-name">{getSkillName(skill)}</span>
-                            <span className={`skill-modifier ${skill.modifier >= 0 ? 'positive' : 'negative'}`}>
+                            <span className={`skill-modifier ${skill.hasPenalty ? 'penalty' : skill.modifier >= 0 ? 'positive' : 'negative'}`}>
                                 {formatModifier(skill.modifier)}
                             </span>
                         </div>

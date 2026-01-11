@@ -22,6 +22,8 @@ const translations: Record<Language, Record<string, string>> = {
         'home.subtitle': 'Create and manage your Pathfinder Second Edition characters',
         'home.newCharacter': 'New Character',
         'home.myCharacters': 'My Characters',
+        'home.createCharacter': 'Create Character',
+        'home.loadCharacter': 'Load Character',
         'home.classes': 'Classes',
         'home.ancestries': 'Ancestries',
         'home.backgrounds': 'Backgrounds',
@@ -75,6 +77,14 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.next': 'Next →',
         'builder.back': '← Back',
         'builder.continue': 'Continue →',
+        'builder.skillTraining': 'Skill Training',
+        'builder.classSkillSlots': 'Class Skill Slots',
+        'builder.intBonus': 'INT Bonus',
+        'builder.totalSlots': 'Total Slots',
+        'builder.selected': 'Selected',
+        'builder.autoTrainedSkills': 'Class-Trained Skills',
+        'builder.chooseSkills': 'Choose Additional Skills',
+        'builder.levelUpBoosts': 'Level-Up Boosts',
 
         // Abilities
         'ability.str': 'Strength',
@@ -119,6 +129,10 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.addCondition': 'Add Condition',
         'actions.addCustomBuff': 'Add Custom Buff',
         'actions.addWeapon': 'Add Weapon',
+        'actions.cancel': 'Cancel',
+        'actions.apply': 'Apply',
+        'actions.select': 'Select',
+        'actions.close': 'Close',
 
         // Stats
         'stats.speed': 'Speed',
@@ -240,6 +254,8 @@ const translations: Record<Language, Record<string, string>> = {
         'home.subtitle': 'Crea e gestisci i tuoi personaggi per Pathfinder Second Edition',
         'home.newCharacter': 'Nuovo Personaggio',
         'home.myCharacters': 'I Miei Personaggi',
+        'home.createCharacter': 'Crea Personaggio',
+        'home.loadCharacter': 'Carica Personaggio',
         'home.classes': 'Classi',
         'home.ancestries': 'Stirpi',
         'home.backgrounds': 'Background',
@@ -293,6 +309,14 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.next': 'Avanti →',
         'builder.back': '← Indietro',
         'builder.continue': 'Continua →',
+        'builder.skillTraining': 'Addestramento Abilità',
+        'builder.classSkillSlots': 'Slot Abilità Classe',
+        'builder.intBonus': 'Bonus INT',
+        'builder.totalSlots': 'Slot Totali',
+        'builder.selected': 'Selezionate',
+        'builder.autoTrainedSkills': 'Abilità dalla Classe',
+        'builder.chooseSkills': 'Scegli Abilità Aggiuntive',
+        'builder.levelUpBoosts': 'Incrementi di Livello',
 
         // Abilities
         'ability.str': 'Forza',
@@ -337,6 +361,10 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.addCondition': 'Aggiungi Condizione',
         'actions.addCustomBuff': 'Aggiungi Bonus',
         'actions.addWeapon': 'Aggiungi Arma',
+        'actions.cancel': 'Annulla',
+        'actions.apply': 'Applica',
+        'actions.select': 'Seleziona',
+        'actions.close': 'Chiudi',
 
         // Stats
         'stats.speed': 'Velocità',

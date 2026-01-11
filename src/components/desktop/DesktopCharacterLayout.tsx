@@ -13,10 +13,17 @@ import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
 import { ActiveConditions } from './ActiveConditions';
 import { ConditionBrowser } from './ConditionBrowser';
-import { LoadedCondition } from '../../data/pf2e-loader';
+import { LoadedCondition, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
 import { ancestries, classes, backgrounds, skills as skillsData } from '../../data';
+import {
+    calculateConditionPenalties,
+    getSkillPenalty,
+    getACPenalty,
+    getPerceptionPenalty,
+    ConditionPenalties
+} from '../../utils/conditionModifiers';
 
 interface ActionData {
     id: string;
@@ -53,6 +60,10 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const ancestryName = selectedAncestry ? getName(selectedAncestry) : '';
     const className = selectedClass ? getName(selectedClass) : '';
     const backgroundName = selectedBackground ? getName(selectedBackground) : '';
+
+    // Calculate condition penalties once
+    const conditionPenalties = calculateConditionPenalties(character.conditions || []);
+
     // Build level sections for sidebar
     const buildSections = () => {
         const sections = [];
@@ -98,15 +109,28 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'boosts',
                     type: 'boost',
                     label: 'builder.abilityBoosts',
-                    value: 'Set', // Will be calculated
+                    value: (() => {
+                        const boosts = character.abilityBoosts;
+                        const totalBoosts =
+                            (boosts?.ancestry?.length || 0) +
+                            (boosts?.background?.length || 0) +
+                            (boosts?.class ? 1 : 0) +
+                            (boosts?.free?.length || 0);
+                        return totalBoosts > 0 ? `${totalBoosts} boosts` : '';
+                    })(),
                     required: true,
-                    onClick: () => onOpenSelection('boosts'),
+                    onClick: () => onOpenSelection('boost'),
                 },
                 {
                     id: 'ancestryFeat',
                     type: 'feat',
                     label: 'builder.ancestryFeat',
-                    value: feats.find(f => f.source === 'ancestry')?.featId || '',
+                    value: (() => {
+                        const featId = feats.find(f => f.source === 'ancestry')?.featId;
+                        if (!featId) return '';
+                        const allFeats = getFeats();
+                        return allFeats.find(f => f.id === featId)?.name || featId;
+                    })(),
                     required: true,
                     onClick: () => onOpenSelection('ancestryFeat'),
                 },
@@ -114,9 +138,25 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'classFeat1',
                     type: 'feat',
                     label: 'builder.classFeat',
-                    value: feats.find(f => f.source === 'class' && f.level === 1)?.featId || '',
+                    value: (() => {
+                        const featId = feats.find(f => f.source === 'class' && f.level === 1)?.featId;
+                        if (!featId) return '';
+                        const allFeats = getFeats();
+                        return allFeats.find(f => f.id === featId)?.name || featId;
+                    })(),
                     required: true,
                     onClick: () => onOpenSelection('classFeat'),
+                },
+                {
+                    id: 'skillTraining',
+                    type: 'skill',
+                    label: 'builder.skillTraining',
+                    value: (() => {
+                        const trainedCount = character.skills.filter(s => s.proficiency !== 'untrained').length;
+                        return trainedCount > 0 ? `${trainedCount} skills` : '';
+                    })(),
+                    required: true,
+                    onClick: () => onOpenSelection('skillTraining'),
                 },
             ],
         });
@@ -141,6 +181,86 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         value: feats.find(f => f.source === 'skill' && f.level === 2)?.featId || '',
                         required: true,
                         onClick: () => onOpenSelection('skillFeat'),
+                    },
+                ],
+            });
+        }
+
+        // Level 5 with Ability Boosts (4 free boosts)
+        if (character.level >= 5) {
+            sections.push({
+                level: 5,
+                choices: [
+                    {
+                        id: 'boosts5',
+                        type: 'boost',
+                        label: 'builder.levelUpBoosts',
+                        value: (() => {
+                            const levelBoosts = character.abilityBoosts?.levelUp?.[5] || [];
+                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                        })(),
+                        required: true,
+                        onClick: () => onOpenSelection('boost5'),
+                    },
+                ],
+            });
+        }
+
+        // Level 10 with Ability Boosts
+        if (character.level >= 10) {
+            sections.push({
+                level: 10,
+                choices: [
+                    {
+                        id: 'boosts10',
+                        type: 'boost',
+                        label: 'builder.levelUpBoosts',
+                        value: (() => {
+                            const levelBoosts = character.abilityBoosts?.levelUp?.[10] || [];
+                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                        })(),
+                        required: true,
+                        onClick: () => onOpenSelection('boost10'),
+                    },
+                ],
+            });
+        }
+
+        // Level 15 with Ability Boosts
+        if (character.level >= 15) {
+            sections.push({
+                level: 15,
+                choices: [
+                    {
+                        id: 'boosts15',
+                        type: 'boost',
+                        label: 'builder.levelUpBoosts',
+                        value: (() => {
+                            const levelBoosts = character.abilityBoosts?.levelUp?.[15] || [];
+                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                        })(),
+                        required: true,
+                        onClick: () => onOpenSelection('boost15'),
+                    },
+                ],
+            });
+        }
+
+        // Level 20 with Ability Boosts
+        if (character.level >= 20) {
+            sections.push({
+                level: 20,
+                choices: [
+                    {
+                        id: 'boosts20',
+                        type: 'boost',
+                        label: 'builder.levelUpBoosts',
+                        value: (() => {
+                            const levelBoosts = character.abilityBoosts?.levelUp?.[20] || [];
+                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                        })(),
+                        required: true,
+                        onClick: () => onOpenSelection('boost20'),
                     },
                 ],
             });
@@ -211,7 +331,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const getPerceptionMod = () => {
         const wisMod = Math.floor((character.abilityScores.wis - 10) / 2);
         const profBonus = getProficiencyBonus(character.perception, character.level || 1);
-        return wisMod + profBonus;
+        const penalty = getPerceptionPenalty(conditionPenalties);
+        return wisMod + profBonus + penalty;
     };
 
     const getClassDC = () => {
@@ -249,7 +370,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         // For now, we don't auto-add shield AC to the base AC
         // The shield bonus would be applied when using the Raise Shield action
 
-        return 10 + effectiveDex + profBonus + itemBonus;
+        const penalty = getACPenalty(conditionPenalties);
+
+        return 10 + effectiveDex + profBonus + itemBonus + penalty;
     };
 
     // Calculate all skills
@@ -275,14 +398,15 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 default: profBonus = 0;
             }
 
-            // 4. Calculate Total Modifier
-            // TODO: Add item bonuses, status bonuses, armor penalties
-            const totalMod = abilityMod + profBonus;
+            // 4. Calculate Total Modifier including condition penalties
+            const conditionPenalty = getSkillPenalty(skill.ability, conditionPenalties);
+            const totalMod = abilityMod + profBonus + conditionPenalty;
 
             return {
                 ...skill,
                 modifier: totalMod,
-                proficiency: proficiency
+                proficiency: proficiency,
+                hasPenalty: conditionPenalty < 0
             };
         });
     };
