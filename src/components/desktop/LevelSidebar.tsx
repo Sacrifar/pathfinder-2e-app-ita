@@ -18,13 +18,54 @@ interface LevelSection {
 interface LevelSidebarProps {
     sections: LevelSection[];
     currentLevel: number;
+    onLevelChange?: (newLevel: number) => void;
 }
 
-export const LevelSidebar: React.FC<LevelSidebarProps> = ({ sections, currentLevel }) => {
+export const LevelSidebar: React.FC<LevelSidebarProps> = ({
+    sections,
+    currentLevel,
+    onLevelChange,
+}) => {
     const { t } = useLanguage();
+
+    const handleLevelUp = () => {
+        if (currentLevel < 20 && onLevelChange) {
+            onLevelChange(currentLevel + 1);
+        }
+    };
+
+    const handleLevelDown = () => {
+        if (currentLevel > 1 && onLevelChange) {
+            onLevelChange(currentLevel - 1);
+        }
+    };
 
     return (
         <div className="level-sidebar">
+            {/* Level Selector Header */}
+            <div className="level-selector-header">
+                <div className="level-badge-container">
+                    <button
+                        className="level-change-btn"
+                        onClick={handleLevelDown}
+                        disabled={currentLevel <= 1}
+                    >
+                        −
+                    </button>
+                    <div className="level-badge">
+                        <span className="level-number">{currentLevel}</span>
+                    </div>
+                    <button
+                        className="level-change-btn"
+                        onClick={handleLevelUp}
+                        disabled={currentLevel >= 20}
+                    >
+                        +
+                    </button>
+                </div>
+                <span className="level-label">{t('builder.level') || 'Level'}</span>
+            </div>
+
             {sections.map((section) => (
                 <div key={section.level} className="level-section">
                     <div className="level-header">
@@ -79,3 +120,4 @@ export const LevelSidebar: React.FC<LevelSidebarProps> = ({ sections, currentLev
 };
 
 export default LevelSidebar;
+

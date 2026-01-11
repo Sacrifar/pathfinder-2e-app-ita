@@ -85,6 +85,9 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.autoTrainedSkills': 'Class-Trained Skills',
         'builder.chooseSkills': 'Choose Additional Skills',
         'builder.levelUpBoosts': 'Level-Up Boosts',
+        'builder.skillIncrease': 'Skill Increase',
+        'builder.generalFeat': 'General Feat',
+        'builder.skillFeat': 'Skill Feat',
 
         // Abilities
         'ability.str': 'Strength',
@@ -317,6 +320,9 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.autoTrainedSkills': 'Abilità dalla Classe',
         'builder.chooseSkills': 'Scegli Abilità Aggiuntive',
         'builder.levelUpBoosts': 'Incrementi di Livello',
+        'builder.skillIncrease': 'Aumento Abilità',
+        'builder.generalFeat': 'Talento Generale',
+        'builder.skillFeat': 'Talento di Abilità',
 
         // Abilities
         'ability.str': 'Forza',

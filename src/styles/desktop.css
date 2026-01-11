@@ -91,8 +91,54 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
     font-size: 16px;
     font-weight: 500;
+}
+
+.level-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.level-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--desktop-text);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.level-btn:hover:not(:disabled) {
+    background: var(--desktop-accent-red);
+    color: white;
+}
+
+.level-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.level-display {
+    min-width: 50px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-accent-blue);
 }
 
 .topbar-right {
@@ -132,6 +178,75 @@
     border-right: 1px solid var(--desktop-border);
     overflow-y: auto;
     height: calc(100vh - 48px);
+}
+
+/* Level Selector Header */
+.level-selector-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--desktop-border);
+    background: var(--desktop-bg);
+}
+
+.level-badge-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.level-badge {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--desktop-accent-red), #ff6b35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(196, 43, 43, 0.4);
+}
+
+.level-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+}
+
+.level-change-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--desktop-border);
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.level-change-btn:hover:not(:disabled) {
+    border-color: var(--desktop-accent-red);
+    background: var(--desktop-accent-red);
+    color: white;
+}
+
+.level-change-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.level-label {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .level-section {
@@ -3418,4 +3533,107 @@
 .modal-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* ===== Skill Increase Modal ===== */
+.skill-increase-modal {
+    max-width: 600px;
+}
+
+.skill-increase-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.skill-increase-info {
+    text-align: center;
+    padding: 12px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 8px;
+}
+
+.skill-increase-info p {
+    margin: 0;
+    color: var(--desktop-text-secondary);
+    font-size: 13px;
+}
+
+.skill-increase-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skill-increase-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--desktop-bg-tertiary);
+    border: 2px solid var(--desktop-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.skill-increase-option:hover {
+    border-color: var(--desktop-accent-red);
+}
+
+.skill-increase-option.selected {
+    border-color: var(--desktop-accent-green);
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.skill-increase-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.skill-increase-progression {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prof-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.prof-badge.untrained {
+    background: var(--prof-untrained);
+    color: white;
+}
+
+.prof-badge.trained {
+    background: var(--desktop-bg);
+    border: 1px solid var(--prof-trained);
+}
+
+.prof-badge.expert {
+    background: var(--prof-expert);
+    color: white;
+}
+
+.prof-badge.master {
+    background: var(--prof-master);
+    color: black;
+}
+
+.prof-badge.legendary {
+    background: var(--prof-legendary);
+    color: white;
+}
+
+.skill-increase-progression .arrow {
+    color: var(--desktop-accent-green);
+    font-weight: 600;
 }

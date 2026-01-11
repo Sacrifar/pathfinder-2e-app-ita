@@ -7,6 +7,7 @@ interface TopBarProps {
     level: number;
     onMenuClick: () => void;
     onRestClick: () => void;
+    onLevelChange?: (newLevel: number) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -15,8 +16,21 @@ export const TopBar: React.FC<TopBarProps> = ({
     level,
     onMenuClick,
     onRestClick,
+    onLevelChange,
 }) => {
     const { t, language, toggleLanguage } = useLanguage();
+
+    const handleLevelUp = () => {
+        if (level < 20 && onLevelChange) {
+            onLevelChange(level + 1);
+        }
+    };
+
+    const handleLevelDown = () => {
+        if (level > 1 && onLevelChange) {
+            onLevelChange(level - 1);
+        }
+    };
 
     return (
         <div className="desktop-topbar">
@@ -28,7 +42,30 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="topbar-center">
-                {characterName || t('character.unnamed')} - {className} {level}
+                <span className="character-info">
+                    {characterName || t('character.unnamed')} - {className}
+                </span>
+                <div className="level-controls">
+                    <button
+                        className="level-btn"
+                        onClick={handleLevelDown}
+                        disabled={level <= 1}
+                        title="Level Down"
+                    >
+                        −
+                    </button>
+                    <span className="level-display">
+                        {t('builder.level') || 'Lv'} {level}
+                    </span>
+                    <button
+                        className="level-btn"
+                        onClick={handleLevelUp}
+                        disabled={level >= 20}
+                        title="Level Up"
+                    >
+                        +
+                    </button>
+                </div>
             </div>
 
             <div className="topbar-right">

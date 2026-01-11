@@ -421,12 +421,56 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 level={character.level || 1}
                 onMenuClick={() => setMenuOpen(!menuOpen)}
                 onRestClick={handleRest}
+                onLevelChange={(newLevel) => {
+                    // Cleanup on level down: remove feats and boosts above new level
+                    const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
+                    const cleanedLevelUp: Record<number, string[]> = {};
+                    if (character.abilityBoosts?.levelUp) {
+                        for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
+                            if (parseInt(lvl) <= newLevel) {
+                                cleanedLevelUp[parseInt(lvl)] = boosts;
+                            }
+                        }
+                    }
+
+                    onCharacterUpdate({
+                        ...character,
+                        level: newLevel,
+                        feats: cleanedFeats,
+                        abilityBoosts: {
+                            ...character.abilityBoosts,
+                            levelUp: cleanedLevelUp,
+                        },
+                    });
+                }}
             />
 
             <div className="desktop-main">
                 <LevelSidebar
                     sections={buildSections()}
                     currentLevel={character.level || 1}
+                    onLevelChange={(newLevel) => {
+                        // Cleanup on level down: remove feats and boosts above new level
+                        const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
+                        const cleanedLevelUp: Record<number, string[]> = {};
+                        if (character.abilityBoosts?.levelUp) {
+                            for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
+                                if (parseInt(lvl) <= newLevel) {
+                                    cleanedLevelUp[parseInt(lvl)] = boosts;
+                                }
+                            }
+                        }
+
+                        onCharacterUpdate({
+                            ...character,
+                            level: newLevel,
+                            feats: cleanedFeats,
+                            abilityBoosts: {
+                                ...character.abilityBoosts,
+                                levelUp: cleanedLevelUp,
+                            },
+                        });
+                    }}
                 />
 
                 <div className="desktop-content">
