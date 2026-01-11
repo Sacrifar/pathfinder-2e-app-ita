@@ -33,6 +33,24 @@ const conditionModules = import.meta.glob<{ default: unknown }>(
     { eager: true }
 );
 
+// Import all ancestry JSON files
+const ancestryModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/ancestries/*.json',
+    { eager: true }
+);
+
+// Import all heritage JSON files (all subfolders)
+const heritageModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/heritages/**/*.json',
+    { eager: true }
+);
+
+// Import all class JSON files
+const classModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/classes/*.json',
+    { eager: true }
+);
+
 // ============ Types for raw FoundryVTT data ============
 
 interface RawPF2eItem {
@@ -132,6 +150,47 @@ interface RawShieldSystem {
     level: { value: number };
     description: { value: string };
     traits: { rarity: string; value: string[] };
+}
+
+interface RawAncestrySystem {
+    hp: number;
+    speed: number;
+    size: string;
+    boosts: Record<string, { value: string[] }>;
+    flaws: Record<string, { value: string[] }>;
+    languages: { value: string[]; custom: string };
+    additionalLanguages: { count: number; value: string[]; custom: string };
+    description: { value: string };
+    traits: { rarity: string; value: string[] };
+    vision: string;
+    publication: { title: string; license: string; remaster: boolean };
+}
+
+interface RawHeritageSystem {
+    ancestry: { name: string; slug: string; uuid: string } | null;
+    description: { value: string };
+    traits: { rarity: string; value: string[] };
+    publication: { title: string; license: string; remaster: boolean };
+}
+
+interface RawClassSystem {
+    hp: number;
+    keyAbility: { value: string[] };
+    perception: number;
+    savingThrows: { fortitude: number; reflex: number; will: number };
+    attacks: { simple: number; martial: number; advanced: number; unarmed: number; other?: { name: string; rank: number } };
+    defenses: { unarmored: number; light: number; medium: number; heavy: number };
+    trainedSkills: { value: string[]; additional: number };
+    ancestryFeatLevels: { value: number[] };
+    classFeatLevels: { value: number[] };
+    generalFeatLevels: { value: number[] };
+    skillFeatLevels: { value: number[] };
+    skillIncreaseLevels: { value: number[] };
+    spellcasting: number;
+    description: { value: string };
+    traits: { rarity: string; value: string[] };
+    items: Record<string, { name: string; level: number; img: string; uuid: string }>;
+    publication: { title: string; license: string; remaster: boolean };
 }
 
 // ============ App-friendly types ============
@@ -255,6 +314,72 @@ export interface LoadedShield {
     traits: string[];
     rarity: string;
     description: string;
+}
+
+export interface LoadedAncestry {
+    id: string;
+    name: string;
+    hp: number;
+    speed: number;
+    size: 'tiny' | 'small' | 'medium' | 'large';
+    boosts: string[]; // Ability abbreviations
+    flaws: string[];
+    languages: string[];
+    bonusLanguages: number;
+    traits: string[];
+    rarity: string;
+    vision: string;
+    description: string;
+    source: string;
+    remaster: boolean;
+}
+
+export interface LoadedHeritage {
+    id: string;
+    name: string;
+    ancestrySlug: string | null; // null for versatile heritages
+    traits: string[];
+    rarity: string;
+    description: string;
+    source: string;
+    remaster: boolean;
+}
+
+export interface LoadedClass {
+    id: string;
+    name: string;
+    hp: number;
+    keyAbility: string[];
+    perception: number;
+    fortitude: number;
+    reflex: number;
+    will: number;
+    attacks: {
+        simple: number;
+        martial: number;
+        advanced: number;
+        unarmed: number;
+    };
+    defenses: {
+        unarmored: number;
+        light: number;
+        medium: number;
+        heavy: number;
+    };
+    trainedSkills: string[];
+    additionalSkills: number;
+    ancestryFeatLevels: number[];
+    classFeatLevels: number[];
+    generalFeatLevels: number[];
+    skillFeatLevels: number[];
+    skillIncreaseLevels: number[];
+    hasSpellcasting: boolean;
+    traits: string[];
+    rarity: string;
+    description: string;
+    source: string;
+    remaster: boolean;
+    classFeatures: Array<{ name: string; level: number }>;
 }
 
 // ============ Transform Functions ============
@@ -508,6 +633,141 @@ function transformShield(raw: RawPF2eItem): LoadedShield | null {
     };
 }
 
+function transformAncestry(raw: RawPF2eItem): LoadedAncestry | null {
+    if (raw.type !== 'ancestry') return null;
+
+    const sys = raw.system as RawAncestrySystem;
+
+    // Extract boosts from the record structure
+    const boosts: string[] = [];
+    if (sys.boosts) {
+        for (const key of Object.keys(sys.boosts)) {
+            const boost = sys.boosts[key];
+            if (boost.value && boost.value.length > 0) {
+                // If only one option, it's a fixed boost
+                if (boost.value.length === 1) {
+                    boosts.push(boost.value[0]);
+                } else if (boost.value.length === 6) {
+                    boosts.push('free'); // All 6 abilities = free choice
+                }
+            }
+        }
+    }
+
+    // Extract flaws
+    const flaws: string[] = [];
+    if (sys.flaws) {
+        for (const key of Object.keys(sys.flaws)) {
+            const flaw = sys.flaws[key];
+            if (flaw.value && flaw.value.length > 0) {
+                flaws.push(...flaw.value);
+            }
+        }
+    }
+
+    // Map size
+    const sizeMap: Record<string, 'tiny' | 'small' | 'medium' | 'large'> = {
+        'tiny': 'tiny',
+        'sm': 'small',
+        'small': 'small',
+        'med': 'medium',
+        'medium': 'medium',
+        'lg': 'large',
+        'large': 'large',
+    };
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        hp: sys.hp || 8,
+        speed: sys.speed || 25,
+        size: sizeMap[sys.size?.toLowerCase()] || 'medium',
+        boosts,
+        flaws,
+        languages: sys.languages?.value || [],
+        bonusLanguages: sys.additionalLanguages?.count || 0,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        vision: sys.vision || 'normal',
+        description: stripHtml(sys.description?.value || ''),
+        source: sys.publication?.title || '',
+        remaster: sys.publication?.remaster || false,
+    };
+}
+
+function transformHeritage(raw: RawPF2eItem): LoadedHeritage | null {
+    if (raw.type !== 'heritage') return null;
+
+    const sys = raw.system as RawHeritageSystem;
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        ancestrySlug: sys.ancestry?.slug || null,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+        source: sys.publication?.title || '',
+        remaster: sys.publication?.remaster || false,
+    };
+}
+
+function transformClass(raw: RawPF2eItem): LoadedClass | null {
+    if (raw.type !== 'class') return null;
+
+    const sys = raw.system as RawClassSystem;
+
+    // Extract class features from items
+    const classFeatures: Array<{ name: string; level: number }> = [];
+    if (sys.items) {
+        for (const key of Object.keys(sys.items)) {
+            const item = sys.items[key];
+            if (item.name && item.level !== undefined) {
+                classFeatures.push({ name: item.name, level: item.level });
+            }
+        }
+    }
+    // Sort by level
+    classFeatures.sort((a, b) => a.level - b.level);
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        hp: sys.hp || 8,
+        keyAbility: sys.keyAbility?.value || [],
+        perception: sys.perception || 1,
+        fortitude: sys.savingThrows?.fortitude || 1,
+        reflex: sys.savingThrows?.reflex || 1,
+        will: sys.savingThrows?.will || 1,
+        attacks: {
+            simple: sys.attacks?.simple || 0,
+            martial: sys.attacks?.martial || 0,
+            advanced: sys.attacks?.advanced || 0,
+            unarmed: sys.attacks?.unarmed || 0,
+        },
+        defenses: {
+            unarmored: sys.defenses?.unarmored || 0,
+            light: sys.defenses?.light || 0,
+            medium: sys.defenses?.medium || 0,
+            heavy: sys.defenses?.heavy || 0,
+        },
+        trainedSkills: sys.trainedSkills?.value || [],
+        additionalSkills: sys.trainedSkills?.additional || 0,
+        ancestryFeatLevels: sys.ancestryFeatLevels?.value || [],
+        classFeatLevels: sys.classFeatLevels?.value || [],
+        generalFeatLevels: sys.generalFeatLevels?.value || [],
+        skillFeatLevels: sys.skillFeatLevels?.value || [],
+        skillIncreaseLevels: sys.skillIncreaseLevels?.value || [],
+        hasSpellcasting: sys.spellcasting > 0,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+        source: sys.publication?.title || '',
+        remaster: sys.publication?.remaster || false,
+        classFeatures,
+    };
+}
+
 function stripHtml(html: string): string {
     return html
         .replace(/<[^>]*>/g, '')
@@ -528,6 +788,9 @@ let cachedFeats: LoadedFeat[] | null = null;
 let cachedConditions: LoadedCondition[] | null = null;
 let cachedArmor: LoadedArmor[] | null = null;
 let cachedShields: LoadedShield[] | null = null;
+let cachedAncestries: LoadedAncestry[] | null = null;
+let cachedHeritages: LoadedHeritage[] | null = null;
+let cachedClasses: LoadedClass[] | null = null;
 
 // ============ Public API ============
 
@@ -772,5 +1035,110 @@ export function getDataStats() {
         conditions: getConditions().length,
         armor: getArmor().length,
         shields: getShields().length,
+        ancestries: getAncestries().length,
+        heritages: getHeritages().length,
+        classes: getClasses().length,
     };
+}
+
+// ============ Ancestry API ============
+
+export function getAncestries(): LoadedAncestry[] {
+    if (cachedAncestries) return cachedAncestries;
+
+    const ancestries: LoadedAncestry[] = [];
+
+    for (const path in ancestryModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = ancestryModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const ancestry = transformAncestry(raw as RawPF2eItem);
+        if (ancestry) {
+            ancestries.push(ancestry);
+        }
+    }
+
+    // Sort by name
+    ancestries.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedAncestries = ancestries;
+    return ancestries;
+}
+
+export function getAncestryById(id: string): LoadedAncestry | undefined {
+    return getAncestries().find(a => a.id === id);
+}
+
+export function getAncestryByName(name: string): LoadedAncestry | undefined {
+    return getAncestries().find(a => a.name.toLowerCase() === name.toLowerCase());
+}
+
+// ============ Heritage API ============
+
+export function getHeritages(): LoadedHeritage[] {
+    if (cachedHeritages) return cachedHeritages;
+
+    const heritages: LoadedHeritage[] = [];
+
+    for (const path in heritageModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = heritageModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const heritage = transformHeritage(raw as RawPF2eItem);
+        if (heritage) {
+            heritages.push(heritage);
+        }
+    }
+
+    // Sort by name
+    heritages.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedHeritages = heritages;
+    return heritages;
+}
+
+export function getHeritagesForAncestry(ancestrySlug: string): LoadedHeritage[] {
+    return getHeritages().filter(h => h.ancestrySlug === ancestrySlug);
+}
+
+export function getVersatileHeritages(): LoadedHeritage[] {
+    return getHeritages().filter(h => h.ancestrySlug === null);
+}
+
+// ============ Class API ============
+
+export function getClasses(): LoadedClass[] {
+    if (cachedClasses) return cachedClasses;
+
+    const classes: LoadedClass[] = [];
+
+    for (const path in classModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = classModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const classDef = transformClass(raw as RawPF2eItem);
+        if (classDef) {
+            classes.push(classDef);
+        }
+    }
+
+    // Sort by name
+    classes.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedClasses = classes;
+    return classes;
+}
+
+export function getClassById(id: string): LoadedClass | undefined {
+    return getClasses().find(c => c.id === id);
+}
+
+export function getClassByName(name: string): LoadedClass | undefined {
+    return getClasses().find(c => c.name.toLowerCase() === name.toLowerCase());
 }

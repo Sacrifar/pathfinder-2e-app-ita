@@ -16,7 +16,7 @@ import { ConditionBrowser } from './ConditionBrowser';
 import { LoadedCondition, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
-import { ancestries, classes, backgrounds, skills as skillsData } from '../../data';
+import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
 import {
     calculateConditionPenalties,
     getSkillPenalty,
@@ -56,10 +56,12 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
     const selectedClass = classes.find(c => c.id === character.classId);
     const selectedBackground = backgrounds.find(b => b.id === character.backgroundId);
+    const selectedHeritage = heritages.find(h => h.id === character.heritageId);
 
     const ancestryName = selectedAncestry ? getName(selectedAncestry) : '';
     const className = selectedClass ? getName(selectedClass) : '';
     const backgroundName = selectedBackground ? getName(selectedBackground) : '';
+    const heritageName = selectedHeritage ? getName(selectedHeritage) : '';
 
     // Calculate condition penalties once
     const conditionPenalties = calculateConditionPenalties(character.conditions || []);
@@ -85,7 +87,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'heritage',
                     type: 'heritage',
                     label: 'builder.heritage',
-                    value: character.heritageId || '',
+                    value: heritageName,
                     required: true,
                     onClick: () => onOpenSelection('heritage'),
                 },

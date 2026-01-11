@@ -76,7 +76,8 @@ export const LevelSidebar: React.FC<LevelSidebarProps> = ({
                             <div
                                 key={choice.id}
                                 className={`build-choice ${choice.value ? 'selected' : 'not-selected'}`}
-                                onClick={choice.onClick}
+                                onClick={choice.onClick || (() => { })}
+
                             >
                                 <div className="build-choice-icon">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

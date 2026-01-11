@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
-import { CharacterFeat } from '../../types';
+import { CharacterFeat, Character } from '../../types';
+import { checkPrerequisites, extractSkillFromPrerequisites } from '../../utils/prereqValidator';
+import { skills as allSkills, getAncestryById, getClassById } from '../../data';
 
 type FeatCategory = 'all' | 'ancestry' | 'class' | 'skill' | 'general' | 'archetype';
 
@@ -12,6 +14,8 @@ interface FeatBrowserProps {
     characterLevel?: number;
     ancestryId?: string; // For filtering ancestry-specific feats
     classId?: string; // For filtering class-specific feats
+    character?: Character; // For prerequisite validation
+    skillFilter?: string; // For filtering skill feats by skill
 }
 
 export const FeatBrowser: React.FC<FeatBrowserProps> = ({
@@ -21,12 +25,16 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
     characterLevel = 20,
     ancestryId,
     classId,
+    character,
+    skillFilter,
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<FeatCategory>(filterCategory || 'all');
     const [levelFilter, setLevelFilter] = useState<number | null>(null);
     const [selectedFeat, setSelectedFeat] = useState<LoadedFeat | null>(null);
+    const [hideUnavailable, setHideUnavailable] = useState(false);
+    const [selectedSkillFilter, setSelectedSkillFilter] = useState<string | null>(skillFilter || null);
 
     // Load all feats
     const allFeats = useMemo(() => getFeats(), []);
@@ -48,19 +56,39 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
 
         // Additional filtering for ancestry/class specific feats
         if (categoryFilter === 'ancestry' && ancestryId) {
-            // Filter by ancestry trait (e.g., "Human", "Elf", etc.)
-            feats = feats.filter(f =>
-                f.traits.some(t => t.toLowerCase() === ancestryId.toLowerCase()) ||
-                !f.traits.some(t => ['human', 'elf', 'dwarf', 'gnome', 'halfling', 'goblin', 'orc', 'leshy'].includes(t.toLowerCase()))
-            );
+            // Get the ancestry name from ID
+            const ancestry = getAncestryById(ancestryId);
+            if (!ancestry) {
+                // If ancestry not found, show no feats
+                feats = [];
+            } else {
+                const ancestryName = ancestry.name?.toLowerCase() || ancestryId.toLowerCase();
+
+                // Filter by ancestry trait - show ONLY feats with matching trait
+                // This excludes feats with other ancestry traits and generic feats without specific ancestry traits
+                feats = feats.filter(f => {
+                    // Check if feat has the selected ancestry as a trait
+                    return f.traits.some(t => t.toLowerCase() === ancestryName);
+                });
+            }
         }
 
         if (categoryFilter === 'class' && classId) {
-            // Filter by class trait
-            feats = feats.filter(f =>
-                f.traits.some(t => t.toLowerCase() === classId.toLowerCase()) ||
-                !f.traits.some(t => ['fighter', 'rogue', 'wizard', 'cleric', 'ranger', 'barbarian', 'bard', 'champion', 'druid', 'monk', 'sorcerer', 'alchemist'].includes(t.toLowerCase()))
-            );
+            // Get the class name from ID
+            const cls = getClassById(classId);
+            if (!cls) {
+                // If class not found, show no feats
+                feats = [];
+            } else {
+                const className = cls.name?.toLowerCase() || classId.toLowerCase();
+
+                // Filter by class trait - show ONLY feats with matching trait
+                // This excludes feats with other class traits and generic feats without specific class traits
+                feats = feats.filter(f => {
+                    // Check if feat has the selected class as a trait
+                    return f.traits.some(t => t.toLowerCase() === className);
+                });
+            }
         }
 
         // Filter by level
@@ -78,8 +106,21 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
             );
         }
 
+        // Filter skill feats by specific skill
+        if ((categoryFilter === 'skill' || filterCategory === 'skill') && selectedSkillFilter) {
+            feats = feats.filter(f => {
+                const skillReq = extractSkillFromPrerequisites(f.prerequisites);
+                return skillReq === selectedSkillFilter.toLowerCase();
+            });
+        }
+
+        // Filter out unavailable feats if option enabled
+        if (hideUnavailable && character) {
+            feats = feats.filter(f => checkPrerequisites(f, character).met);
+        }
+
         return feats.slice(0, 100);
-    }, [allFeats, categoryFilter, levelFilter, searchQuery, characterLevel, ancestryId, classId]);
+    }, [allFeats, categoryFilter, levelFilter, searchQuery, characterLevel, ancestryId, classId, selectedSkillFilter, hideUnavailable]);
 
     const getActionIcon = (actionType: LoadedFeat['actionType'], actionCost: number | null): string => {
         if (actionType === 'passive') return '◈';
@@ -163,6 +204,36 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                             ))}
                         </select>
                     </div>
+
+                    {/* Skill filter for skill feats */}
+                    {(categoryFilter === 'skill' || filterCategory === 'skill') && (
+                        <div className="filter-row">
+                            <select
+                                className="skill-filter"
+                                value={selectedSkillFilter ?? ''}
+                                onChange={e => setSelectedSkillFilter(e.target.value || null)}
+                            >
+                                <option value="">{t('filters.allSkills') || 'All Skills'}</option>
+                                {allSkills.map(skill => (
+                                    <option key={skill.id} value={skill.name.toLowerCase()}>
+                                        {language === 'it' ? (skill.nameIt || skill.name) : skill.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Hide unavailable toggle */}
+                    {character && (
+                        <label className="filter-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={hideUnavailable}
+                                onChange={e => setHideUnavailable(e.target.checked)}
+                            />
+                            {t('filters.hideUnavailable') || 'Hide unavailable'}
+                        </label>
+                    )}
                 </div>
 
                 <div className="browser-content">
@@ -172,34 +243,41 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                                 {t('search.noResults') || 'No feats found.'}
                             </div>
                         ) : (
-                            filteredFeats.map(feat => (
-                                <div
-                                    key={feat.id}
-                                    className={`browser-item ${selectedFeat?.id === feat.id ? 'selected' : ''}`}
-                                    onClick={() => setSelectedFeat(feat)}
-                                >
-                                    <div className="item-header">
-                                        <span className="item-name">{feat.name}</span>
-                                        <span className="item-action">
-                                            {getActionIcon(feat.actionType, feat.actionCost)}
-                                        </span>
-                                    </div>
-                                    <div className="item-meta">
-                                        <span className="item-level">Lv {feat.level}</span>
-                                        <span
-                                            className="item-category"
-                                            style={{ color: getCategoryColor(feat.category) }}
-                                        >
-                                            {feat.category}
-                                        </span>
-                                        {feat.rarity !== 'common' && (
-                                            <span className={`item-rarity rarity-${feat.rarity}`}>
-                                                {feat.rarity}
+                            filteredFeats.map(feat => {
+                                const prereqResult = character ? checkPrerequisites(feat, character) : { met: true, reasons: [] };
+
+                                return (
+                                    <div
+                                        key={feat.id}
+                                        className={`browser-item ${selectedFeat?.id === feat.id ? 'selected' : ''} ${!prereqResult.met ? 'prereq-unmet' : ''}`}
+                                        onClick={() => setSelectedFeat(feat)}
+                                    >
+                                        <div className="item-header">
+                                            <span className="item-name">
+                                                {!prereqResult.met && <span className="prereq-warning">⚠️</span>}
+                                                {feat.name}
                                             </span>
-                                        )}
+                                            <span className="item-action">
+                                                {getActionIcon(feat.actionType, feat.actionCost)}
+                                            </span>
+                                        </div>
+                                        <div className="item-meta">
+                                            <span className="item-level">Lv {feat.level}</span>
+                                            <span
+                                                className="item-category"
+                                                style={{ color: getCategoryColor(feat.category) }}
+                                            >
+                                                {feat.category}
+                                            </span>
+                                            {feat.rarity !== 'common' && (
+                                                <span className={`item-rarity rarity-${feat.rarity}`}>
+                                                    {feat.rarity}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
 

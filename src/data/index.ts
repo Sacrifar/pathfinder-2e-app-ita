@@ -1,4 +1,123 @@
-export * from './ancestries';
-export * from './classes';
+/**
+ * Data barrel - exports all data with translations
+ */
+
+// Export raw loader functions
+export * from './pf2e-loader';
+
+// Export translations
+export * from './translations';
+
+// Export backgrounds (still using manual file)
 export * from './backgrounds';
+
+// Export skills
 export * from './skills';
+
+// ============ Compatibility wrappers ============
+// These provide nameIt/descriptionIt for components that expect them
+
+import {
+    getAncestries as getAncestriesRaw,
+    getClasses as getClassesRaw,
+    getHeritages as getHeritagesRaw,
+    getHeritagesForAncestry as getHeritagesForAncestryRaw,
+    type LoadedAncestry,
+    type LoadedClass,
+    type LoadedHeritage,
+} from './pf2e-loader';
+
+import {
+    ancestryTranslations,
+    classTranslations,
+    heritageTranslations
+} from './translations';
+
+// Ancestry with translations
+export interface TranslatedAncestry extends LoadedAncestry {
+    nameIt?: string;
+    descriptionIt?: string;
+    hitPoints: number; // Alias for hp
+    abilityBoosts: string[];
+    abilityFlaws: string[];
+    features: Array<{ name: string; nameIt?: string; description: string; descriptionIt?: string }>;
+}
+
+export const ancestries: TranslatedAncestry[] = getAncestriesRaw().map(a => ({
+    ...a,
+    nameIt: ancestryTranslations[a.name]?.nameIt,
+    descriptionIt: ancestryTranslations[a.name]?.descriptionIt,
+    hitPoints: a.hp,
+    abilityBoosts: a.boosts,
+    abilityFlaws: a.flaws,
+    features: [], // Will be loaded separately if needed
+}));
+
+// Class with translations
+export interface TranslatedClass extends LoadedClass {
+    nameIt?: string;
+    descriptionIt?: string;
+    hitPoints: number;
+    spellcasting?: { tradition: string; type: string; ability: string } | null;
+    features: Array<{ level: number; name: string; nameIt?: string; description: string; descriptionIt?: string }>;
+}
+
+export const classes: TranslatedClass[] = getClassesRaw().map(c => ({
+    ...c,
+    nameIt: classTranslations[c.name]?.nameIt,
+    descriptionIt: classTranslations[c.name]?.descriptionIt,
+    hitPoints: c.hp,
+    spellcasting: c.hasSpellcasting ? { tradition: 'arcane', type: 'prepared', ability: 'int' } : null,
+    features: c.classFeatures.map(f => ({
+        level: f.level,
+        name: f.name,
+        nameIt: undefined, // Could add translations later
+        description: '',
+        descriptionIt: undefined,
+    })),
+}));
+
+// Heritage with translations
+export interface TranslatedHeritage extends LoadedHeritage {
+    nameIt?: string;
+    descriptionIt?: string;
+    ancestryId: string;
+    features: Array<{ name: string; nameIt?: string; description: string; descriptionIt?: string }>;
+}
+
+export const heritages: TranslatedHeritage[] = getHeritagesRaw().map(h => ({
+    ...h,
+    nameIt: heritageTranslations[h.name]?.nameIt,
+    descriptionIt: undefined,
+    ancestryId: h.ancestrySlug || '',
+    features: [], // Heritages features are embedded in description
+}));
+
+export function getHeritagesForAncestry(ancestryId: string): TranslatedHeritage[] {
+    // Find the ancestry by ID to get its name (which is the slug in heritages)
+    const ancestry = ancestries.find(a => a.id === ancestryId);
+
+    if (!ancestry) {
+        // Try direct slug match as fallback
+        return heritages.filter(h =>
+            h.ancestrySlug === ancestryId.toLowerCase()
+        );
+    }
+
+    // Match by ancestry name (lowercased = slug)
+    const ancestrySlug = ancestry.name.toLowerCase();
+
+    return heritages.filter(h =>
+        h.ancestrySlug === ancestrySlug
+    );
+}
+
+// Helper to get ancestry by ID
+export function getAncestryById(id: string) {
+    return ancestries.find(a => a.id === id || a.name.toLowerCase() === id.toLowerCase());
+}
+
+// Helper to get class by ID  
+export function getClassById(id: string) {
+    return classes.find(c => c.id === id || c.name.toLowerCase() === id.toLowerCase());
+}

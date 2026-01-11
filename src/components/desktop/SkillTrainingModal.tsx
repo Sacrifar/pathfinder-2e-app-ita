@@ -26,11 +26,11 @@ export const SkillTrainingModal: React.FC<SkillTrainingModalProps> = ({
     const intMod = Math.floor((character.abilityScores.int - 10) / 2);
 
     // Calculate total skill slots available
-    const classSkillSlots = selectedClass?.skills.additionalTrainedSkills || 0;
+    const classSkillSlots = selectedClass?.additionalSkills || 0;
     const totalSlots = classSkillSlots + Math.max(0, intMod);
 
     // Skills already trained by class (automatic)
-    const autoTrainedSkills = selectedClass?.skills.trained || [];
+    const autoTrainedSkills = selectedClass?.trainedSkills || [];
 
     // Initialize selected skills from character
     const [selectedSkills, setSelectedSkills] = useState<string[]>(() => {
