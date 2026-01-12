@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character } from '../../types';
-import { getActions } from '../../data/pf2e-loader';
+import { Character, Proficiency } from '../../types';
+import { getActions, getFeats, LoadedFeat } from '../../data/pf2e-loader';
 
 // Import action icons
 import actionSingle from '../../data/Azioni/action_single.png';
@@ -11,6 +11,76 @@ import actionFree from '../../data/Azioni/action_free.png';
 import actionReaction from '../../data/Azioni/action_reaction.png';
 
 type ActionCost = 'free' | 'reaction' | '1' | '2' | '3';
+type ActionSource = 'basic' | 'feat' | 'skill';
+
+// Basic action names that are always available
+const BASIC_ACTION_NAMES = [
+    'Strike', 'Stride', 'Step', 'Interact', 'Seek', 'Raise a Shield',
+    'Take Cover', 'Ready', 'Sustain', 'Sustain a Spell', 'Delay', 'Drop Prone', 'Stand',
+    'Escape', 'Aid', 'Crawl', 'Leap', 'Release', 'Point Out', 'Avert Gaze',
+    'Mount', 'Dismiss', 'Arrest a Fall', 'Grab an Edge', 'Maneuver in Flight',
+    'Squeeze', 'Burrow', 'Fly', 'Swim'
+];
+
+// Skill actions mapped to their required skill and minimum proficiency
+const SKILL_ACTION_REQUIREMENTS: Record<string, { skill: string; minProficiency: Proficiency }> = {
+    // Acrobatics
+    'Balance': { skill: 'acrobatics', minProficiency: 'untrained' },
+    'Tumble Through': { skill: 'acrobatics', minProficiency: 'untrained' },
+    'Maneuver in Flight': { skill: 'acrobatics', minProficiency: 'trained' },
+    'Squeeze': { skill: 'acrobatics', minProficiency: 'trained' },
+    // Athletics
+    'Climb': { skill: 'athletics', minProficiency: 'untrained' },
+    'Force Open': { skill: 'athletics', minProficiency: 'untrained' },
+    'Grapple': { skill: 'athletics', minProficiency: 'untrained' },
+    'High Jump': { skill: 'athletics', minProficiency: 'untrained' },
+    'Long Jump': { skill: 'athletics', minProficiency: 'untrained' },
+    'Shove': { skill: 'athletics', minProficiency: 'untrained' },
+    'Swim': { skill: 'athletics', minProficiency: 'untrained' },
+    'Trip': { skill: 'athletics', minProficiency: 'untrained' },
+    'Disarm': { skill: 'athletics', minProficiency: 'trained' },
+    // Stealth
+    'Hide': { skill: 'stealth', minProficiency: 'untrained' },
+    'Sneak': { skill: 'stealth', minProficiency: 'untrained' },
+    'Conceal an Object': { skill: 'stealth', minProficiency: 'untrained' },
+    // Thievery
+    'Palm an Object': { skill: 'thievery', minProficiency: 'untrained' },
+    'Steal': { skill: 'thievery', minProficiency: 'untrained' },
+    'Disable Device': { skill: 'thievery', minProficiency: 'trained' },
+    'Pick a Lock': { skill: 'thievery', minProficiency: 'trained' },
+    // Deception
+    'Create a Diversion': { skill: 'deception', minProficiency: 'untrained' },
+    'Feint': { skill: 'deception', minProficiency: 'trained' },
+    'Lie': { skill: 'deception', minProficiency: 'untrained' },
+    'Impersonate': { skill: 'deception', minProficiency: 'untrained' },
+    // Diplomacy
+    'Gather Information': { skill: 'diplomacy', minProficiency: 'untrained' },
+    'Make an Impression': { skill: 'diplomacy', minProficiency: 'untrained' },
+    'Request': { skill: 'diplomacy', minProficiency: 'untrained' },
+    // Intimidation
+    'Coerce': { skill: 'intimidation', minProficiency: 'untrained' },
+    'Demoralize': { skill: 'intimidation', minProficiency: 'untrained' },
+    // Medicine
+    'Administer First Aid': { skill: 'medicine', minProficiency: 'untrained' },
+    'Treat Disease': { skill: 'medicine', minProficiency: 'trained' },
+    'Treat Poison': { skill: 'medicine', minProficiency: 'trained' },
+    'Treat Wounds': { skill: 'medicine', minProficiency: 'trained' },
+    // Nature
+    'Command an Animal': { skill: 'nature', minProficiency: 'untrained' },
+    // Performance
+    'Perform': { skill: 'performance', minProficiency: 'untrained' },
+    // Crafting
+    'Repair': { skill: 'crafting', minProficiency: 'untrained' },
+    'Craft': { skill: 'crafting', minProficiency: 'trained' },
+    // Survival
+    'Sense Direction': { skill: 'survival', minProficiency: 'untrained' },
+    'Track': { skill: 'survival', minProficiency: 'trained' },
+    'Cover Tracks': { skill: 'survival', minProficiency: 'trained' },
+    'Subsist': { skill: 'survival', minProficiency: 'untrained' },
+};
+
+// Proficiency order for comparison
+const PROFICIENCY_ORDER: Proficiency[] = ['untrained', 'trained', 'expert', 'master', 'legendary'];
 
 interface Action {
     id: string;
@@ -19,6 +89,7 @@ interface Action {
     skill?: string;
     description: string;
     traits: string[];
+    source: ActionSource;
 }
 
 interface ActionsPanelProps {
@@ -26,41 +97,112 @@ interface ActionsPanelProps {
     onActionClick: (action: Action) => void;
 }
 
+// Helper to check if character meets proficiency requirement
+const meetsSkillRequirement = (
+    character: Character,
+    skillName: string,
+    minProficiency: Proficiency
+): boolean => {
+    const charSkill = character.skills.find(
+        s => s.name.toLowerCase() === skillName.toLowerCase()
+    );
+    const charProfLevel = PROFICIENCY_ORDER.indexOf(charSkill?.proficiency || 'untrained');
+    const requiredLevel = PROFICIENCY_ORDER.indexOf(minProficiency);
+    return charProfLevel >= requiredLevel;
+};
+
+// Helper to check if an action comes from a feat the character has
+const isActionFromCharacterFeat = (
+    actionName: string,
+    characterFeatIds: Set<string>,
+    allFeats: LoadedFeat[]
+): boolean => {
+    // Find feats that match the action name (feats often grant actions with the same name)
+    const matchingFeat = allFeats.find(f =>
+        f.name.toLowerCase() === actionName.toLowerCase() ||
+        f.name.toLowerCase().replace(/\s+/g, '-') === actionName.toLowerCase().replace(/\s+/g, '-')
+    );
+
+    if (matchingFeat && characterFeatIds.has(matchingFeat.id)) {
+        return true;
+    }
+
+    return false;
+};
+
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     character,
     onActionClick,
 }) => {
     const { t } = useLanguage();
-    const [filter, setFilter] = useState<ActionCost | 'all' | 'skill'>('all');
+    const [filter, setFilter] = useState<ActionCost | 'all' | 'skill' | 'feat'>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Load actions from pf2e data
-    const allActions = useMemo(() => {
+    // Load all feats for cross-referencing
+    const allFeats = useMemo(() => getFeats(), []);
+
+    // Get character's feat IDs
+    const characterFeatIds = useMemo(() => {
+        return new Set(character.feats?.map(f => f.featId) || []);
+    }, [character.feats]);
+
+    // Load and categorize actions from pf2e data
+    const { basicActions, skillActions, featActions } = useMemo(() => {
         const loaded = getActions();
-        return loaded.map((a): Action => ({
-            id: a.id,
-            name: a.name,
-            cost: a.cost,
-            description: a.description,
-            traits: a.traits,
-        }));
-    }, []);
+        const basic: Action[] = [];
+        const skill: Action[] = [];
+        const feat: Action[] = [];
 
-    // Skill actions (those with skill-related traits or categories)
-    const skillActions = useMemo(() => {
-        return allActions.filter(a =>
-            a.traits.some(t => ['skill', 'trained-only'].includes(t)) ||
-            ['offensive', 'defensive'].includes(a.traits[0] || '')
-        );
-    }, [allActions]);
+        for (const a of loaded) {
+            const action: Action = {
+                id: a.id,
+                name: a.name,
+                cost: a.cost,
+                description: a.description,
+                traits: a.traits,
+                source: 'basic',
+            };
 
-    // Basic/common actions
-    const commonActions = useMemo(() => {
-        const basicNames = ['Strike', 'Stride', 'Step', 'Interact', 'Seek', 'Raise a Shield',
-            'Take Cover', 'Ready', 'Sustain', 'Delay', 'Drop Prone', 'Stand', 'Escape', 'Aid',
-            'Crawl', 'Leap', 'Release', 'Point Out', 'Avert Gaze'];
-        return allActions.filter(a => basicNames.includes(a.name));
-    }, [allActions]);
+            // Check if it's a basic action
+            if (BASIC_ACTION_NAMES.includes(a.name)) {
+                action.source = 'basic';
+                basic.push(action);
+                continue;
+            }
+
+            // Check if it's a skill action
+            const skillReq = SKILL_ACTION_REQUIREMENTS[a.name];
+            if (skillReq) {
+                action.source = 'skill';
+                action.skill = skillReq.skill;
+                // Only include if character meets the proficiency requirement
+                if (meetsSkillRequirement(character, skillReq.skill, skillReq.minProficiency)) {
+                    skill.push(action);
+                }
+                continue;
+            }
+
+            // Check if it's an action from a feat the character has
+            if (isActionFromCharacterFeat(a.name, characterFeatIds, allFeats)) {
+                action.source = 'feat';
+                feat.push(action);
+                continue;
+            }
+
+            // Also check traits for skill-related actions not in our map
+            if (a.traits.some(t => t.toLowerCase() === 'skill')) {
+                action.source = 'skill';
+                skill.push(action);
+            }
+        }
+
+        return { basicActions: basic, skillActions: skill, featActions: feat };
+    }, [character, characterFeatIds, allFeats]);
+
+    // Combined actions for "all" filter (basic + skill + feat actions available to character)
+    const availableActions = useMemo(() => {
+        return [...basicActions, ...skillActions, ...featActions];
+    }, [basicActions, skillActions, featActions]);
 
     // Get the icon image for action cost
     const getCostIcon = (cost: ActionCost): string => {
@@ -76,12 +218,27 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     // Filter actions based on selection
     const getFilteredActions = (): Action[] => {
         let actions: Action[];
-        if (filter === 'all') {
-            actions = commonActions.length > 0 ? commonActions : allActions.slice(0, 20);
-        } else if (filter === 'skill') {
-            actions = skillActions.length > 0 ? skillActions : allActions.filter(a => a.traits.length > 0).slice(0, 20);
-        } else {
-            actions = allActions.filter(a => a.cost === filter);
+
+        switch (filter) {
+            case 'all':
+                // Show basic actions + actions from character feats + available skill actions
+                actions = availableActions;
+                break;
+            case 'skill':
+                actions = skillActions;
+                break;
+            case 'feat':
+                actions = featActions;
+                break;
+            case '1':
+            case '2':
+            case '3':
+            case 'free':
+            case 'reaction':
+                actions = availableActions.filter(a => a.cost === filter);
+                break;
+            default:
+                actions = availableActions;
         }
 
         // Apply search filter
@@ -93,6 +250,14 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 a.traits.some(t => t.toLowerCase().includes(q))
             );
         }
+
+        // Sort: basic first, then skill, then feat
+        actions.sort((a, b) => {
+            const sourceOrder = { basic: 0, skill: 1, feat: 2 };
+            const orderDiff = sourceOrder[a.source] - sourceOrder[b.source];
+            if (orderDiff !== 0) return orderDiff;
+            return a.name.localeCompare(b.name);
+        });
 
         return actions;
     };
@@ -149,24 +314,43 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 >
                     {t('filters.skill') || 'Skill'}
                 </button>
+                {featActions.length > 0 && (
+                    <button
+                        className={`filter-btn ${filter === 'feat' ? 'active' : ''}`}
+                        onClick={() => setFilter('feat')}
+                    >
+                        {t('filters.feat') || 'Feat'}
+                    </button>
+                )}
             </div>
 
-            {/* Actions Grid - Simplified: only icon + name */}
+            {/* Actions Grid - Simplified: only icon + name + source indicator */}
             <div className="actions-grid actions-grid-compact">
-                {filteredActions.map(action => (
-                    <div
-                        key={action.id}
-                        className="action-card action-card-compact"
-                        onClick={() => onActionClick(action)}
-                    >
-                        <img
-                            src={getCostIcon(action.cost)}
-                            alt={action.cost}
-                            className="action-cost-icon"
-                        />
-                        <span className="action-name">{action.name}</span>
+                {filteredActions.length === 0 ? (
+                    <div className="no-actions">
+                        {t('actions.noActions') || 'No actions available'}
                     </div>
-                ))}
+                ) : (
+                    filteredActions.map(action => (
+                        <div
+                            key={action.id}
+                            className={`action-card action-card-compact action-source-${action.source}`}
+                            onClick={() => onActionClick(action)}
+                        >
+                            <img
+                                src={getCostIcon(action.cost)}
+                                alt={action.cost}
+                                className="action-cost-icon"
+                            />
+                            <span className="action-name">{action.name}</span>
+                            {action.source !== 'basic' && (
+                                <span className={`action-source-tag action-source-${action.source}`}>
+                                    {action.source === 'skill' ? action.skill : action.source}
+                                </span>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

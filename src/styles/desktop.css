@@ -1849,6 +1849,42 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+}
+
+/* Action source indicators */
+.action-source-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: capitalize;
+    flex-shrink: 0;
+}
+
+.action-source-tag.action-source-skill {
+    background: var(--desktop-accent-blue);
+    color: white;
+}
+
+.action-source-tag.action-source-feat {
+    background: var(--desktop-accent-red);
+    color: white;
+}
+
+.action-card-compact.action-source-feat {
+    border-left: 3px solid var(--desktop-accent-red);
+}
+
+.action-card-compact.action-source-skill {
+    border-left: 3px solid var(--desktop-accent-blue);
+}
+
+.no-actions {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px;
+    color: var(--desktop-text-secondary);
+    font-style: italic;
 }
 
 /* ===== Weapon Browser Modal ===== */
