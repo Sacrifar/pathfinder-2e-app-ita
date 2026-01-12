@@ -185,3 +185,64 @@ select:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
+
+/* ===================================
+   PRINT STYLES
+   =================================== */
+@media print {
+    /* Hide UI elements */
+    .topbar-left,
+    .topbar-right,
+    .topbar-menu-btn,
+    .level-selector,
+    .level-sidebar,
+    .main-menu-sidebar,
+    .main-menu-overlay,
+    .character-tabs,
+    .panel-header-actions,
+    .header-btn,
+    .btn,
+    button,
+    .modal-overlay,
+    .modal-content {
+        display: none !important;
+    }
+
+    /* Reset background for printing */
+    body,
+    .app-container,
+    .desktop-layout,
+    .desktop-main {
+        background: white !important;
+        color: black !important;
+    }
+
+    /* Ensure content is visible */
+    .desktop-content,
+    .stats-header,
+    .skills-panel,
+    .stat-box,
+    .card {
+        background: white !important;
+        border: 1px solid #ccc !important;
+        color: black !important;
+    }
+
+    /* Page layout */
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+
+    /* Text colors */
+    * {
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide empty elements */
+    .empty-state {
+        display: none !important;
+    }
+}

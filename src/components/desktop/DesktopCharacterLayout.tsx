@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TopBar } from './TopBar';
 import { LevelSidebar } from './LevelSidebar';
+import { MainMenu } from './MainMenu';
 import { StatsHeader } from './StatsHeader';
 import { CharacterTabs, TabId } from './CharacterTabs';
 import { SkillsPanel, SkillDisplay } from './SkillsPanel';
@@ -29,6 +30,14 @@ import {
     ConditionPenalties
 } from '../../utils/conditionModifiers';
 import { calculateMaxHP } from '../../utils/pf2e-math';
+import {
+    exportCharacterAsJSON,
+    importCharacterFromJSON,
+    copyStatBlockToClipboard,
+    generateShareableLink,
+    printCharacterSheet,
+    CloudSync
+} from '../../utils/characterExport';
 
 interface ActionData {
     id: string;
@@ -800,6 +809,100 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         }
     };
 
+    // Menu handlers for Export & Sharing
+    const handleExportJSON = () => {
+        exportCharacterAsJSON(character);
+    };
+
+    const handleImportJSON = async (file: File) => {
+        try {
+            const importedChar = await importCharacterFromJSON(file);
+            // Confirm before overwriting
+            if (confirm(t('menu.confirmImport') || 'This will overwrite the current character. Continue?')) {
+                onCharacterUpdate({
+                    ...importedChar,
+                    id: character.id, // Keep the same ID
+                    updatedAt: new Date().toISOString()
+                });
+            }
+        } catch (error) {
+            alert(t('menu.importError') || 'Failed to import character');
+        }
+    };
+
+    const handleCopyStatBlock = async () => {
+        try {
+            await copyStatBlockToClipboard(character);
+            alert(t('menu.copiedToClipboard') || 'Stat block copied to clipboard!');
+        } catch (error) {
+            alert(t('menu.copyError') || 'Failed to copy stat block');
+        }
+    };
+
+    const handlePrintPDF = () => {
+        printCharacterSheet();
+    };
+
+    const handleShareLink = async () => {
+        const shareLink = generateShareableLink(character);
+        try {
+            await navigator.clipboard.writeText(shareLink);
+            alert(t('menu.linkCopied') || 'Share link copied to clipboard!');
+        } catch {
+            alert(shareLink);
+        }
+    };
+
+    const handleSyncCloud = async () => {
+        try {
+            if (!CloudSync.isAuthenticated()) {
+                await CloudSync.authenticate();
+                alert(t('menu.authSuccess') || 'Successfully authenticated with Google Drive');
+            } else {
+                await CloudSync.syncCharacter(character);
+                alert(t('menu.syncSuccess') || 'Character synced to cloud');
+            }
+        } catch (error) {
+            alert(t('menu.syncError') || 'Failed to sync with cloud');
+        }
+    };
+
+    const handleLoadFromCloud = async () => {
+        try {
+            if (!CloudSync.isAuthenticated()) {
+                await CloudSync.authenticate();
+            }
+            const cloudCharacters = await CloudSync.loadCharacters();
+            if (cloudCharacters.length === 0) {
+                alert(t('menu.noCloudCharacters') || 'No characters found in cloud');
+                return;
+            }
+            // Show list of characters to import
+            const characterList = cloudCharacters.map((c, i) =>
+                `${i + 1}. ${c.name || 'Unnamed'} (Level ${c.level})`
+            ).join('\n');
+            const selection = prompt(
+                `${t('menu.selectCharacter') || 'Select a character to load:'}\n\n${characterList}\n\n${t('menu.enterNumber') || 'Enter the number'}:`
+            );
+            if (selection) {
+                const index = parseInt(selection) - 1;
+                if (index >= 0 && index < cloudCharacters.length) {
+                    const selectedChar = cloudCharacters[index];
+                    if (confirm(t('menu.confirmLoad') || 'This will replace the current character. Continue?')) {
+                        onCharacterUpdate({
+                            ...selectedChar,
+                            id: character.id, // Keep the same ID
+                            updatedAt: new Date().toISOString()
+                        });
+                        alert(t('menu.loadSuccess') || 'Character loaded successfully');
+                    }
+                }
+            }
+        } catch (error) {
+            alert(t('menu.loadError') || 'Failed to load characters from cloud');
+        }
+    };
+
     // Calculate character stats
     const getPerceptionMod = () => {
         const wisMod = Math.floor((character.abilityScores.wis - 10) / 2);
@@ -1150,6 +1253,22 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     />
                 )
             }
+
+            {/* Main Menu */}
+            {menuOpen && (
+                <MainMenu
+                    isOpen={menuOpen}
+                    character={character}
+                    onClose={() => setMenuOpen(false)}
+                    onExportJSON={handleExportJSON}
+                    onImportJSON={handleImportJSON}
+                    onCopyStatBlock={handleCopyStatBlock}
+                    onPrintPDF={handlePrintPDF}
+                    onShareLink={handleShareLink}
+                    onSyncCloud={handleSyncCloud}
+                    onLoadFromCloud={handleLoadFromCloud}
+                />
+            )}
         </div >
     );
 };
