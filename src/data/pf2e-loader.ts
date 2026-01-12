@@ -193,6 +193,20 @@ interface RawClassSystem {
     publication: { title: string; license: string; remaster: boolean };
 }
 
+interface RawGearSystem {
+    baseItem: string | null;
+    bulk: { value: number };
+    category?: string;
+    description: { value: string };
+    level: { value: number };
+    material?: { grade: string | null; type: string | null };
+    price: { value: { gp?: number; sp?: number; cp?: number; pp?: number }; per?: number };
+    traits: { rarity: string; value: string[] };
+    usage?: { value: string };
+    uses?: { max: number; value: number };
+    quantity?: number;
+}
+
 // ============ App-friendly types ============
 
 export interface LoadedWeapon {
@@ -380,6 +394,19 @@ export interface LoadedClass {
     source: string;
     remaster: boolean;
     classFeatures: Array<{ name: string; level: number }>;
+}
+
+export interface LoadedGear {
+    id: string;
+    name: string;
+    level: number;
+    priceGp: number;
+    bulk: number;
+    traits: string[];
+    rarity: string;
+    description: string;
+    category: 'equipment' | 'consumable' | 'treasure' | 'backpack' | 'kit';
+    qty?: number;
 }
 
 // ============ Transform Functions ============
@@ -779,6 +806,38 @@ function stripHtml(html: string): string {
         .trim();
 }
 
+function transformGear(raw: RawPF2eItem): LoadedGear | null {
+    // Filter for gear types only (exclude weapon, armor, shield)
+    const validTypes = ['equipment', 'consumable', 'treasure', 'backpack', 'kit'];
+    if (!raw.type || !validTypes.includes(raw.type)) return null;
+
+    const sys = raw.system as RawGearSystem;
+    if (!sys) return null;
+
+    const price = sys.price?.value || {};
+    const priceGp = (price.pp || 0) * 10 + (price.gp || 0) + (price.sp || 0) / 10 + (price.cp || 0) / 100;
+
+    // Map category
+    let category: LoadedGear['category'] = 'equipment';
+    if (raw.type === 'consumable') category = 'consumable';
+    else if (raw.type === 'treasure') category = 'treasure';
+    else if (raw.type === 'backpack') category = 'backpack';
+    else if (raw.type === 'kit') category = 'kit';
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        level: sys.level?.value || 0,
+        priceGp,
+        bulk: sys.bulk?.value ?? 0,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+        category,
+        qty: sys.quantity ?? sys.uses?.value ?? 1,
+    };
+}
+
 // ============ Cached data ============
 
 let cachedWeapons: LoadedWeapon[] | null = null;
@@ -791,6 +850,7 @@ let cachedShields: LoadedShield[] | null = null;
 let cachedAncestries: LoadedAncestry[] | null = null;
 let cachedHeritages: LoadedHeritage[] | null = null;
 let cachedClasses: LoadedClass[] | null = null;
+let cachedGear: LoadedGear[] | null = null;
 
 // ============ Public API ============
 
@@ -1025,6 +1085,48 @@ export function getShields(): LoadedShield[] {
     return shields;
 }
 
+// ============ Gear API ============
+
+export function getGear(): LoadedGear[] {
+    if (cachedGear) return cachedGear;
+
+    const gear: LoadedGear[] = [];
+
+    for (const path in equipmentModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = equipmentModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const item = transformGear(raw as RawPF2eItem);
+        if (item) {
+            gear.push(item);
+        }
+    }
+
+    // Sort by name
+    gear.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedGear = gear;
+    return gear;
+}
+
+export function getGearByCategory(category: LoadedGear['category']): LoadedGear[] {
+    return getGear().filter(g => g.category === category);
+}
+
+export function getGearByLevel(level: number): LoadedGear[] {
+    return getGear().filter(g => g.level === level);
+}
+
+export function searchGear(query: string): LoadedGear[] {
+    const q = query.toLowerCase();
+    return getGear().filter(g =>
+        g.name.toLowerCase().includes(q) ||
+        g.traits.some(t => t.toLowerCase().includes(q))
+    );
+}
+
 // Summary stats
 export function getDataStats() {
     return {
@@ -1035,6 +1137,7 @@ export function getDataStats() {
         conditions: getConditions().length,
         armor: getArmor().length,
         shields: getShields().length,
+        gear: getGear().length,
         ancestries: getAncestries().length,
         heritages: getHeritages().length,
         classes: getClasses().length,

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(git -C \"c:\\\\Pathbuilder2e Ita\\\\pathfinder-2e-app-ita\" status --short)"
+      "Bash(git -C \"c:\\\\Pathbuilder2e Ita\\\\pathfinder-2e-app-ita\" status --short)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

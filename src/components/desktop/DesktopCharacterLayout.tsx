@@ -13,7 +13,8 @@ import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
 import { ActiveConditions } from './ActiveConditions';
 import { ConditionBrowser } from './ConditionBrowser';
-import { LoadedCondition, getFeats } from '../../data/pf2e-loader';
+import { EquipmentBrowser } from './EquipmentBrowser';
+import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
@@ -51,6 +52,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
     const [showConditionBrowser, setShowConditionBrowser] = useState(false);
+    const [showEquipmentBrowser, setShowEquipmentBrowser] = useState(false);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -700,6 +702,25 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         });
     };
 
+    // Equipment handlers for gear
+    const handleEquipGear = (gear: LoadedGear) => {
+        const currentEquipment = character.equipment || [];
+        // Create new equipment item from LoadedGear
+        const newEquipmentItem = {
+            id: gear.id,
+            name: gear.name,
+            bulk: gear.bulk,
+            invested: false,
+            worn: false,
+        };
+        // Add the gear to equipment (for now, just add - could check for duplicates in future)
+        onCharacterUpdate({
+            ...character,
+            equipment: [...currentEquipment, newEquipmentItem],
+        });
+        setShowEquipmentBrowser(false);
+    };
+
     // Helper for proficiency bonus
     const getProficiencyBonus = (prof: Proficiency, level: number) => {
         switch (prof) {
@@ -926,7 +947,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             {activeTab === 'gear' && (
                                 <GearPanel
                                     character={character}
-                                    onAddGear={() => console.log('Add gear')}
+                                    onAddGear={() => setShowEquipmentBrowser(true)}
                                     onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
@@ -1003,6 +1024,19 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     <ConditionBrowser
                         onClose={() => setShowConditionBrowser(false)}
                         onAdd={handleAddCondition}
+                    />
+                )
+            }
+
+            {/* Equipment Browser Modal */}
+            {
+                showEquipmentBrowser && (
+                    <EquipmentBrowser
+                        onClose={() => setShowEquipmentBrowser(false)}
+                        onEquipArmor={() => {}}
+                        onEquipShield={() => {}}
+                        onEquipGear={handleEquipGear}
+                        initialTab="gear"
                     />
                 )
             }

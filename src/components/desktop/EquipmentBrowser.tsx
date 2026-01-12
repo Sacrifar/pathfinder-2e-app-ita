@@ -1,28 +1,31 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
+import { LoadedArmor, LoadedShield, LoadedGear, getArmor, getShields, getGear } from '../../data/pf2e-loader';
 
 interface EquipmentBrowserProps {
     onClose: () => void;
     onEquipArmor: (armor: LoadedArmor) => void;
     onEquipShield: (shield: LoadedShield) => void;
-    initialTab?: 'armor' | 'shield';
+    onEquipGear: (gear: LoadedGear) => void;
+    initialTab?: 'armor' | 'shield' | 'gear';
 }
 
-type Tab = 'armor' | 'shield';
+type Tab = 'armor' | 'shield' | 'gear';
 
-export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onEquipArmor, onEquipShield, initialTab = 'armor' }) => {
+export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onEquipArmor, onEquipShield, onEquipGear, initialTab = 'armor' }) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedArmor, setSelectedArmor] = useState<LoadedArmor | null>(null);
     const [selectedShield, setSelectedShield] = useState<LoadedShield | null>(null);
+    const [selectedGear, setSelectedGear] = useState<LoadedGear | null>(null);
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [levelFilter, setLevelFilter] = useState<string>('all');
 
     // Load data
     const allArmor = useMemo(() => getArmor(), []);
     const allShields = useMemo(() => getShields(), []);
+    const allGear = useMemo(() => getGear(), []);
 
     // Filter Logic
     const filteredItems = useMemo(() => {
@@ -36,15 +39,24 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                 const matchesLevel = levelFilter === 'all' || item.level === parseInt(levelFilter);
                 return matchesSearch && matchesCategory && matchesLevel;
             });
-        } else {
+        } else if (activeTab === 'shield') {
             return allShields.filter(item => {
                 const matchesSearch = item.name.toLowerCase().includes(query) ||
                     item.traits.some(t => t.toLowerCase().includes(query));
                 const matchesLevel = levelFilter === 'all' || item.level === parseInt(levelFilter);
                 return matchesSearch && matchesLevel;
             });
+        } else {
+            // gear tab
+            return allGear.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(query) ||
+                    item.traits.some(t => t.toLowerCase().includes(query));
+                const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+                const matchesLevel = levelFilter === 'all' || item.level === parseInt(levelFilter);
+                return matchesSearch && matchesCategory && matchesLevel;
+            });
         }
-    }, [activeTab, searchQuery, categoryFilter, levelFilter, allArmor, allShields]);
+    }, [activeTab, searchQuery, categoryFilter, levelFilter, allArmor, allShields, allGear]);
 
     const handleEquip = () => {
         if (activeTab === 'armor' && selectedArmor) {
@@ -52,6 +64,9 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
             onClose();
         } else if (activeTab === 'shield' && selectedShield) {
             onEquipShield(selectedShield);
+            onClose();
+        } else if (activeTab === 'gear' && selectedGear) {
+            onEquipGear(selectedGear);
             onClose();
         }
     };
@@ -93,6 +108,12 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                     >
                                         <span style={{ marginRight: 8 }}>🛡️</span> {t('equipment.shield') || 'Shield'}
                                     </button>
+                                    <button
+                                        className={`filter-tab ${activeTab === 'gear' ? 'active' : ''}`}
+                                        onClick={() => { setActiveTab('gear'); setCategoryFilter('all'); }}
+                                    >
+                                        <span style={{ marginRight: 8 }}>🎒</span> {t('equipment.gear') || 'Gear'}
+                                    </button>
                                 </div>
 
                                 <div className="filter-row">
@@ -109,6 +130,20 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                             <option value="unarmored">Unarmored</option>
                                         </select>
                                     )}
+                                    {activeTab === 'gear' && (
+                                        <select
+                                            value={categoryFilter}
+                                            onChange={(e) => setCategoryFilter(e.target.value)}
+                                            className="filter-select"
+                                        >
+                                            <option value="all">All Categories</option>
+                                            <option value="equipment">Adventuring Gear</option>
+                                            <option value="consumable">Consumables</option>
+                                            <option value="treasure">Treasure</option>
+                                            <option value="backpack">Containers</option>
+                                            <option value="kit">Kits</option>
+                                        </select>
+                                    )}
                                     <select
                                         value={levelFilter}
                                         onChange={(e) => setLevelFilter(e.target.value)}
@@ -123,16 +158,22 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                             </div>
 
                             <div className="browser-list">
-                                {filteredItems.map((item: LoadedArmor | LoadedShield) => {
+                                {filteredItems.map((item: LoadedArmor | LoadedShield | LoadedGear) => {
                                     const isSelected = activeTab === 'armor'
                                         ? (selectedArmor?.id === item.id)
-                                        : (selectedShield?.id === item.id);
+                                        : activeTab === 'shield'
+                                        ? (selectedShield?.id === item.id)
+                                        : (selectedGear?.id === item.id);
 
                                     return (
                                         <div
                                             key={item.id}
                                             className={`feat-list-item ${isSelected ? 'selected' : ''}`}
-                                            onClick={() => activeTab === 'armor' ? setSelectedArmor(item as LoadedArmor) : setSelectedShield(item as LoadedShield)}
+                                            onClick={() => {
+                                                if (activeTab === 'armor') setSelectedArmor(item as LoadedArmor);
+                                                else if (activeTab === 'shield') setSelectedShield(item as LoadedShield);
+                                                else setSelectedGear(item as LoadedGear);
+                                            }}
                                         >
                                             <div className="feat-item-header">
                                                 <span className="feat-item-name">{item.name}</span>
@@ -140,7 +181,11 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                             </div>
                                             <div className="feat-item-meta">
                                                 <span className="feat-item-category">
-                                                    {activeTab === 'armor' ? (item as LoadedArmor).category : 'Shield'}
+                                                    {activeTab === 'armor'
+                                                        ? (item as LoadedArmor).category
+                                                        : activeTab === 'shield'
+                                                        ? 'Shield'
+                                                        : (item as LoadedGear).category}
                                                 </span>
                                                 <span className="feat-item-cost">
                                                     {item.priceGp} gp
@@ -154,22 +199,22 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
 
                         {/* RIGHT PANEL: Details */}
                         <div className="browser-detail-column">
-                            {(activeTab === 'armor' ? selectedArmor : selectedShield) ? (
+                            {(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear) ? (
                                 <div className="feat-detail-panel">
                                     <div className="feat-detail-header">
-                                        <h3>{activeTab === 'armor' ? selectedArmor?.name : selectedShield?.name}</h3>
+                                        <h3>{activeTab === 'armor' ? selectedArmor?.name : activeTab === 'shield' ? selectedShield?.name : selectedGear?.name}</h3>
                                         <div className="feat-badges">
-                                            <span className={`rarity-badge ${(activeTab === 'armor' ? selectedArmor : selectedShield)?.rarity}`}>
-                                                {(activeTab === 'armor' ? selectedArmor : selectedShield)?.rarity}
+                                            <span className={`rarity-badge ${(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.rarity}`}>
+                                                {(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.rarity}
                                             </span>
                                             <span className="level-badge">
-                                                Level {(activeTab === 'armor' ? selectedArmor : selectedShield)?.level}
+                                                Level {(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.level}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div className="feat-traits">
-                                        {(activeTab === 'armor' ? selectedArmor : selectedShield)?.traits.map(t => (
+                                        {(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.traits.map(t => (
                                             <span key={t} className="trait-tag">{t}</span>
                                         ))}
                                     </div>
@@ -177,23 +222,23 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                     <div className="equipment-stats-grid">
                                         <div className="stat-box">
                                             <label>Price</label>
-                                            <span>{(activeTab === 'armor' ? selectedArmor : selectedShield)?.priceGp} gp</span>
+                                            <span>{(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.priceGp} gp</span>
                                         </div>
                                         <div className="stat-box">
                                             <label>Bulk</label>
-                                            <span>{(activeTab === 'armor' ? selectedArmor : selectedShield)?.bulk}</span>
-                                        </div>
-                                        <div className="stat-box">
-                                            <label>AC Bonus</label>
-                                            <span>+{(activeTab === 'armor' ? selectedArmor : selectedShield)?.acBonus}</span>
-                                        </div>
-                                        <div className="stat-box">
-                                            <label>Speed Pen.</label>
-                                            <span>{(activeTab === 'armor' ? selectedArmor : selectedShield)?.speedPenalty} ft</span>
+                                            <span>{(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.bulk}</span>
                                         </div>
 
                                         {activeTab === 'armor' && selectedArmor && (
                                             <>
+                                                <div className="stat-box">
+                                                    <label>AC Bonus</label>
+                                                    <span>+{selectedArmor.acBonus}</span>
+                                                </div>
+                                                <div className="stat-box">
+                                                    <label>Speed Pen.</label>
+                                                    <span>{selectedArmor.speedPenalty} ft</span>
+                                                </div>
                                                 <div className="stat-box">
                                                     <label>Dex Cap</label>
                                                     <span>{selectedArmor.dexCap === 99 ? '-' : selectedArmor.dexCap}</span>
@@ -216,6 +261,10 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                         {activeTab === 'shield' && selectedShield && (
                                             <>
                                                 <div className="stat-box">
+                                                    <label>AC Bonus</label>
+                                                    <span>+{selectedShield.acBonus}</span>
+                                                </div>
+                                                <div className="stat-box">
                                                     <label>Hardness</label>
                                                     <span>{selectedShield.hardness}</span>
                                                 </div>
@@ -223,13 +272,30 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                                     <label>HP (BT)</label>
                                                     <span>{selectedShield.hp} ({Math.floor(selectedShield.hp / 2)})</span>
                                                 </div>
+                                                <div className="stat-box">
+                                                    <label>Speed Pen.</label>
+                                                    <span>{selectedShield.speedPenalty} ft</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {activeTab === 'gear' && selectedGear && (
+                                            <>
+                                                <div className="stat-box">
+                                                    <label>Category</label>
+                                                    <span style={{ textTransform: 'capitalize' }}>{selectedGear.category}</span>
+                                                </div>
+                                                <div className="stat-box">
+                                                    <label>Quantity</label>
+                                                    <span>{selectedGear.qty || 1}</span>
+                                                </div>
                                             </>
                                         )}
                                     </div>
 
                                     <div
                                         className="feat-description"
-                                        dangerouslySetInnerHTML={{ __html: (activeTab === 'armor' ? selectedArmor : selectedShield)?.description || '' }}
+                                        dangerouslySetInnerHTML={{ __html: (activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.description || '' }}
                                     />
 
                                     <div className="feat-actions">

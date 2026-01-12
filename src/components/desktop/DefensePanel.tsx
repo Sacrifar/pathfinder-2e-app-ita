@@ -386,6 +386,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         onClose={() => setShowBrowser(false)}
                         onEquipArmor={handleEquipArmor}
                         onEquipShield={handleEquipShield}
+                        onEquipGear={() => {}}
                         initialTab={browserTab}
                     />
                 )
