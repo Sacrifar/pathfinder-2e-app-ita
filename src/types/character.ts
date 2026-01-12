@@ -113,6 +113,20 @@ export interface Buff {
     source?: string;  // Optional description of source
 }
 
+export interface CustomResource {
+    id: string;
+    name: string;
+    max: number;
+    current: number;
+    frequency: 'daily' | 'per-encounter';
+    description?: string;
+}
+
+export interface RestCooldown {
+    lastTreatWoundsTime?: number;  // timestamp
+    lastRefocusTime?: number;  // timestamp
+}
+
 export interface Character {
     id: string;
     name: string;
@@ -184,6 +198,12 @@ export interface Character {
     conditions: { id: string; value?: number; duration?: number }[];
     buffs: Buff[];
 
+    // Custom Resources (for daily/per-encounter abilities)
+    customResources: CustomResource[];
+
+    // Rest Cooldowns
+    restCooldowns?: RestCooldown;
+
     // Spellcasting (optional)
     spellcasting?: {
         tradition: 'arcane' | 'divine' | 'occult' | 'primal';
@@ -232,7 +252,7 @@ export function createEmptyCharacter(): Character {
         hitPoints: { current: 0, max: 0, temporary: 0 },
         skills: [],
         saves: { fortitude: 'untrained', reflex: 'untrained', will: 'untrained' },
-        perception: 'untrained',
+        perception: 'trained',
         armorClass: { base: 10, proficiency: 'untrained', itemBonus: 0 },
         speed: { land: 25 },
         weaponProficiencies: [],
@@ -246,6 +266,7 @@ export function createEmptyCharacter(): Character {
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
         buffs: [],
+        customResources: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };

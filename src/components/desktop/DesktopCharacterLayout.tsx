@@ -7,10 +7,12 @@ import { SkillsPanel, SkillDisplay } from './SkillsPanel';
 import { WeaponsPanel } from './WeaponsPanel';
 import { DefensePanel } from './DefensePanel';
 import { GearPanel } from './GearPanel';
+import { ResourcesPanel } from './ResourcesPanel';
 import { SpellsPanel } from './SpellsPanel';
 import { FeatsPanel } from './FeatsPanel';
 import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
+import { RestModal } from './RestModal';
 import { ActiveConditions } from './ActiveConditions';
 import { ConditionBrowser } from './ConditionBrowser';
 import { BuffBrowser } from './BuffBrowser';
@@ -26,6 +28,7 @@ import {
     getPerceptionPenalty,
     ConditionPenalties
 } from '../../utils/conditionModifiers';
+import { calculateMaxHP } from '../../utils/pf2e-math';
 
 interface ActionData {
     id: string;
@@ -55,6 +58,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [showConditionBrowser, setShowConditionBrowser] = useState(false);
     const [showBuffBrowser, setShowBuffBrowser] = useState(false);
     const [showEquipmentBrowser, setShowEquipmentBrowser] = useState(false);
+    const [showRestModal, setShowRestModal] = useState(false);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -658,11 +662,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     };
 
     const handleRest = () => {
-        // Reset HP to max, restore spell slots, etc.
-        onCharacterUpdate({
-            ...character,
-            hitPoints: { ...character.hitPoints, current: character.hitPoints.max },
-        });
+        // Open the Rest & Recovery modal
+        setShowRestModal(true);
     };
 
     const handleSkillClick = (skill: any) => {
@@ -802,7 +803,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     // Calculate character stats
     const getPerceptionMod = () => {
         const wisMod = Math.floor((character.abilityScores.wis - 10) / 2);
-        const profBonus = getProficiencyBonus(character.perception, character.level || 1);
+        // Ensure minimum trained proficiency for perception (PF2e rule)
+        const perceptionProf = character.perception === 'untrained' ? 'trained' : character.perception;
+        const profBonus = getProficiencyBonus(perceptionProf, character.level || 1);
         const penalty = getPerceptionPenalty(conditionPenalties);
         return wisMod + profBonus + penalty;
     };
@@ -971,7 +974,10 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
                 <div className="desktop-content">
                     <StatsHeader
-                        hp={{ current: character.hitPoints.current, max: character.hitPoints.max }}
+                        hp={{
+                            current: character.hitPoints.current || calculateMaxHP(character),
+                            max: character.hitPoints.max || calculateMaxHP(character)
+                        }}
                         speed={character.speed.land}
                         size={selectedAncestry?.size || 'Medium'}
                         perception={getPerceptionMod()}
@@ -1024,6 +1030,13 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 <GearPanel
                                     character={character}
                                     onAddGear={() => setShowEquipmentBrowser(true)}
+                                    onCharacterUpdate={onCharacterUpdate}
+                                />
+                            )}
+
+                            {activeTab === 'resources' && (
+                                <ResourcesPanel
+                                    character={character}
                                     onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
@@ -1123,6 +1136,17 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         onEquipShield={() => {}}
                         onEquipGear={handleEquipGear}
                         initialTab="gear"
+                    />
+                )
+            }
+
+            {/* Rest & Recovery Modal */}
+            {
+                showRestModal && (
+                    <RestModal
+                        character={character}
+                        onClose={() => setShowRestModal(false)}
+                        onCharacterUpdate={onCharacterUpdate}
                     />
                 )
             }

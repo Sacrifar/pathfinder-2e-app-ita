@@ -11,12 +11,14 @@ export { DesktopCharacterLayout } from './DesktopCharacterLayout';
 export { WeaponsPanel } from './WeaponsPanel';
 export { DefensePanel } from './DefensePanel';
 export { GearPanel } from './GearPanel';
+export { ResourcesPanel } from './ResourcesPanel';
 export { SpellsPanel } from './SpellsPanel';
 export { FeatsPanel } from './FeatsPanel';
 export { ActionsPanel } from './ActionsPanel';
 
 // Modals
 export { DetailModal, ActionDetailContent, WeaponDetailContent, SkillDetailContent } from './DetailModal';
+export { RestModal } from './RestModal';
 
 // Selection Browsers
 export { AncestryBrowser } from './AncestryBrowser';

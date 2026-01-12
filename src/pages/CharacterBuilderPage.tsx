@@ -4,6 +4,7 @@ import { ancestries, getHeritagesForAncestry, classes, backgrounds } from '../da
 import type { Character } from '../types';
 import { createEmptyCharacter } from '../types';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../hooks/useLanguage';
+import { calculateMaxHP } from '../utils/pf2e-math';
 
 type WizardStep = 'ancestry' | 'heritage' | 'background' | 'class' | 'abilities' | 'summary';
 
@@ -68,11 +69,22 @@ export function CharacterBuilderPage() {
         const saved = localStorage.getItem('pf2e-characters');
         let chars: Character[] = saved ? JSON.parse(saved) : [];
 
+        // Calculate and set HP if not already set
+        const maxHP = calculateMaxHP(character);
+        const characterToSave: Character = {
+            ...character,
+            hitPoints: {
+                max: maxHP,
+                current: character.hitPoints.current || maxHP,
+                temporary: character.hitPoints.temporary || 0,
+            },
+        };
+
         const existingIndex = chars.findIndex(c => c.id === character.id);
         if (existingIndex >= 0) {
-            chars[existingIndex] = character;
+            chars[existingIndex] = characterToSave;
         } else {
-            chars.push(character);
+            chars.push(characterToSave);
         }
 
         localStorage.setItem('pf2e-characters', JSON.stringify(chars));
