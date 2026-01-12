@@ -893,6 +893,12 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 level={character.level || 1}
                 onMenuClick={() => setMenuOpen(!menuOpen)}
                 onRestClick={handleRest}
+                onNameChange={(newName) => {
+                    onCharacterUpdate({
+                        ...character,
+                        name: newName,
+                    });
+                }}
                 onLevelChange={(newLevel) => {
                     // Cleanup on level down: remove feats, boosts, and skill increases above new level
                     const cleanedFeats = character.feats.filter(f => f.level <= newLevel);

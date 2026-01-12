@@ -78,11 +78,12 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
         return location.pathname.startsWith(path);
     };
 
-    // Check if we're on the home page - render without sidebar/navigation
+    // Check if we're on the home page or characters page - render without sidebar/navigation
     const isHomePage = location.pathname === '/';
+    const isCharactersPage = location.pathname === '/characters';
 
-    if (isHomePage) {
-        // Full-screen home page without sidebar
+    if (isHomePage || isCharactersPage) {
+        // Full-screen page without sidebar
         return (
             <div className="app-container app-fullscreen">
                 <main className="main-content main-content-fullscreen">

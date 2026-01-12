@@ -74,6 +74,16 @@
     min-height: 52px;
 }
 
+.btn-danger {
+    background: var(--color-danger, #dc2626);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: var(--color-danger-hover, #b91c1c);
+}
+
 /* === Cards === */
 .card {
     background: var(--bg-elevated);
