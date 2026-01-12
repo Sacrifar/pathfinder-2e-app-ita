@@ -37,7 +37,7 @@ interface ActionData {
 interface DesktopCharacterLayoutProps {
     character: Character;
     onCharacterUpdate: (character: Character) => void;
-    onOpenSelection: (type: string) => void;
+    onOpenSelection: (type: string, targetLevel?: number) => void;
 }
 
 export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
@@ -66,10 +66,17 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     // Calculate condition penalties once
     const conditionPenalties = calculateConditionPenalties(character.conditions || []);
 
-    // Build level sections for sidebar
+    // Build level sections for sidebar - Planning Mode: all 20 levels always shown
     const buildSections = () => {
         const sections = [];
         const feats = character.feats || [];
+        const allFeats = getFeats();
+
+        // Helper to get feat name by id
+        const getFeatName = (featId: string | undefined) => {
+            if (!featId) return '';
+            return allFeats.find(f => f.id === featId)?.name || featId;
+        };
 
         // Level 1 section
         sections.push({
@@ -81,7 +88,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     label: 'builder.ancestry',
                     value: ancestryName,
                     required: true,
-                    onClick: () => onOpenSelection('ancestry'),
+                    onClick: () => onOpenSelection('ancestry', 1),
                 },
                 {
                     id: 'heritage',
@@ -89,7 +96,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     label: 'builder.heritage',
                     value: heritageName,
                     required: true,
-                    onClick: () => onOpenSelection('heritage'),
+                    onClick: () => onOpenSelection('heritage', 1),
                 },
                 {
                     id: 'background',
@@ -97,7 +104,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     label: 'builder.background',
                     value: backgroundName,
                     required: true,
-                    onClick: () => onOpenSelection('background'),
+                    onClick: () => onOpenSelection('background', 1),
                 },
                 {
                     id: 'class',
@@ -105,7 +112,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     label: 'builder.class',
                     value: className,
                     required: true,
-                    onClick: () => onOpenSelection('class'),
+                    onClick: () => onOpenSelection('class', 1),
                 },
                 {
                     id: 'boosts',
@@ -121,33 +128,23 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         return totalBoosts > 0 ? `${totalBoosts} boosts` : '';
                     })(),
                     required: true,
-                    onClick: () => onOpenSelection('boost'),
+                    onClick: () => onOpenSelection('boost', 1),
                 },
                 {
-                    id: 'ancestryFeat',
+                    id: 'ancestryFeat1',
                     type: 'feat',
                     label: 'builder.ancestryFeat',
-                    value: (() => {
-                        const featId = feats.find(f => f.source === 'ancestry')?.featId;
-                        if (!featId) return '';
-                        const allFeats = getFeats();
-                        return allFeats.find(f => f.id === featId)?.name || featId;
-                    })(),
+                    value: getFeatName(feats.find(f => f.source === 'ancestry' && f.level === 1)?.featId),
                     required: true,
-                    onClick: () => onOpenSelection('ancestryFeat'),
+                    onClick: () => onOpenSelection('ancestryFeat', 1),
                 },
                 {
                     id: 'classFeat1',
                     type: 'feat',
                     label: 'builder.classFeat',
-                    value: (() => {
-                        const featId = feats.find(f => f.source === 'class' && f.level === 1)?.featId;
-                        if (!featId) return '';
-                        const allFeats = getFeats();
-                        return allFeats.find(f => f.id === featId)?.name || featId;
-                    })(),
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 1)?.featId),
                     required: true,
-                    onClick: () => onOpenSelection('classFeat'),
+                    onClick: () => onOpenSelection('classFeat', 1),
                 },
                 {
                     id: 'skillTraining',
@@ -158,115 +155,491 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         return trainedCount > 0 ? `${trainedCount} skills` : '';
                     })(),
                     required: true,
-                    onClick: () => onOpenSelection('skillTraining'),
+                    onClick: () => onOpenSelection('skillTraining', 1),
                 },
             ],
         });
 
-        // Level 2+
-        if (character.level >= 2) {
-            sections.push({
-                level: 2,
-                choices: [
-                    {
-                        id: 'classFeat2',
-                        type: 'feat',
-                        label: 'builder.classFeat',
-                        value: feats.find(f => f.source === 'class' && f.level === 2)?.featId || '',
-                        required: true,
-                        onClick: () => onOpenSelection('classFeat'),
-                    },
-                    {
-                        id: 'skillFeat2',
-                        type: 'feat',
-                        label: 'builder.skillFeat',
-                        value: feats.find(f => f.source === 'skill' && f.level === 2)?.featId || '',
-                        required: true,
-                        onClick: () => onOpenSelection('skillFeat'),
-                    },
-                ],
-            });
-        }
+        // Level 2: Class Feat, Skill Feat
+        sections.push({
+            level: 2,
+            choices: [
+                {
+                    id: 'classFeat2',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 2)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 2),
+                },
+                {
+                    id: 'skillFeat2',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 2)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 2),
+                },
+            ],
+        });
 
-        // Level 5 with Ability Boosts (4 free boosts)
-        if (character.level >= 5) {
-            sections.push({
-                level: 5,
-                choices: [
-                    {
-                        id: 'boosts5',
-                        type: 'boost',
-                        label: 'builder.levelUpBoosts',
-                        value: (() => {
-                            const levelBoosts = character.abilityBoosts?.levelUp?.[5] || [];
-                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
-                        })(),
-                        required: true,
-                        onClick: () => onOpenSelection('boost5'),
-                    },
-                ],
-            });
-        }
+        // Level 3: General Feat, Skill Increase
+        sections.push({
+            level: 3,
+            choices: [
+                {
+                    id: 'generalFeat3',
+                    type: 'feat',
+                    label: 'builder.generalFeat',
+                    value: getFeatName(feats.find(f => f.source === 'general' && f.level === 3)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('generalFeat', 3),
+                },
+                {
+                    id: 'skillIncrease3',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 3),
+                },
+            ],
+        });
 
-        // Level 10 with Ability Boosts
-        if (character.level >= 10) {
-            sections.push({
-                level: 10,
-                choices: [
-                    {
-                        id: 'boosts10',
-                        type: 'boost',
-                        label: 'builder.levelUpBoosts',
-                        value: (() => {
-                            const levelBoosts = character.abilityBoosts?.levelUp?.[10] || [];
-                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
-                        })(),
-                        required: true,
-                        onClick: () => onOpenSelection('boost10'),
-                    },
-                ],
-            });
-        }
+        // Level 4: Class Feat, Skill Feat
+        sections.push({
+            level: 4,
+            choices: [
+                {
+                    id: 'classFeat4',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 4)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 4),
+                },
+                {
+                    id: 'skillFeat4',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 4)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 4),
+                },
+            ],
+        });
 
-        // Level 15 with Ability Boosts
-        if (character.level >= 15) {
-            sections.push({
-                level: 15,
-                choices: [
-                    {
-                        id: 'boosts15',
-                        type: 'boost',
-                        label: 'builder.levelUpBoosts',
-                        value: (() => {
-                            const levelBoosts = character.abilityBoosts?.levelUp?.[15] || [];
-                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
-                        })(),
-                        required: true,
-                        onClick: () => onOpenSelection('boost15'),
-                    },
-                ],
-            });
-        }
+        // Level 5: Ability Boosts, Ancestry Feat, Skill Increase
+        sections.push({
+            level: 5,
+            choices: [
+                {
+                    id: 'boosts5',
+                    type: 'boost',
+                    label: 'builder.levelUpBoosts',
+                    value: (() => {
+                        const levelBoosts = character.abilityBoosts?.levelUp?.[5] || [];
+                        return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                    })(),
+                    required: true,
+                    onClick: () => onOpenSelection('boost5', 5),
+                },
+                {
+                    id: 'ancestryFeat5',
+                    type: 'feat',
+                    label: 'builder.ancestryFeat',
+                    value: getFeatName(feats.find(f => f.source === 'ancestry' && f.level === 5)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('ancestryFeat', 5),
+                },
+                {
+                    id: 'skillIncrease5',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 5),
+                },
+            ],
+        });
 
-        // Level 20 with Ability Boosts
-        if (character.level >= 20) {
-            sections.push({
-                level: 20,
-                choices: [
-                    {
-                        id: 'boosts20',
-                        type: 'boost',
-                        label: 'builder.levelUpBoosts',
-                        value: (() => {
-                            const levelBoosts = character.abilityBoosts?.levelUp?.[20] || [];
-                            return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
-                        })(),
-                        required: true,
-                        onClick: () => onOpenSelection('boost20'),
-                    },
-                ],
-            });
-        }
+        // Level 6: Class Feat, Skill Feat
+        sections.push({
+            level: 6,
+            choices: [
+                {
+                    id: 'classFeat6',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 6)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 6),
+                },
+                {
+                    id: 'skillFeat6',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 6)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 6),
+                },
+            ],
+        });
+
+        // Level 7: General Feat, Skill Increase
+        sections.push({
+            level: 7,
+            choices: [
+                {
+                    id: 'generalFeat7',
+                    type: 'feat',
+                    label: 'builder.generalFeat',
+                    value: getFeatName(feats.find(f => f.source === 'general' && f.level === 7)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('generalFeat', 7),
+                },
+                {
+                    id: 'skillIncrease7',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 7),
+                },
+            ],
+        });
+
+        // Level 8: Class Feat, Skill Feat
+        sections.push({
+            level: 8,
+            choices: [
+                {
+                    id: 'classFeat8',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 8)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 8),
+                },
+                {
+                    id: 'skillFeat8',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 8)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 8),
+                },
+            ],
+        });
+
+        // Level 9: Ancestry Feat, Skill Increase
+        sections.push({
+            level: 9,
+            choices: [
+                {
+                    id: 'ancestryFeat9',
+                    type: 'feat',
+                    label: 'builder.ancestryFeat',
+                    value: getFeatName(feats.find(f => f.source === 'ancestry' && f.level === 9)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('ancestryFeat', 9),
+                },
+                {
+                    id: 'skillIncrease9',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 9),
+                },
+            ],
+        });
+
+        // Level 10: Ability Boosts, Class Feat, Skill Feat
+        sections.push({
+            level: 10,
+            choices: [
+                {
+                    id: 'boosts10',
+                    type: 'boost',
+                    label: 'builder.levelUpBoosts',
+                    value: (() => {
+                        const levelBoosts = character.abilityBoosts?.levelUp?.[10] || [];
+                        return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                    })(),
+                    required: true,
+                    onClick: () => onOpenSelection('boost10', 10),
+                },
+                {
+                    id: 'classFeat10',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 10)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 10),
+                },
+                {
+                    id: 'skillFeat10',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 10)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 10),
+                },
+            ],
+        });
+
+        // Level 11: General Feat, Skill Increase
+        sections.push({
+            level: 11,
+            choices: [
+                {
+                    id: 'generalFeat11',
+                    type: 'feat',
+                    label: 'builder.generalFeat',
+                    value: getFeatName(feats.find(f => f.source === 'general' && f.level === 11)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('generalFeat', 11),
+                },
+                {
+                    id: 'skillIncrease11',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 11),
+                },
+            ],
+        });
+
+        // Level 12: Class Feat, Skill Feat
+        sections.push({
+            level: 12,
+            choices: [
+                {
+                    id: 'classFeat12',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 12)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 12),
+                },
+                {
+                    id: 'skillFeat12',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 12)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 12),
+                },
+            ],
+        });
+
+        // Level 13: Ancestry Feat, Skill Increase
+        sections.push({
+            level: 13,
+            choices: [
+                {
+                    id: 'ancestryFeat13',
+                    type: 'feat',
+                    label: 'builder.ancestryFeat',
+                    value: getFeatName(feats.find(f => f.source === 'ancestry' && f.level === 13)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('ancestryFeat', 13),
+                },
+                {
+                    id: 'skillIncrease13',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 13),
+                },
+            ],
+        });
+
+        // Level 14: Class Feat, Skill Feat
+        sections.push({
+            level: 14,
+            choices: [
+                {
+                    id: 'classFeat14',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 14)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 14),
+                },
+                {
+                    id: 'skillFeat14',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 14)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 14),
+                },
+            ],
+        });
+
+        // Level 15: Ability Boosts, General Feat, Skill Increase
+        sections.push({
+            level: 15,
+            choices: [
+                {
+                    id: 'boosts15',
+                    type: 'boost',
+                    label: 'builder.levelUpBoosts',
+                    value: (() => {
+                        const levelBoosts = character.abilityBoosts?.levelUp?.[15] || [];
+                        return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                    })(),
+                    required: true,
+                    onClick: () => onOpenSelection('boost15', 15),
+                },
+                {
+                    id: 'generalFeat15',
+                    type: 'feat',
+                    label: 'builder.generalFeat',
+                    value: getFeatName(feats.find(f => f.source === 'general' && f.level === 15)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('generalFeat', 15),
+                },
+                {
+                    id: 'skillIncrease15',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 15),
+                },
+            ],
+        });
+
+        // Level 16: Class Feat, Skill Feat
+        sections.push({
+            level: 16,
+            choices: [
+                {
+                    id: 'classFeat16',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 16)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 16),
+                },
+                {
+                    id: 'skillFeat16',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 16)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 16),
+                },
+            ],
+        });
+
+        // Level 17: Ancestry Feat, Skill Increase
+        sections.push({
+            level: 17,
+            choices: [
+                {
+                    id: 'ancestryFeat17',
+                    type: 'feat',
+                    label: 'builder.ancestryFeat',
+                    value: getFeatName(feats.find(f => f.source === 'ancestry' && f.level === 17)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('ancestryFeat', 17),
+                },
+                {
+                    id: 'skillIncrease17',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 17),
+                },
+            ],
+        });
+
+        // Level 18: Class Feat, Skill Feat
+        sections.push({
+            level: 18,
+            choices: [
+                {
+                    id: 'classFeat18',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 18)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 18),
+                },
+                {
+                    id: 'skillFeat18',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 18)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 18),
+                },
+            ],
+        });
+
+        // Level 19: General Feat, Skill Increase
+        sections.push({
+            level: 19,
+            choices: [
+                {
+                    id: 'generalFeat19',
+                    type: 'feat',
+                    label: 'builder.generalFeat',
+                    value: getFeatName(feats.find(f => f.source === 'general' && f.level === 19)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('generalFeat', 19),
+                },
+                {
+                    id: 'skillIncrease19',
+                    type: 'skill',
+                    label: 'builder.skillIncrease',
+                    value: '',
+                    required: true,
+                    onClick: () => onOpenSelection('skillIncrease', 19),
+                },
+            ],
+        });
+
+        // Level 20: Ability Boosts, Class Feat, Skill Feat
+        sections.push({
+            level: 20,
+            choices: [
+                {
+                    id: 'boosts20',
+                    type: 'boost',
+                    label: 'builder.levelUpBoosts',
+                    value: (() => {
+                        const levelBoosts = character.abilityBoosts?.levelUp?.[20] || [];
+                        return levelBoosts.length > 0 ? `${levelBoosts.length}/4` : '';
+                    })(),
+                    required: true,
+                    onClick: () => onOpenSelection('boost20', 20),
+                },
+                {
+                    id: 'classFeat20',
+                    type: 'feat',
+                    label: 'builder.classFeat',
+                    value: getFeatName(feats.find(f => f.source === 'class' && f.level === 20)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('classFeat', 20),
+                },
+                {
+                    id: 'skillFeat20',
+                    type: 'feat',
+                    label: 'builder.skillFeat',
+                    value: getFeatName(feats.find(f => f.source === 'skill' && f.level === 20)?.featId),
+                    required: true,
+                    onClick: () => onOpenSelection('skillFeat', 20),
+                },
+            ],
+        });
 
         return sections;
     };

@@ -14,12 +14,13 @@ import {
 import { Character, createEmptyCharacter, CharacterFeat, SkillProficiency, AbilityName } from '../types';
 import { LoadedFeat } from '../data/pf2e-loader';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'boost' | 'ancestryFeat' | 'classFeat' | 'skillTraining' | 'boost5' | 'boost10' | 'boost15' | 'boost20' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'boost' | 'ancestryFeat' | 'classFeat' | 'skillTraining' | 'boost5' | 'boost10' | 'boost15' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [character, setCharacter] = useState<Character | null>(null);
     const [selectionType, setSelectionType] = useState<SelectionType>(null);
+    const [selectionLevel, setSelectionLevel] = useState<number | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -58,14 +59,17 @@ const CharacterSheetPage: React.FC = () => {
         localStorage.setItem('pf2e-characters', JSON.stringify(characters));
     };
 
-    const handleOpenSelection = (type: string) => {
-        if (type === 'ancestry' || type === 'heritage' || type === 'background' || type === 'class' || type === 'boost' || type === 'ancestryFeat' || type === 'classFeat' || type === 'skillTraining' || type === 'boost5' || type === 'boost10' || type === 'boost15' || type === 'boost20') {
-            setSelectionType(type);
+    const handleOpenSelection = (type: string, targetLevel?: number) => {
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'boost', 'ancestryFeat', 'classFeat', 'skillTraining', 'boost5', 'boost10', 'boost15', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
+        if (validTypes.includes(type)) {
+            setSelectionType(type as SelectionType);
+            setSelectionLevel(targetLevel ?? null);
         }
     };
 
     const handleCloseSelection = () => {
         setSelectionType(null);
+        setSelectionLevel(null);
     };
 
     const handleSelectAncestry = (ancestryId: string) => {
@@ -122,15 +126,18 @@ const CharacterSheetPage: React.FC = () => {
 
     const handleSelectFeat = (feat: LoadedFeat, source: CharacterFeat['source']) => {
         if (character) {
+            // Use selectionLevel if set, otherwise fall back to character.level
+            const targetLevel = selectionLevel ?? character.level;
+
             const newFeat: CharacterFeat = {
                 featId: feat.id,
-                level: character.level,
+                level: targetLevel,
                 source: source,
             };
 
-            // Replace existing feat of same source at level 1, or add new
+            // Replace existing feat of same source at target level, or add new
             const existingIndex = character.feats.findIndex(
-                f => f.source === source && f.level === character.level
+                f => f.source === source && f.level === targetLevel
             );
 
             let updatedFeats: CharacterFeat[];
@@ -147,6 +154,7 @@ const CharacterSheetPage: React.FC = () => {
             });
         }
         setSelectionType(null);
+        setSelectionLevel(null);
     };
 
     const handleApplySkillTraining = (trainedSkills: SkillProficiency[]) => {
@@ -261,7 +269,7 @@ const CharacterSheetPage: React.FC = () => {
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
                     filterCategory="ancestry"
-                    characterLevel={character.level}
+                    characterLevel={selectionLevel ?? character.level}
                     ancestryId={character.ancestryId}
                 />
             )}
@@ -271,8 +279,26 @@ const CharacterSheetPage: React.FC = () => {
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
                     filterCategory="class"
-                    characterLevel={character.level}
+                    characterLevel={selectionLevel ?? character.level}
                     classId={character.classId}
+                />
+            )}
+
+            {selectionType === 'skillFeat' && (
+                <FeatBrowser
+                    onClose={handleCloseSelection}
+                    onSelect={handleSelectFeat}
+                    filterCategory="skill"
+                    characterLevel={selectionLevel ?? character.level}
+                />
+            )}
+
+            {selectionType === 'generalFeat' && (
+                <FeatBrowser
+                    onClose={handleCloseSelection}
+                    onSelect={handleSelectFeat}
+                    filterCategory="general"
+                    characterLevel={selectionLevel ?? character.level}
                 />
             )}
 
