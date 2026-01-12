@@ -7,6 +7,23 @@ import { skills as allSkills, getAncestryById, getClassById } from '../../data';
 
 type FeatCategory = 'all' | 'ancestry' | 'class' | 'skill' | 'general' | 'archetype';
 
+// Helper to check if a feat can be selected multiple times
+const isRepeatable = (feat: LoadedFeat): boolean => {
+    const description = feat.description.toLowerCase();
+    const repeatablePhrases = [
+        'can be selected more than once',
+        'can select this feat more than once',
+        'you can take this feat multiple times',
+        'you can select this feat multiple times',
+        'special you can take',
+        'special you can select',
+        'puoi selezionare questo talento più volte',
+        'può essere selezionato più volte',
+        'puoi prendere questo talento più volte',
+    ];
+    return repeatablePhrases.some(phrase => description.includes(phrase));
+};
+
 interface FeatBrowserProps {
     onClose: () => void;
     onSelect: (feat: LoadedFeat, source: CharacterFeat['source']) => void;
@@ -38,6 +55,12 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
 
     // Load all feats
     const allFeats = useMemo(() => getFeats(), []);
+
+    // Get IDs of feats already owned by the character
+    const ownedFeatIds = useMemo(() => {
+        if (!character?.feats) return new Set<string>();
+        return new Set(character.feats.map(f => f.featId));
+    }, [character?.feats]);
 
     // Get available levels up to character level
     const availableLevels = useMemo(() => {
@@ -119,8 +142,13 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
             feats = feats.filter(f => checkPrerequisites(f, character).met);
         }
 
+        // Filter out already-owned non-repeatable feats
+        if (hideUnavailable && ownedFeatIds.size > 0) {
+            feats = feats.filter(f => !ownedFeatIds.has(f.id) || isRepeatable(f));
+        }
+
         return feats.slice(0, 100);
-    }, [allFeats, categoryFilter, levelFilter, searchQuery, characterLevel, ancestryId, classId, selectedSkillFilter, hideUnavailable]);
+    }, [allFeats, categoryFilter, levelFilter, searchQuery, characterLevel, ancestryId, classId, selectedSkillFilter, hideUnavailable, ownedFeatIds]);
 
     const getActionIcon = (actionType: LoadedFeat['actionType'], actionCost: number | null): string => {
         if (actionType === 'passive') return '◈';
@@ -245,11 +273,13 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                         ) : (
                             filteredFeats.map(feat => {
                                 const prereqResult = character ? checkPrerequisites(feat, character) : { met: true, reasons: [] };
+                                const isOwned = ownedFeatIds.has(feat.id);
+                                const canSelectAgain = isOwned && isRepeatable(feat);
 
                                 return (
                                     <div
                                         key={feat.id}
-                                        className={`browser-item ${selectedFeat?.id === feat.id ? 'selected' : ''} ${!prereqResult.met ? 'prereq-unmet' : ''}`}
+                                        className={`browser-item ${selectedFeat?.id === feat.id ? 'selected' : ''} ${!prereqResult.met ? 'prereq-unmet' : ''} ${isOwned && !canSelectAgain ? 'already-owned' : ''}`}
                                         onClick={() => setSelectedFeat(feat)}
                                     >
                                         <div className="item-header">
@@ -272,6 +302,13 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                                             {feat.rarity !== 'common' && (
                                                 <span className={`item-rarity rarity-${feat.rarity}`}>
                                                     {feat.rarity}
+                                                </span>
+                                            )}
+                                            {isOwned && (
+                                                <span className={`item-owned ${canSelectAgain ? 'repeatable' : ''}`}>
+                                                    {canSelectAgain
+                                                        ? (t('feats.alreadySelectedRepeatable') || '✓ Selezionato (ripetibile)')
+                                                        : (t('feats.alreadySelected') || '✓ Già selezionato')}
                                                 </span>
                                             )}
                                         </div>
@@ -332,7 +369,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                     <button
                         className="modal-btn modal-btn-primary"
                         onClick={handleSelectFeat}
-                        disabled={!selectedFeat}
+                        disabled={!selectedFeat || (ownedFeatIds.has(selectedFeat.id) && !isRepeatable(selectedFeat))}
                     >
                         {t('actions.select')}
                     </button>
