@@ -133,6 +133,9 @@ export interface Character {
     // Feats
     feats: CharacterFeat[];
 
+    // Skill Increases (level -> skill name)
+    skillIncreases: { [level: number]: string };
+
     // Equipment
     // Equipment
     equipment: EquippedItem[];
@@ -202,6 +205,7 @@ export function createEmptyCharacter(): Character {
         weaponProficiencies: [],
         armorProficiencies: [],
         feats: [],
+        skillIncreases: {},
         equipment: [],
         equippedArmor: '',
         equippedShield: '',

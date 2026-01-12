@@ -78,6 +78,15 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             return allFeats.find(f => f.id === featId)?.name || featId;
         };
 
+        // Helper to get skill increase display name
+        const getSkillIncreaseName = (level: number) => {
+            const skillName = character.skillIncreases?.[level];
+            if (!skillName) return '';
+            const skillDef = skillsData.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+            if (!skillDef) return skillName;
+            return getName(skillDef);
+        };
+
         // Level 1 section
         sections.push({
             level: 1,
@@ -199,7 +208,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease3',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(3),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 3),
                 },
@@ -256,7 +265,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease5',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(5),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 5),
                 },
@@ -302,7 +311,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease7',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(7),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 7),
                 },
@@ -348,7 +357,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease9',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(9),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 9),
                 },
@@ -405,7 +414,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease11',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(11),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 11),
                 },
@@ -451,7 +460,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease13',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(13),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 13),
                 },
@@ -508,7 +517,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease15',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(15),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 15),
                 },
@@ -554,7 +563,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease17',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(17),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 17),
                 },
@@ -600,7 +609,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: 'skillIncrease19',
                     type: 'skill',
                     label: 'builder.skillIncrease',
-                    value: '',
+                    value: getSkillIncreaseName(19),
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', 19),
                 },
@@ -797,13 +806,21 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 onMenuClick={() => setMenuOpen(!menuOpen)}
                 onRestClick={handleRest}
                 onLevelChange={(newLevel) => {
-                    // Cleanup on level down: remove feats and boosts above new level
+                    // Cleanup on level down: remove feats, boosts, and skill increases above new level
                     const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
                     const cleanedLevelUp: Record<number, string[]> = {};
                     if (character.abilityBoosts?.levelUp) {
                         for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
                             if (parseInt(lvl) <= newLevel) {
                                 cleanedLevelUp[parseInt(lvl)] = boosts;
+                            }
+                        }
+                    }
+                    const cleanedSkillIncreases: Record<number, string> = {};
+                    if (character.skillIncreases) {
+                        for (const [lvl, skill] of Object.entries(character.skillIncreases)) {
+                            if (parseInt(lvl) <= newLevel) {
+                                cleanedSkillIncreases[parseInt(lvl)] = skill;
                             }
                         }
                     }
@@ -816,6 +833,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             ...character.abilityBoosts,
                             levelUp: cleanedLevelUp,
                         },
+                        skillIncreases: cleanedSkillIncreases,
                     });
                 }}
             />
@@ -825,13 +843,21 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     sections={buildSections()}
                     currentLevel={character.level || 1}
                     onLevelChange={(newLevel) => {
-                        // Cleanup on level down: remove feats and boosts above new level
+                        // Cleanup on level down: remove feats, boosts, and skill increases above new level
                         const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
                         const cleanedLevelUp: Record<number, string[]> = {};
                         if (character.abilityBoosts?.levelUp) {
                             for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
                                 if (parseInt(lvl) <= newLevel) {
                                     cleanedLevelUp[parseInt(lvl)] = boosts;
+                                }
+                            }
+                        }
+                        const cleanedSkillIncreases: Record<number, string> = {};
+                        if (character.skillIncreases) {
+                            for (const [lvl, skill] of Object.entries(character.skillIncreases)) {
+                                if (parseInt(lvl) <= newLevel) {
+                                    cleanedSkillIncreases[parseInt(lvl)] = skill;
                                 }
                             }
                         }
@@ -844,6 +870,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 ...character.abilityBoosts,
                                 levelUp: cleanedLevelUp,
                             },
+                            skillIncreases: cleanedSkillIncreases,
                         });
                     }}
                 />
