@@ -86,6 +86,33 @@ export interface CharacterFeat {
     choices?: string[];
 }
 
+export type BonusType = 'status' | 'circumstance' | 'item' | 'penalty';
+
+export type BonusSelector =
+    | 'ac'
+    | 'fortitude'
+    | 'reflex'
+    | 'will'
+    | 'perception'
+    | 'attack'
+    | 'damage'
+    | 'speed'
+    | 'all-saves'
+    | 'skill-*'
+    | `skill-${string}`
+    | 'ability-*'
+    | `ability-${AbilityName}`;
+
+export interface Buff {
+    id: string;
+    name: string;
+    bonus: number;  // Can be negative for penalties
+    type: BonusType;
+    selector: BonusSelector;
+    duration?: number;  // In rounds, undefined = permanent
+    source?: string;  // Optional description of source
+}
+
 export interface Character {
     id: string;
     name: string;
@@ -154,7 +181,8 @@ export interface Character {
     };
 
     // Conditions
-    conditions: { id: string; value?: number }[];
+    conditions: { id: string; value?: number; duration?: number }[];
+    buffs: Buff[];
 
     // Spellcasting (optional)
     spellcasting?: {
@@ -217,6 +245,7 @@ export function createEmptyCharacter(): Character {
         shieldState: undefined,
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
+        buffs: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };

@@ -13,10 +13,11 @@ import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
 import { ActiveConditions } from './ActiveConditions';
 import { ConditionBrowser } from './ConditionBrowser';
+import { BuffBrowser } from './BuffBrowser';
 import { EquipmentBrowser } from './EquipmentBrowser';
 import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
-import { Character, Proficiency } from '../../types';
+import { Character, Proficiency, Buff } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
 import {
     calculateConditionPenalties,
@@ -52,6 +53,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
     const [showConditionBrowser, setShowConditionBrowser] = useState(false);
+    const [showBuffBrowser, setShowBuffBrowser] = useState(false);
     const [showEquipmentBrowser, setShowEquipmentBrowser] = useState(false);
 
     // Lookup entity names
@@ -702,6 +704,71 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         });
     };
 
+    // Buff handlers
+    const handleAddBuff = (buff: Buff) => {
+        const currentBuffs = character.buffs || [];
+        onCharacterUpdate({
+            ...character,
+            buffs: [...currentBuffs, buff]
+        });
+        setShowBuffBrowser(false);
+    };
+
+    const handleRemoveBuff = (buffId: string) => {
+        const currentBuffs = character.buffs || [];
+        onCharacterUpdate({
+            ...character,
+            buffs: currentBuffs.filter(b => b.id !== buffId)
+        });
+    };
+
+    const handleUpdateBuffDuration = (buffId: string, duration: number) => {
+        const currentBuffs = character.buffs || [];
+        onCharacterUpdate({
+            ...character,
+            buffs: currentBuffs.map(b =>
+                b.id === buffId ? { ...b, duration } : b
+            )
+        });
+    };
+
+    // Advance Round: decrement durations, handle frightened value decrease, remove expired effects
+    const handleAdvanceRound = () => {
+        const currentConditions = character.conditions || [];
+        const currentBuffs = character.buffs || [];
+
+        // Update conditions: decrement duration, auto-decrease frightened value
+        const updatedConditions = currentConditions
+            .map(c => {
+                // Conditions that decrease by 1 at end of round (e.g., Frightened)
+                if (c.id === 'frightened' && c.value && c.value > 1) {
+                    return { ...c, value: c.value - 1 };
+                }
+                // Decrement duration for timed conditions
+                if (c.duration !== undefined) {
+                    return c.duration > 1 ? { ...c, duration: c.duration - 1 } : null;
+                }
+                return c;
+            })
+            .filter((c): c is NonNullable<typeof c> => c !== null);
+
+        // Update buffs: decrement duration, remove if reaches 0
+        const updatedBuffs = currentBuffs
+            .map(b => {
+                if (b.duration !== undefined) {
+                    return b.duration > 1 ? { ...b, duration: b.duration - 1 } : null;
+                }
+                return b;
+            })
+            .filter((b): b is NonNullable<typeof b> => b !== null);
+
+        onCharacterUpdate({
+            ...character,
+            conditions: updatedConditions,
+            buffs: updatedBuffs
+        });
+    };
+
     // Equipment handlers for gear
     const handleEquipGear = (gear: LoadedGear) => {
         const currentEquipment = character.equipment || [];
@@ -906,13 +973,16 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         heroPoints={1}
                         classDC={getClassDC()}
                         onAddCondition={() => setShowConditionBrowser(true)}
-                        onAddCustomBuff={() => console.log('Add custom buff')}
+                        onAddCustomBuff={() => setShowBuffBrowser(true)}
+                        onAdvanceRound={handleAdvanceRound}
                     />
 
                     <ActiveConditions
                         character={character}
-                        onRemove={handleRemoveCondition}
-                        onUpdateValue={handleUpdateConditionValue}
+                        onRemoveCondition={handleRemoveCondition}
+                        onUpdateConditionValue={handleUpdateConditionValue}
+                        onRemoveBuff={handleRemoveBuff}
+                        onUpdateBuffDuration={handleUpdateBuffDuration}
                     />
 
                     <CharacterTabs
@@ -1024,6 +1094,16 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     <ConditionBrowser
                         onClose={() => setShowConditionBrowser(false)}
                         onAdd={handleAddCondition}
+                    />
+                )
+            }
+
+            {/* Buff Browser Modal */}
+            {
+                showBuffBrowser && (
+                    <BuffBrowser
+                        onClose={() => setShowBuffBrowser(false)}
+                        onAddBuff={handleAddBuff}
                     />
                 )
             }

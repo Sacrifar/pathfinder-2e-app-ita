@@ -28,3 +28,4 @@ export { FeatBrowser } from './FeatBrowser';
 export { SkillTrainingModal } from './SkillTrainingModal';
 export { LevelUpBoostModal } from './LevelUpBoostModal';
 export { SkillIncreaseModal } from './SkillIncreaseModal';
+export { BuffBrowser } from './BuffBrowser';

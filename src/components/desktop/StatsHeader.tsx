@@ -11,6 +11,7 @@ interface StatsHeaderProps {
     classDC?: number;
     onAddCondition: () => void;
     onAddCustomBuff: () => void;
+    onAdvanceRound?: () => void;
 }
 
 export const StatsHeader: React.FC<StatsHeaderProps> = ({
@@ -23,6 +24,7 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     classDC,
     onAddCondition,
     onAddCustomBuff,
+    onAdvanceRound,
 }) => {
     const { t } = useLanguage();
 
@@ -80,8 +82,13 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                     {t('actions.addCondition') || 'Add Condition'}
                 </button>
                 <button className="header-btn" onClick={onAddCustomBuff}>
-                    {t('actions.addCustomBuff') || 'Add Custom Buff'}
+                    {t('actions.addCustomBuff') || 'Add Buff'}
                 </button>
+                {onAdvanceRound && (
+                    <button className="header-btn advance-round-btn" onClick={onAdvanceRound}>
+                        {t('actions.advanceRound') || 'Advance Round'}
+                    </button>
+                )}
             </div>
         </div>
     );
