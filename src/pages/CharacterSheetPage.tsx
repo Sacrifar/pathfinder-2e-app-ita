@@ -311,6 +311,7 @@ const CharacterSheetPage: React.FC = () => {
                     filterCategory="ancestry"
                     characterLevel={selectionLevel ?? character.level}
                     ancestryId={character.ancestryId}
+                    character={character}
                 />
             )}
 
@@ -321,6 +322,7 @@ const CharacterSheetPage: React.FC = () => {
                     filterCategory="class"
                     characterLevel={selectionLevel ?? character.level}
                     classId={character.classId}
+                    character={character}
                 />
             )}
 
@@ -330,6 +332,7 @@ const CharacterSheetPage: React.FC = () => {
                     onSelect={handleSelectFeat}
                     filterCategory="skill"
                     characterLevel={selectionLevel ?? character.level}
+                    character={character}
                 />
             )}
 
@@ -339,6 +342,7 @@ const CharacterSheetPage: React.FC = () => {
                     onSelect={handleSelectFeat}
                     filterCategory="general"
                     characterLevel={selectionLevel ?? character.level}
+                    character={character}
                 />
             )}
 
