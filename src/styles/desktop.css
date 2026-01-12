@@ -3749,3 +3749,182 @@
     color: var(--desktop-text-secondary);
     font-size: 13px;
 }
+
+/* ===== Shield HP and Raise Shield Styles ===== */
+
+.shield-slot-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Shield Status Classes */
+.equipment-slot.shield-raised {
+    border: 1px solid var(--desktop-accent-blue);
+    background: rgba(74, 158, 255, 0.1);
+}
+
+.equipment-slot.shield-broken {
+    border: 1px solid var(--desktop-accent-orange);
+    background: rgba(255, 140, 0, 0.1);
+}
+
+.equipment-slot.shield-destroyed {
+    border: 1px solid var(--desktop-accent-red);
+    background: rgba(196, 43, 43, 0.1);
+    opacity: 0.7;
+}
+
+/* Raised Badge */
+.raised-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: var(--desktop-accent-blue);
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-badge.broken {
+    background: var(--desktop-accent-orange);
+    color: white;
+}
+
+.status-badge.destroyed {
+    background: var(--desktop-accent-red);
+    color: white;
+}
+
+.item-name.destroyed {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Shield HP Section */
+.shield-hp-section {
+    padding: 8px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 6px;
+}
+
+.shield-hp-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.broken-threshold {
+    color: var(--desktop-accent-orange);
+    font-size: 11px;
+}
+
+/* Shield HP Bar */
+.shield-hp-bar {
+    height: 8px;
+    background: var(--desktop-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.shield-hp-fill {
+    height: 100%;
+    background: var(--desktop-accent-green);
+    border-radius: 4px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.shield-hp-fill.broken {
+    background: var(--desktop-accent-orange);
+}
+
+.shield-hp-fill.destroyed {
+    background: var(--desktop-accent-red);
+}
+
+/* Shield HP Controls */
+.shield-hp-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.hp-btn {
+    flex: 1;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hp-btn.damage {
+    background: rgba(196, 43, 43, 0.3);
+    color: #ff6b6b;
+}
+
+.hp-btn.damage:hover:not(:disabled) {
+    background: rgba(196, 43, 43, 0.5);
+}
+
+.hp-btn.repair {
+    background: rgba(76, 175, 80, 0.3);
+    color: #7dff82;
+}
+
+.hp-btn.repair:hover:not(:disabled) {
+    background: rgba(76, 175, 80, 0.5);
+}
+
+.hp-btn.repair.full {
+    background: rgba(76, 175, 80, 0.5);
+}
+
+.hp-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Raise Shield Button */
+.raise-shield-btn {
+    width: 100%;
+    padding: 10px 16px;
+    border: 2px solid var(--desktop-border-light);
+    border-radius: 6px;
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.raise-shield-btn:hover:not(:disabled) {
+    border-color: var(--desktop-accent-blue);
+    background: rgba(74, 158, 255, 0.1);
+}
+
+.raise-shield-btn.raised {
+    border-color: var(--desktop-accent-blue);
+    background: var(--desktop-accent-blue);
+    color: white;
+}
+
+.raise-shield-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

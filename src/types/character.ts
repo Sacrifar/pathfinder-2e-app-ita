@@ -141,6 +141,11 @@ export interface Character {
     equipment: EquippedItem[];
     equippedArmor?: string;
     equippedShield?: string;
+    // Shield state for HP tracking and Raise Shield action
+    shieldState?: {
+        currentHp: number;
+        raised: boolean;  // True when shield is raised (+2 AC)
+    };
     currency: {
         cp: number;
         sp: number;
@@ -209,6 +214,7 @@ export function createEmptyCharacter(): Character {
         equipment: [],
         equippedArmor: '',
         equippedShield: '',
+        shieldState: undefined,
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
         createdAt: new Date().toISOString(),

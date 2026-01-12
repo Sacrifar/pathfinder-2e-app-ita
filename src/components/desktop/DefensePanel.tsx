@@ -47,7 +47,11 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     const handleEquipShield = (shield: LoadedShield) => {
         onCharacterUpdate({
             ...character,
-            equippedShield: shield.id
+            equippedShield: shield.id,
+            shieldState: {
+                currentHp: shield.hp,
+                raised: false
+            }
         });
         setShowBrowser(false);
     };
@@ -67,9 +71,56 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     const handleUnequipShield = () => {
         onCharacterUpdate({
             ...character,
-            equippedShield: undefined
+            equippedShield: undefined,
+            shieldState: undefined
         });
     };
+
+    // Toggle Raise Shield action (+2 AC)
+    const handleToggleRaiseShield = () => {
+        if (!character.shieldState) return;
+        onCharacterUpdate({
+            ...character,
+            shieldState: {
+                ...character.shieldState,
+                raised: !character.shieldState.raised
+            }
+        });
+    };
+
+    // Damage shield (reduce HP)
+    const handleDamageShield = (damage: number) => {
+        if (!character.shieldState || !equippedShield) return;
+        const newHp = Math.max(0, character.shieldState.currentHp - damage);
+        onCharacterUpdate({
+            ...character,
+            shieldState: {
+                ...character.shieldState,
+                currentHp: newHp
+            }
+        });
+    };
+
+    // Repair shield (restore HP)
+    const handleRepairShield = (amount: number) => {
+        if (!character.shieldState || !equippedShield) return;
+        const newHp = Math.min(equippedShield.maxHp, character.shieldState.currentHp + amount);
+        onCharacterUpdate({
+            ...character,
+            shieldState: {
+                ...character.shieldState,
+                currentHp: newHp
+            }
+        });
+    };
+
+    // Get shield state values
+    const shieldCurrentHp = character.shieldState?.currentHp ?? equippedShield?.hp ?? 0;
+    const shieldMaxHp = equippedShield?.maxHp ?? 0;
+    const shieldBrokenThreshold = Math.floor(shieldMaxHp / 2);
+    const isShieldBroken = shieldCurrentHp <= shieldBrokenThreshold && shieldMaxHp > 0;
+    const isShieldDestroyed = shieldCurrentHp <= 0 && shieldMaxHp > 0;
+    const isShieldRaised = character.shieldState?.raised ?? false;
 
     const openBrowser = (tab: 'armor' | 'shield') => {
         setBrowserTab(tab);
@@ -202,20 +253,88 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     </div>
 
                     {/* Shield Slot */}
-                    <div className="equipment-slot">
+                    <div className={`equipment-slot ${isShieldRaised ? 'shield-raised' : ''} ${isShieldBroken ? 'shield-broken' : ''} ${isShieldDestroyed ? 'shield-destroyed' : ''}`}>
                         <div className="slot-header">
                             <span className="slot-label"><span style={{ marginRight: 6 }}>🛡️</span> {t('equipment.shield') || 'Shield'}</span>
-                            {equippedShield && <span className="slot-stats">Hardness {equippedShield.hardness}</span>}
+                            {equippedShield && (
+                                <span className="slot-stats">
+                                    Hardness {equippedShield.hardness}
+                                    {isShieldRaised && <span className="raised-badge">+2 AC</span>}
+                                </span>
+                            )}
                         </div>
                         <div className="slot-content">
                             {equippedShield ? (
-                                <div className="equipped-item-wrapper">
-                                    <div className="equipped-item" onClick={() => openBrowser('shield')}>
-                                        <span className="item-name">{equippedShield.name}</span>
-                                        <span className="item-details">HP {equippedShield.hp}/{equippedShield.maxHp}</span>
+                                <div className="shield-slot-content">
+                                    <div className="equipped-item-wrapper">
+                                        <div className="equipped-item" onClick={() => openBrowser('shield')}>
+                                            <span className={`item-name ${isShieldDestroyed ? 'destroyed' : ''}`}>
+                                                {equippedShield.name}
+                                                {isShieldBroken && !isShieldDestroyed && <span className="status-badge broken">Broken</span>}
+                                                {isShieldDestroyed && <span className="status-badge destroyed">Destroyed</span>}
+                                            </span>
+                                        </div>
+                                        <button className="unequip-btn" onClick={handleUnequipShield} title={t('actions.unequip') || 'Unequip'}>
+                                            ×
+                                        </button>
                                     </div>
-                                    <button className="unequip-btn" onClick={handleUnequipShield} title={t('actions.unequip') || 'Unequip'}>
-                                        ×
+
+                                    {/* Shield HP Bar */}
+                                    <div className="shield-hp-section">
+                                        <div className="shield-hp-header">
+                                            <span>HP: {shieldCurrentHp}/{shieldMaxHp}</span>
+                                            <span className="broken-threshold">BT {shieldBrokenThreshold}</span>
+                                        </div>
+                                        <div className="shield-hp-bar">
+                                            <div
+                                                className={`shield-hp-fill ${isShieldBroken ? 'broken' : ''} ${isShieldDestroyed ? 'destroyed' : ''}`}
+                                                style={{ width: `${(shieldCurrentHp / shieldMaxHp) * 100}%` }}
+                                            />
+                                        </div>
+                                        <div className="shield-hp-controls">
+                                            <button
+                                                className="hp-btn damage"
+                                                onClick={() => handleDamageShield(1)}
+                                                disabled={isShieldDestroyed}
+                                                title="Take 1 damage"
+                                            >
+                                                −1
+                                            </button>
+                                            <button
+                                                className="hp-btn damage"
+                                                onClick={() => handleDamageShield(5)}
+                                                disabled={isShieldDestroyed}
+                                                title="Take 5 damage"
+                                            >
+                                                −5
+                                            </button>
+                                            <button
+                                                className="hp-btn repair"
+                                                onClick={() => handleRepairShield(5)}
+                                                disabled={shieldCurrentHp >= shieldMaxHp}
+                                                title="Repair 5 HP"
+                                            >
+                                                +5
+                                            </button>
+                                            <button
+                                                className="hp-btn repair full"
+                                                onClick={() => handleRepairShield(shieldMaxHp)}
+                                                disabled={shieldCurrentHp >= shieldMaxHp}
+                                                title="Fully repair"
+                                            >
+                                                Full
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Raise Shield Button */}
+                                    <button
+                                        className={`raise-shield-btn ${isShieldRaised ? 'raised' : ''}`}
+                                        onClick={handleToggleRaiseShield}
+                                        disabled={isShieldBroken || isShieldDestroyed}
+                                        title={isShieldRaised ? 'Lower Shield' : 'Raise Shield (+2 AC)'}
+                                    >
+                                        {isShieldRaised ? '🛡️ Shield Raised (+2 AC)' : '⬆️ Raise Shield'}
                                     </button>
                                 </div>
                             ) : (
