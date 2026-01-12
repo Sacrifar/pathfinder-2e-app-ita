@@ -927,6 +927,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 <GearPanel
                                     character={character}
                                     onAddGear={() => console.log('Add gear')}
+                                    onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
 

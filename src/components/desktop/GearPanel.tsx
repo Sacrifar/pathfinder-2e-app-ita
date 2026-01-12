@@ -1,41 +1,95 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
 
 interface GearPanelProps {
     character: Character;
     onAddGear: () => void;
+    onCharacterUpdate: (character: Character) => void;
 }
 
 export const GearPanel: React.FC<GearPanelProps> = ({
     character,
     onAddGear,
+    onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
+    const [editingCurrency, setEditingCurrency] = useState(false);
+
+    // Safety defaults for potentially undefined properties
+    const equipment = character.equipment || [];
+    const currency = character.currency || { cp: 0, sp: 0, gp: 0, pp: 0 };
 
     // Calculate bulk limits
-    const strMod = Math.floor((character.abilityScores.str - 10) / 2);
+    const strMod = Math.floor(((character.abilityScores?.str ?? 10) - 10) / 2);
     const maxBulk = 5 + strMod;
     const encumberedBulk = maxBulk - 5;
 
-    // Calculate current bulk from equipment
-    const currentBulk = character.equipment.reduce((total, item) => total + item.bulk, 0);
+    // Check for containers (backpacks reduce bulk)
+    const hasBackpack = equipment.some(
+        item => item.name?.toLowerCase().includes('backpack') && item.worn
+    );
+    const containerBulkReduction = hasBackpack ? 2 : 0;
+
+    // Calculate current bulk from equipment (with container reduction)
+    const rawBulk = equipment.reduce((total, item) => total + (item.bulk || 0), 0);
+    const currentBulk = Math.max(0, rawBulk - containerBulkReduction);
     const isEncumbered = currentBulk > encumberedBulk;
     const isOverloaded = currentBulk > maxBulk;
 
     // Filter non-weapon equipment
-    const gearItems = character.equipment.filter(item => !item.wielded);
+    const gearItems = equipment.filter(item => !item.wielded);
 
-    // Currency formatting
-    const formatCurrency = () => {
-        const { cp, sp, gp, pp } = character.currency;
-        const parts = [];
-        if (pp > 0) parts.push(`${pp} pp`);
-        if (gp > 0) parts.push(`${gp} gp`);
-        if (sp > 0) parts.push(`${sp} sp`);
-        if (cp > 0) parts.push(`${cp} cp`);
-        return parts.length > 0 ? parts.join(', ') : '0 gp';
+    // Currency handlers
+    const updateCurrency = (type: 'cp' | 'sp' | 'gp' | 'pp', value: number) => {
+        onCharacterUpdate({
+            ...character,
+            currency: {
+                ...currency,
+                [type]: Math.max(0, value)
+            }
+        });
     };
+
+    const adjustCurrency = (type: 'cp' | 'sp' | 'gp' | 'pp', delta: number) => {
+        updateCurrency(type, currency[type] + delta);
+    };
+
+    // Currency conversion
+    const convertUp = (from: 'cp' | 'sp' | 'gp', to: 'sp' | 'gp' | 'pp') => {
+        const rate = 10;
+        if (currency[from] >= rate) {
+            onCharacterUpdate({
+                ...character,
+                currency: {
+                    ...currency,
+                    [from]: currency[from] - rate,
+                    [to]: currency[to] + 1
+                }
+            });
+        }
+    };
+
+    const convertDown = (from: 'sp' | 'gp' | 'pp', to: 'cp' | 'sp' | 'gp') => {
+        const rate = 10;
+        if (currency[from] >= 1) {
+            onCharacterUpdate({
+                ...character,
+                currency: {
+                    ...currency,
+                    [from]: currency[from] - 1,
+                    [to]: currency[to] + rate
+                }
+            });
+        }
+    };
+
+    // Calculate total wealth in GP
+    const totalWealth =
+        currency.cp / 100 +
+        currency.sp / 10 +
+        currency.gp +
+        currency.pp * 10;
 
     return (
         <div className="gear-panel">
@@ -52,6 +106,11 @@ export const GearPanel: React.FC<GearPanelProps> = ({
                     <span className="bulk-label">{t('stats.bulk') || 'Bulk'}</span>
                     <span className={`bulk-value ${isOverloaded ? 'overloaded' : isEncumbered ? 'encumbered' : ''}`}>
                         {currentBulk} / {maxBulk}
+                        {containerBulkReduction > 0 && (
+                            <span className="bulk-reduction" title="Backpack reduction">
+                                (-{containerBulkReduction})
+                            </span>
+                        )}
                     </span>
                 </div>
                 <div className="bulk-bar">
@@ -72,17 +131,121 @@ export const GearPanel: React.FC<GearPanelProps> = ({
                 )}
             </div>
 
-            {/* Currency */}
-            <div className="currency-display">
-                <span className="currency-label">{t('stats.currency') || 'Currency'}</span>
-                <span className="currency-value">{formatCurrency()}</span>
+            {/* Currency Section */}
+            <div className="currency-section">
+                <div className="currency-header">
+                    <span className="currency-label">{t('stats.currency') || 'Currency'}</span>
+                    <button
+                        className="edit-currency-btn"
+                        onClick={() => setEditingCurrency(!editingCurrency)}
+                    >
+                        {editingCurrency ? '✓' : '✎'}
+                    </button>
+                </div>
+
+                <div className="currency-total">
+                    Total: {totalWealth.toFixed(2)} gp
+                </div>
+
+                <div className="currency-grid">
+                    {(['pp', 'gp', 'sp', 'cp'] as const).map(type => (
+                        <div key={type} className="currency-item">
+                            <span className={`currency-type ${type}`}>{type.toUpperCase()}</span>
+                            {editingCurrency ? (
+                                <div className="currency-controls">
+                                    <button
+                                        className="currency-btn minus"
+                                        onClick={() => adjustCurrency(type, -1)}
+                                        disabled={currency[type] <= 0}
+                                    >
+                                        −
+                                    </button>
+                                    <input
+                                        type="number"
+                                        className="currency-input"
+                                        value={currency[type]}
+                                        onChange={(e) => updateCurrency(type, parseInt(e.target.value) || 0)}
+                                        min={0}
+                                    />
+                                    <button
+                                        className="currency-btn plus"
+                                        onClick={() => adjustCurrency(type, 1)}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            ) : (
+                                <span className="currency-amount">{currency[type]}</span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Currency Conversion */}
+                {editingCurrency && (
+                    <div className="currency-conversion">
+                        <span className="conversion-label">Convert:</span>
+                        <div className="conversion-buttons">
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertUp('cp', 'sp')}
+                                disabled={currency.cp < 10}
+                                title="10 CP → 1 SP"
+                            >
+                                10cp→1sp
+                            </button>
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertUp('sp', 'gp')}
+                                disabled={currency.sp < 10}
+                                title="10 SP → 1 GP"
+                            >
+                                10sp→1gp
+                            </button>
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertUp('gp', 'pp')}
+                                disabled={currency.gp < 10}
+                                title="10 GP → 1 PP"
+                            >
+                                10gp→1pp
+                            </button>
+                        </div>
+                        <div className="conversion-buttons">
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertDown('sp', 'cp')}
+                                disabled={currency.sp < 1}
+                                title="1 SP → 10 CP"
+                            >
+                                1sp→10cp
+                            </button>
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertDown('gp', 'sp')}
+                                disabled={currency.gp < 1}
+                                title="1 GP → 10 SP"
+                            >
+                                1gp→10sp
+                            </button>
+                            <button
+                                className="convert-btn"
+                                onClick={() => convertDown('pp', 'gp')}
+                                disabled={currency.pp < 1}
+                                title="1 PP → 10 GP"
+                            >
+                                1pp→10gp
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Invested Items */}
             <div className="invested-tracker">
                 <span className="invested-label">{t('stats.invested') || 'Invested'}</span>
                 <span className="invested-value">
-                    {character.equipment.filter(i => i.invested).length} / 10
+                    {equipment.filter(i => i.invested).length} / 10
                 </span>
             </div>
 
@@ -98,10 +261,11 @@ export const GearPanel: React.FC<GearPanelProps> = ({
             ) : (
                 <div className="gear-list">
                     {gearItems.map(item => (
-                        <div key={item.id} className="gear-item">
+                        <div key={item.id} className={`gear-item ${item.name.toLowerCase().includes('backpack') ? 'container' : ''}`}>
                             <div className="gear-info">
                                 <span className="gear-name">
                                     {item.invested && <span className="invested-dot">●</span>}
+                                    {item.name.toLowerCase().includes('backpack') && <span className="container-icon">📦</span>}
                                     {item.name}
                                 </span>
                                 <span className="gear-bulk">
@@ -122,3 +286,4 @@ export const GearPanel: React.FC<GearPanelProps> = ({
 };
 
 export default GearPanel;
+
