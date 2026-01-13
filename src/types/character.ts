@@ -237,6 +237,31 @@ export interface CharacterWithPets extends Omit<Character, 'pets'> {
     pets: Pet[];
 }
 
+// ============ Biography & Appearance ============
+
+export interface CharacterBiography {
+    // Quick Stats
+    age?: string;
+    gender?: string;
+    pronouns?: string;
+    height?: string;
+    weight?: string;
+    ethnicity?: string;
+    nationality?: string;
+    birthplace?: string;
+
+    // Visual
+    appearance?: string;    // Physical description
+    avatarUrl?: string;     // URL to character portrait/image
+
+    // Personality
+    attitude?: string;      // Personality/behavior
+    beliefs?: string;       // Religious/philosophical beliefs
+    likes?: string;         // Preferences
+    dislikes?: string;      // Aversions
+    catchphrases?: string;  // Memorable quotes/catchphrases
+}
+
 export interface Character {
     id: string;
     name: string;
@@ -249,6 +274,9 @@ export interface Character {
     classId: string;
     secondaryClassId?: string; // For Dual Class variant rule
     level: number;
+
+    // Deity
+    deityId?: string;
 
     // Ability Scores
     abilityScores: AbilityScores;
@@ -358,6 +386,7 @@ export interface Character {
 
     // Metadata
     notes?: string;
+    biography?: CharacterBiography;  // Detailed character biography and appearance
     createdAt: string;
     updatedAt: string;
 }
@@ -487,6 +516,16 @@ export function migrateCharacter(data: any): Character {
             }
             return item;
         });
+    }
+
+    // Migrate deityId (added for Notes & Biology module)
+    if (character.deityId === undefined) {
+        character.deityId = undefined;
+    }
+
+    // Migrate biography (added for Notes & Biology module)
+    if (!character.biography) {
+        character.biography = undefined;
     }
 
     return character;

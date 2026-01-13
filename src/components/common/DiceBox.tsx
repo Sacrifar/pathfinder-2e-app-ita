@@ -176,11 +176,6 @@ export const DiceBox: React.FC<DiceBoxProps> = ({
         setTimeout(() => setCurrentRoll(null), 300);
     };
 
-    // Expose rollDice function
-    React.useImperativeHandle React.forwardRef, () => ({
-        rollDice,
-    }));
-
     return (
         <>
             {/* Roll Result Overlay */}

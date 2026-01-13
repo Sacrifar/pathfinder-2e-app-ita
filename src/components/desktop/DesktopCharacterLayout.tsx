@@ -20,6 +20,9 @@ import { ActiveConditions } from './ActiveConditions';
 import { ConditionBrowser } from './ConditionBrowser';
 import { BuffBrowser } from './BuffBrowser';
 import { EquipmentBrowser } from './EquipmentBrowser';
+import { BiographyPanel } from './BiographyPanel';
+import { DeityBrowser } from './DeityBrowser';
+import { RichTextEditor } from '../common/RichTextEditor';
 import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff, AbilityName } from '../../types';
@@ -80,6 +83,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [showEquipmentBrowser, setShowEquipmentBrowser] = useState(false);
     const [showRestModal, setShowRestModal] = useState(false);
     const [showVariantRules, setShowVariantRules] = useState(false);
+    const [showDeityBrowser, setShowDeityBrowser] = useState(false);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -389,6 +393,15 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 b.id === buffId ? { ...b, duration } : b
             )
         });
+    };
+
+    // Deity handlers
+    const handleSelectDeity = (deity: any) => {
+        onCharacterUpdate({
+            ...character,
+            deityId: deity.id,
+        });
+        setShowDeityBrowser(false);
     };
 
     // Advance Round: decrement durations, handle frightened value decrease, remove expired effects
@@ -831,6 +844,40 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 />
                             )}
 
+                            {activeTab === 'biography' && (
+                                <BiographyPanel
+                                    character={character}
+                                    onBiographyUpdate={(biography) => {
+                                        onCharacterUpdate({
+                                            ...character,
+                                            biography,
+                                        });
+                                    }}
+                                    onDeitySelect={() => setShowDeityBrowser(true)}
+                                />
+                            )}
+
+                            {activeTab === 'notes' && (
+                                <div className="notes-panel">
+                                    <div className="panel-header">
+                                        <h3>{t('tabs.notes') || 'Notes'}</h3>
+                                    </div>
+                                    <div className="notes-content">
+                                        <RichTextEditor
+                                            value={character.notes || ''}
+                                            onChange={(notes) => {
+                                                onCharacterUpdate({
+                                                    ...character,
+                                                    notes,
+                                                });
+                                            }}
+                                            placeholder={t('notes.startTyping') || 'Start typing...'}
+                                            maxLength={10000}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {activeTab === 'details' && (
                                 <div className="details-panel">
                                     <div className="panel-header">
@@ -933,6 +980,16 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         character={character}
                         onClose={() => setShowVariantRules(false)}
                         onCharacterUpdate={onCharacterUpdate}
+                    />
+                )
+            }
+
+            {/* Deity Browser Modal */}
+            {
+                showDeityBrowser && (
+                    <DeityBrowser
+                        onSelectDeity={handleSelectDeity}
+                        onClose={() => setShowDeityBrowser(false)}
                     />
                 )
             }
