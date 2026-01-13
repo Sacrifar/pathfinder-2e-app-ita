@@ -58,6 +58,10 @@ export interface EquippedItem {
     wielded?: {
         hands: 1 | 2;
     };
+    containerId?: string;  // ID of the container this item is in (if any)
+    isContainer?: boolean;   // Whether this item is a container (backpack, pouch, etc.)
+    capacity?: number;       // Bulk capacity of this container (if isContainer)
+    bulkReduction?: number;  // How much bulk is ignored for items inside (Backpack: 2 if worn)
 }
 
 export interface PreparedSpell {
@@ -317,6 +321,20 @@ export interface Character {
         preparedSpells?: PreparedSpell[];
         focusPool?: FocusPool;
         focusSpells?: string[];
+    };
+
+    // Formula Book & Crafting
+    formulas?: string[];  // IDs of formulas the character knows
+    crafting?: {
+        dailyItems: { id: string; quantity: number }[];  // Temporary items (Alchemist/Advanced Alchemy)
+        projects: Array<{
+            id: string;  // Unique project ID
+            name: string;  // Item being crafted
+            targetValue: number;  // Total cost in silver pieces (sp)
+            progress: number;  // Accumulated progress in sp
+            daysSpent: number;
+            isFinished: boolean;
+        }>;
     };
 
     // Metadata

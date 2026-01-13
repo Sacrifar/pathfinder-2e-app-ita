@@ -3,7 +3,7 @@
  * Definitions for Familiars, Animal Companions, and Eidolons
  */
 
-import { PetAbility, PetAttack, Speed } from '../types/character';
+import { PetAbility, PetAttack, Speed, Pet, FamiliarData, AnimalCompanionData, EidolonData } from '../types/character';
 
 // ============ Familiar Abilities ============
 
@@ -585,7 +585,8 @@ export function calculateEidolonStats(
             reflex: 'expert',
             will: 'expert'
         },
-        speed: template.speed
+        speed: template.speed,
+        actTogetherUsed: false
     };
 }
 

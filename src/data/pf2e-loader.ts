@@ -399,6 +399,7 @@ export interface LoadedClass {
 export interface LoadedGear {
     id: string;
     name: string;
+    nameIt?: string;
     level: number;
     priceGp: number;
     bulk: number;
