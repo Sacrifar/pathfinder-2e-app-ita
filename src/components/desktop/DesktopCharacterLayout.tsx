@@ -131,7 +131,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         const allFeatSlots = getAllFeatSlotsUpToLevel(20, variantRules);
 
         // Group feat slots by level
-        const featSlotsByLevel: Record<number, Array<{type: string; index: number}>> = {};
+        const featSlotsByLevel: Record<number, Array<{ type: string; index: number }>> = {};
         allFeatSlots.forEach(slot => {
             if (!featSlotsByLevel[slot.level]) {
                 featSlotsByLevel[slot.level] = [];
@@ -192,15 +192,15 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         id: 'boosts',
                         type: 'boost',
                         label: 'builder.abilityBoosts',
-                        value: (() => {
+                        value: '',  // Icon and badge provide all info
+                        currentCount: (() => {
                             const boosts = character.abilityBoosts;
-                            const totalBoosts =
-                                (boosts?.ancestry?.length || 0) +
+                            return (boosts?.ancestry?.length || 0) +
                                 (boosts?.background?.length || 0) +
                                 (boosts?.class ? 1 : 0) +
                                 (boosts?.free?.length || 0);
-                            return totalBoosts > 0 ? `${totalBoosts} boosts` : '';
                         })(),
+                        maxValue: 9,
                         required: true,
                         onClick: () => onOpenSelection('boost', 1),
                     },
@@ -208,9 +208,17 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         id: 'skillTraining',
                         type: 'skill',
                         label: 'builder.skillTraining',
-                        value: (() => {
-                            const trainedCount = character.skills.filter(s => s.proficiency !== 'untrained').length;
-                            return trainedCount > 0 ? `${trainedCount} skills` : '';
+                        value: '',  // Icon and badge provide all info
+                        currentCount: (() => {
+                            const autoTrainedSkills = selectedClass?.trainedSkills || [];
+                            return character.skills.filter(s =>
+                                s.proficiency !== 'untrained' && !autoTrainedSkills.includes(s.name)
+                            ).length;
+                        })(),
+                        maxValue: (() => {
+                            const classSkillSlots = selectedClass?.additionalSkills || 0;
+                            const intMod = Math.floor((character.abilityScores.int - 10) / 2);
+                            return classSkillSlots + Math.max(0, intMod);
                         })(),
                         required: true,
                         onClick: () => onOpenSelection('skillTraining', 1),
@@ -227,7 +235,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     id: `boosts${level}`,
                     type: 'boost',
                     label: variantRules.gradualAbilityBoosts ? 'builder.abilityBoost' : 'builder.levelUpBoosts',
-                    value: levelBoosts.length > 0 ? `${levelBoosts.length}/${boostsCount}` : '',
+                    value: '',  // Icon and badge provide all info
+                    currentCount: levelBoosts.length,
+                    maxValue: boostsCount,
                     required: true,
                     onClick: () => onOpenSelection(`boost${level}`, level),
                 });
@@ -293,7 +303,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
                 choices.push({
                     id: `${slot.type}Feat${level}${idx > 0 ? idx : ''}`,
-                    type: 'feat',
+                    type: `${slot.type}Feat`,  // e.g., 'ancestryFeat', 'classFeat', 'generalFeat', 'skillFeat'
                     label: labelKey,
                     value: getFeatName(featId),
                     required: true,
@@ -552,9 +562,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         // Calculate proficiency bonus with Variant Rules support
         const profRank = perceptionProf === 'trained' ? ProficiencyRank.Trained :
             perceptionProf === 'expert' ? ProficiencyRank.Expert :
-            perceptionProf === 'master' ? ProficiencyRank.Master :
-            perceptionProf === 'legendary' ? ProficiencyRank.Legendary :
-            ProficiencyRank.Untrained;
+                perceptionProf === 'master' ? ProficiencyRank.Master :
+                    perceptionProf === 'legendary' ? ProficiencyRank.Legendary :
+                        ProficiencyRank.Untrained;
 
         const profBonus = calculateProficiencyBonusWithVariant(
             character.level || 1,
@@ -622,9 +632,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             // 3. Calculate Proficiency Bonus with Variant Rules support
             const profRank = proficiency === 'trained' ? ProficiencyRank.Trained :
                 proficiency === 'expert' ? ProficiencyRank.Expert :
-                proficiency === 'master' ? ProficiencyRank.Master :
-                proficiency === 'legendary' ? ProficiencyRank.Legendary :
-                ProficiencyRank.Untrained;
+                    proficiency === 'master' ? ProficiencyRank.Master :
+                        proficiency === 'legendary' ? ProficiencyRank.Legendary :
+                            ProficiencyRank.Untrained;
 
             const profBonus = calculateProficiencyBonusWithVariant(
                 character.level || 1,
@@ -898,8 +908,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 showEquipmentBrowser && (
                     <EquipmentBrowser
                         onClose={() => setShowEquipmentBrowser(false)}
-                        onEquipArmor={() => {}}
-                        onEquipShield={() => {}}
+                        onEquipArmor={() => { }}
+                        onEquipShield={() => { }}
                         onEquipGear={handleEquipGear}
                         initialTab="gear"
                     />

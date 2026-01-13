@@ -1,11 +1,22 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
+// Import icons
+import iconAncestry from '../../data/Azioni/icon_ancestry.png';
+import iconBackground from '../../data/Azioni/icon_background.png';
+import iconClass from '../../data/Azioni/icon_class.png';
+import iconCog from '../../data/Azioni/icon_cog.png';
+import iconCogTick from '../../data/Azioni/icon_cog_tick.png';
+import iconSkill from '../../data/Azioni/icon_skill.png';
+import iconGeneral from '../../data/Azioni/icon_general.png';
+
 interface BuildChoice {
     id: string;
     type: string;
     label: string;
     value?: string;
+    currentCount?: number; // Current count for boost/skill (used for badge countdown)
+    maxValue?: number; // Maximum value for this choice (e.g., 5 for skills at level 1)
     required: boolean;
     onClick: () => void;
 }
@@ -20,6 +31,43 @@ interface LevelSidebarProps {
     currentLevel: number;
     onLevelChange?: (newLevel: number) => void;
 }
+
+// Icon mapping based on choice type
+const getIconForType = (type: string): string => {
+    const iconMap: Record<string, string> = {
+        'ancestry': 'ancestry',
+        'heritage': 'ancestry',
+        'background': 'background',
+        'class': 'class',
+        'secondaryClass': 'class',
+        'boost': 'cog',
+        'skill': 'cog', // skill training always uses cog
+        'ancestryFeat': 'ancestry',
+        'classFeat': 'class',
+        'archetypeFeat': 'class',
+        'skillFeat': 'skill',
+        'generalFeat': 'general',
+    };
+    return iconMap[type] || 'cog';
+};
+
+// Get actual icon import
+const getIconImport = (iconKey: string): any => {
+    const iconImports: Record<string, any> = {
+        'ancestry': iconAncestry,
+        'background': iconBackground,
+        'class': iconClass,
+        'cog': iconCog,
+        'skill': iconSkill,
+        'general': iconGeneral,
+    };
+    return iconImports[iconKey] || iconCog;
+};
+
+// Check if choice has a value (is completed)
+const isCompleted = (choice: BuildChoice): boolean => {
+    return !!choice.value && choice.value !== '';
+};
 
 export const LevelSidebar: React.FC<LevelSidebarProps> = ({
     sections,
@@ -41,73 +89,147 @@ export const LevelSidebar: React.FC<LevelSidebarProps> = ({
     };
 
     return (
-        <div className="level-sidebar">
+        <div className="level-sidebar-new">
             {/* Level Selector Header */}
-            <div className="level-selector-header">
-                <div className="level-badge-container">
+            <div className="level-selector-header-new">
+                <div className="level-controls">
                     <button
-                        className="level-change-btn"
+                        className="level-btn"
                         onClick={handleLevelDown}
                         disabled={currentLevel <= 1}
                     >
                         −
                     </button>
-                    <div className="level-badge">
-                        <span className="level-number">{currentLevel}</span>
+                    <div className="level-badge-new">
+                        <span className="level-text">{t('builder.level') || 'Level'}</span>
+                        <span className="level-number-new">{currentLevel}</span>
                     </div>
                     <button
-                        className="level-change-btn"
+                        className="level-btn"
                         onClick={handleLevelUp}
                         disabled={currentLevel >= 20}
                     >
                         +
                     </button>
                 </div>
-                <span className="level-label">{t('builder.level') || 'Level'}</span>
             </div>
 
-            {sections.map((section) => {
-                const isFutureLevel = section.level > currentLevel;
-                return (
-                    <div
-                        key={section.level}
-                        className={`level-section ${isFutureLevel ? 'future-level' : ''}`}
-                        style={isFutureLevel ? { opacity: 0.6 } : undefined}
-                    >
+            {/* Level Sections */}
+            <div className="level-sections-container">
+                {sections.map((section) => {
+                    const isFutureLevel = section.level > currentLevel;
+                    return (
                         <div
-                            className="level-header"
-                            style={isFutureLevel ? { background: 'var(--desktop-text-muted)' } : undefined}
+                            key={section.level}
+                            className={`level-section-new ${isFutureLevel ? 'future-level' : ''}`}
                         >
-                            {t('character.level')} {section.level}
-                            {isFutureLevel && <span className="planning-badge"> (Planning)</span>}
+                            {/* Level Header */}
+                            <div className="level-header-new">
+                                {t('character.level')} {section.level}
+                            </div>
+
+                            {/* Choices */}
+                            <div className="level-choices-new">
+                                {section.choices.map((choice) => {
+                                    const completed = isCompleted(choice);
+                                    const iconKey = getIconForType(choice.type);
+
+                                    // Special handling for skill training and boosts
+                                    let iconSrc = iconCog;
+                                    let useTickIcon = false;
+                                    let skillCount = 0;
+                                    let maxSkills = 5;
+                                    let boostCount = 0;
+                                    let totalBoosts = 4; // Default
+
+                                    // Set default icon based on type (for incomplete items)
+                                    if (choice.type !== 'skill' && choice.type !== 'boost') {
+                                        iconSrc = getIconImport(iconKey);
+                                    }
+
+                                    if (choice.type === 'skill') {
+                                        // Use currentCount and maxValue if available
+                                        if (choice.currentCount !== undefined && choice.maxValue !== undefined) {
+                                            skillCount = choice.currentCount;
+                                            maxSkills = choice.maxValue;
+                                            if (skillCount >= maxSkills && maxSkills > 0) {
+                                                useTickIcon = true;
+                                            }
+                                        } else {
+                                            // Fallback: extract from value (e.g., "3 skills" -> 3)
+                                            const match = choice.value?.match(/(\d+)/);
+                                            skillCount = match ? parseInt(match[1]) : 0;
+                                            maxSkills = choice.maxValue || 5;
+                                            if (skillCount >= maxSkills && maxSkills > 0) {
+                                                useTickIcon = true;
+                                            }
+                                        }
+                                    } else if (choice.type === 'boost') {
+                                        // Use currentCount and maxValue if available
+                                        if (choice.currentCount !== undefined && choice.maxValue !== undefined) {
+                                            boostCount = choice.currentCount;
+                                            totalBoosts = choice.maxValue;
+                                            if (boostCount >= totalBoosts) {
+                                                useTickIcon = true;
+                                            }
+                                        } else {
+                                            // Fallback: extract from value (e.g., "9 boosts" -> 9)
+                                            const match = choice.value?.match(/(\d+)/);
+                                            boostCount = match ? parseInt(match[1]) : 0;
+                                            totalBoosts = choice.maxValue || 9;
+                                            if (boostCount >= totalBoosts) {
+                                                useTickIcon = true;
+                                            }
+                                        }
+                                    }
+
+                                    return (
+                                        <div
+                                            key={choice.id}
+                                            className={`choice-card ${completed ? 'completed' : 'incomplete'} ${isFutureLevel ? 'future' : ''}`}
+                                            onClick={choice.onClick || (() => { })}
+                                        >
+                                            {/* Icon with overlay for skills and boosts */}
+                                            <div className="choice-icon">
+                                                {choice.type === 'skill' && useTickIcon ? (
+                                                    <img src={iconCogTick} alt="✓" className="icon-img" />
+                                                ) : choice.type === 'skill' ? (
+                                                    <>
+                                                        <img src={iconCog} alt="" className="icon-img" />
+                                                        <span className="icon-overlay">{maxSkills - skillCount}</span>
+                                                    </>
+                                                ) : choice.type === 'boost' && useTickIcon ? (
+                                                    <img src={iconCogTick} alt="✓" className="icon-img" />
+                                                ) : choice.type === 'boost' ? (
+                                                    <>
+                                                        <img src={iconCog} alt="" className="icon-img" />
+                                                        <span className="icon-overlay">{totalBoosts - boostCount}</span>
+                                                    </>
+                                                ) : (
+                                                    <img src={iconSrc} alt="" className="icon-img" />
+                                                )}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="choice-content">
+                                                <div className="choice-label">{t(choice.label) || choice.label}</div>
+                                                {/* Hide value for boost/skill (badge shows status), show for other types */}
+                                                {(choice.type !== 'boost' && choice.type !== 'skill') && (
+                                                    <div className={`choice-value ${completed ? 'has-value' : 'no-value'}`}>
+                                                        {completed ? choice.value : t('builder.notSelected') || 'Not Selected'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="level-choices">
-                            {section.choices.map((choice) => (
-                                <div
-                                    key={choice.id}
-                                    className={`build-choice ${choice.value ? 'selected' : 'not-selected'} ${isFutureLevel ? 'future-choice' : ''}`}
-                                    onClick={choice.onClick || (() => { })}
-                                >
-                                    <div className="build-choice-icon">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z" />
-                                        </svg>
-                                    </div>
-                                    <span className="build-choice-label">
-                                        {choice.value || t(choice.label) || choice.label}
-                                    </span>
-                                    {choice.value && (
-                                        <span className="build-choice-value">→</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
         </div>
     );
 };
 
 export default LevelSidebar;
-
