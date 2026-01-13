@@ -1533,3 +1533,552 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ===================================
+   DICE ROLLER STYLES
+   =================================== */
+
+/* Dice Result Overlay */
+.dice-result-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Dice Result Card */
+.dice-result-card {
+    background: var(--bg-elevated);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    min-width: 320px;
+    max-width: 480px;
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+    animation: slideUp 0.3s ease-out;
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.dice-result-card.rolling {
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Crit Effects */
+.crit-effect {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: translateX(-50%) scale(0);
+    }
+    50% {
+        transform: translateX(-50%) scale(1.1);
+    }
+    100% {
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+.crit-success-effect {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+}
+
+.crit-failure-effect {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+.dice-result-card.crit-success {
+    border-color: #10b981;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
+}
+
+.dice-result-card.crit-failure {
+    border-color: #ef4444;
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.5);
+}
+
+/* Result Content */
+.dice-result-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
+    text-align: center;
+}
+
+.dice-result-formula {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: var(--space-4);
+    font-family: var(--font-family-mono);
+}
+
+/* Roll Details */
+.dice-result-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.dice-result-die {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--font-size-base);
+}
+
+.die-formula {
+    min-width: 60px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+}
+
+.die-results {
+    display: flex;
+    gap: var(--space-2);
+    flex: 1;
+}
+
+.die-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-semibold);
+    font-family: var(--font-family-mono);
+    transition: all var(--transition-fast);
+}
+
+.die-result.max {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-color: #fbbf24;
+    color: white;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+.die-result.min {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #ef4444;
+    color: white;
+}
+
+.die-total {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+}
+
+.dice-result-modifier {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-2);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+}
+
+/* Total Display */
+.dice-result-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-3);
+}
+
+.total-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.total-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+}
+
+.dice-result-card.crit-success .total-value {
+    color: #10b981;
+}
+
+.dice-result-card.crit-failure .total-value {
+    color: #ef4444;
+}
+
+/* Close Hint */
+.dice-result-hint {
+    text-align: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* ===================================
+   DICE LOG STYLES
+   =================================== */
+
+.dice-log-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 400px;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9998;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.dice-log-panel {
+    height: 100%;
+    background: var(--bg-elevated);
+    display: flex;
+    flex-direction: column;
+}
+
+.dice-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.dice-log-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.dice-log-icon {
+    font-size: var(--font-size-xl);
+}
+
+.dice-log-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.dice-log-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    transition: all var(--transition-fast);
+}
+
+.dice-log-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
+.dice-log-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4);
+}
+
+.dice-log-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.dice-log-empty-icon {
+    font-size: 48px;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+}
+
+.dice-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.dice-log-entry {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    transition: all var(--transition-fast);
+}
+
+.dice-log-entry:hover {
+    border-color: var(--border-secondary);
+}
+
+.dice-log-entry.crit-success {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.dice-log-entry.crit-failure {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.dice-log-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.dice-log-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.dice-log-formula {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+}
+
+.dice-log-entry-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.dice-log-rolls {
+    display: flex;
+    gap: 4px;
+}
+
+.dice-log-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-semibold);
+}
+
+.dice-log-result.max {
+    background: #fbbf24;
+    color: white;
+    border-color: #fbbf24;
+}
+
+.dice-log-result.min {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.dice-log-modifier {
+    font-size: var(--font-size-xs);
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-semibold);
+}
+
+.dice-log-entry-total {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+.crit-badge {
+    font-size: var(--font-size-base);
+}
+
+.dice-log-total {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-mono);
+    color: var(--accent);
+}
+
+.dice-log-total.crit-success {
+    color: #10b981;
+}
+
+.dice-log-total.crit-failure {
+    color: #ef4444;
+}
+
+.dice-log-footer {
+    padding: var(--space-4);
+    border-top: 1px solid var(--border-primary);
+}
+
+.dice-log-count {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* Roll Button Styles */
+.roll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.roll-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.roll-btn:active {
+    transform: translateY(0);
+}
+
+.roll-btn-icon {
+    font-size: var(--font-size-sm);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .dice-log-overlay {
+        max-width: 100%;
+    }
+
+    .dice-result-card {
+        min-width: 280px;
+        padding: var(--space-4);
+    }
+
+    .die-result {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Rollable Stat Box Styles */
+.stat-box.rollable {
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.stat-box.rollable:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+    transform: translateY(-2px);
+}
+
+.stat-box-roll-hint {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.stat-box.rollable:hover .stat-box-roll-hint {
+    opacity: 1;
+}

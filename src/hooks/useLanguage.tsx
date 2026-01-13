@@ -406,6 +406,24 @@ const translations: Record<Language, Record<string, string>> = {
         'search.placeholder': 'Search...',
         'actions.browseSpells': 'Browse Spells',
         'actions.learnSpell': 'Learn Spell',
+
+        // Dice Roller
+        'dice.roll': 'Roll',
+        'dice.total': 'Total',
+        'dice.history': 'Roll History',
+        'dice.clearHistory': 'Clear History',
+        'dice.noRolls': 'No rolls yet.',
+        'dice.rolls': 'rolls',
+        'dice.clickToClose': 'Click anywhere to close',
+        'dice.criticalSuccess': 'CRITICAL SUCCESS!',
+        'dice.criticalFailure': 'CRITICAL FAILURE!',
+        'dice.attackRoll': 'Attack Roll',
+        'dice.damageRoll': 'Damage Roll',
+        'dice.saveRoll': 'Save Roll',
+        'dice.skillCheck': 'Skill Check',
+        'dice.perceptionCheck': 'Perception Check',
+        'dice.initiative': 'Initiative',
+        'dice.crit': 'Crit',
     },
     it: {
         // Navigation
@@ -803,6 +821,24 @@ const translations: Record<Language, Record<string, string>> = {
         'search.placeholder': 'Cerca...',
         'actions.browseSpells': 'Sfoglia Incantesimi',
         'actions.learnSpell': 'Impara Incantesimo',
+
+        // Dice Roller
+        'dice.roll': 'Tira',
+        'dice.total': 'Totale',
+        'dice.history': 'Storico Tiri',
+        'dice.clearHistory': 'Cancella Storico',
+        'dice.noRolls': 'Nessun tiro ancora.',
+        'dice.rolls': 'tiri',
+        'dice.clickToClose': 'Clicca ovunque per chiudere',
+        'dice.criticalSuccess': 'SUCCESSO CRITICO!',
+        'dice.criticalFailure': 'FALLIMENTO CRITICO!',
+        'dice.attackRoll': 'Tiro per Colpire',
+        'dice.damageRoll': 'Tiro Danni',
+        'dice.saveRoll': 'Tiro Salvezza',
+        'dice.skillCheck': 'Tiro Abilità',
+        'dice.perceptionCheck': 'Tiro Percezione',
+        'dice.initiative': 'Iniziativa',
+        'dice.crit': 'Critico',
     }
 };
 
