@@ -127,6 +127,88 @@ export interface RestCooldown {
     lastRefocusTime?: number;  // timestamp
 }
 
+// ============ Pets & Companions ============
+
+export type PetType = 'familiar' | 'animal-companion' | 'eidolon';
+
+export interface PetAttack {
+    name: string;
+    actionCost: number | null;  // null for free attacks
+    attackBonus: number;
+    damage: string;
+    damageType: string;
+    traits?: string[];
+}
+
+export interface PetAbility {
+    id: string;
+    name: string;
+    nameIt?: string;
+    description: string;
+    descriptionIt?: string;
+    type: 'passive' | 'action' | 'reaction' | 'free';
+    actionCost?: number;
+}
+
+export interface FamiliarData {
+    abilities: PetAbility[];  // Typically 2 base abilities
+    selectedAbilities: string[];  // IDs of selected abilities
+}
+
+export interface AnimalCompanionData {
+    companionType: string;  // e.g., 'wolf', 'bear', 'bird'
+    size: 'tiny' | 'small' | 'medium' | 'large';
+    level: number;  // Scales with master (usually master level - 1)
+    hitPoints: {
+        current: number;
+        max: number;
+    };
+    armorClass: number;
+    attacks: PetAttack[];
+    specialAbilities: PetAbility[];
+    perception: number;
+    Fortitude: Proficiency;
+    reflex: Proficiency;
+    will: Proficiency;
+    speed: Speed;
+}
+
+export interface EidolonData {
+    type: string;  // e.g., 'angel', 'demon', 'elemental'
+    size: 'medium' | 'large';
+    level: number;  // Same as summoner
+    hitPoints: {
+        current: number;
+        max: number;
+    };
+    sharesHP: boolean;  // Eidolon shares HP pool with summoner
+    armorClass: number;
+    attacks: PetAttack[];
+    evolutionPoints: number;
+    selectedEvolutions: PetAbility[];
+    perception: number;
+    saves: {
+        fortitude: Proficiency;
+        reflex: Proficiency;
+        will: Proficiency;
+    };
+    speed: Speed;
+}
+
+export type PetSpecificData = FamiliarData | AnimalCompanionData | EidolonData;
+
+export interface Pet {
+    id: string;
+    name: string;
+    type: PetType;
+    data: PetSpecificData;
+    notes?: string;
+}
+
+export interface CharacterWithPets extends Omit<Character, 'pets'> {
+    pets: Pet[];
+}
+
 export interface Character {
     id: string;
     name: string;
@@ -204,6 +286,9 @@ export interface Character {
     // Rest Cooldowns
     restCooldowns?: RestCooldown;
 
+    // Pets & Companions
+    pets: Pet[];
+
     // Spellcasting (optional)
     spellcasting?: {
         tradition: 'arcane' | 'divine' | 'occult' | 'primal';
@@ -267,6 +352,7 @@ export function createEmptyCharacter(): Character {
         conditions: [],
         buffs: [],
         customResources: [],
+        pets: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };

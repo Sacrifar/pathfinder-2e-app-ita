@@ -10,6 +10,7 @@ import { DefensePanel } from './DefensePanel';
 import { GearPanel } from './GearPanel';
 import { ResourcesPanel } from './ResourcesPanel';
 import { SpellsPanel } from './SpellsPanel';
+import { PetsPanel } from './PetsPanel';
 import { FeatsPanel } from './FeatsPanel';
 import { ActionsPanel } from './ActionsPanel';
 import { DetailModal, ActionDetailContent } from './DetailModal';
@@ -1104,7 +1105,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
                         hasSpells={selectedClass?.spellcasting !== undefined}
-                        hasPets={false}
+                        hasPets={true}
                     />
 
                     <div className="tab-content">
@@ -1149,6 +1150,13 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                     character={character}
                                     onCastSpell={(spellId) => console.log('Cast:', spellId)}
                                     onAddSpell={() => console.log('Add spell')}
+                                />
+                            )}
+
+                            {activeTab === 'pets' && (
+                                <PetsPanel
+                                    character={character}
+                                    onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
 

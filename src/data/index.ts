@@ -14,6 +14,9 @@ export * from './backgrounds';
 // Export skills
 export * from './skills';
 
+// Export pets
+export * from './pets';
+
 // ============ Compatibility wrappers ============
 // These provide nameIt/descriptionIt for components that expect them
 
