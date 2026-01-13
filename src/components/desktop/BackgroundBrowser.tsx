@@ -95,12 +95,21 @@ export const BackgroundBrowser: React.FC<BackgroundBrowserProps> = ({
 
                                 <div className="boosts-section">
                                     <div className="boost-group">
-                                        <span className="boost-label">Ability Boost:</span>
-                                        <span className="boost-value positive">
-                                            {selectedBackground.abilityBoosts.map(b =>
-                                                b === 'free' ? 'Free' : b.toUpperCase()
-                                            ).join(' or ')}
-                                        </span>
+                                        <span className="boost-label">Ability Boosts:</span>
+                                        <div className="boost-value positive">
+                                            {/* Get the two ability options (excluding 'free') */}
+                                            {(() => {
+                                                const abilityOptions = selectedBackground.abilityBoosts.filter(b => b !== 'free');
+                                                const hasFree = selectedBackground.abilityBoosts.includes('free');
+
+                                                return (
+                                                    <>
+                                                        <div>One boost: {abilityOptions.map(b => b.toUpperCase()).join(' or ')}</div>
+                                                        {hasFree && <div>One free boost (not one of the above)</div>}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -108,10 +117,10 @@ export const BackgroundBrowser: React.FC<BackgroundBrowserProps> = ({
                                     <p>{getDescription(selectedBackground)}</p>
                                 </div>
 
-                                {selectedBackground.feat && (
+                                {(selectedBackground as Background & { feat?: string }).feat && (
                                     <div className="feat-section">
                                         <span className="section-label">Skill Feat:</span>
-                                        <span className="feat-name">{selectedBackground.feat}</span>
+                                        <span className="feat-name">{(selectedBackground as Background & { feat?: string }).feat}</span>
                                     </div>
                                 )}
                             </div>

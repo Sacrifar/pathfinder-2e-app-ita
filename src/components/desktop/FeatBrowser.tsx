@@ -33,6 +33,7 @@ interface FeatBrowserProps {
     classId?: string; // For filtering class-specific feats
     character?: Character; // For prerequisite validation
     skillFilter?: string; // For filtering skill feats by skill
+    archetypeOnly?: boolean; // When true, show only archetype feats (class category feats with archetype trait)
 }
 
 export const FeatBrowser: React.FC<FeatBrowserProps> = ({
@@ -44,6 +45,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
     classId,
     character,
     skillFilter,
+    archetypeOnly,
 }) => {
     const { t, language } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +114,15 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                     return f.traits.some(t => t.toLowerCase() === className);
                 });
             }
+        }
+
+        // Archetype-only mode: show only feats with the "archetype" trait
+        // This is used for Free Archetype variant rule
+        if (categoryFilter === 'class' && !classId && archetypeOnly) {
+            feats = feats.filter(f => {
+                // Show only class-category feats that have the "archetype" trait
+                return f.traits.some(t => t.toLowerCase() === 'archetype');
+            });
         }
 
         // Filter by level
@@ -190,9 +201,11 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                     <h2>
                         {filterCategory === 'ancestry'
                             ? t('builder.ancestryFeat') || 'Ancestry Feat'
-                            : filterCategory === 'class'
-                                ? t('builder.classFeat') || 'Class Feat'
-                                : t('browser.feats') || 'Feat Browser'}
+                            : filterCategory === 'class' && archetypeOnly
+                                ? t('builder.archetypeFeat') || 'Archetype Feat'
+                                : filterCategory === 'class'
+                                    ? t('builder.classFeat') || 'Class Feat'
+                                    : t('browser.feats') || 'Feat Browser'}
                     </h2>
                     <button className="close-btn" onClick={onClose}>×</button>
                 </div>
@@ -369,7 +382,11 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                     <button
                         className="modal-btn modal-btn-primary"
                         onClick={handleSelectFeat}
-                        disabled={!selectedFeat || (ownedFeatIds.has(selectedFeat.id) && !isRepeatable(selectedFeat))}
+                        disabled={
+                            !selectedFeat ||
+                            (ownedFeatIds.has(selectedFeat.id) && !isRepeatable(selectedFeat)) ||
+                            (character && !checkPrerequisites(selectedFeat, character).met)
+                        }
                     >
                         {t('actions.select')}
                     </button>

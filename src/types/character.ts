@@ -83,6 +83,7 @@ export interface CharacterFeat {
     featId: string;
     level: number;
     source: 'ancestry' | 'class' | 'general' | 'skill' | 'bonus';
+    slotType?: 'ancestry' | 'class' | 'general' | 'skill' | 'archetype'; // The type of slot this feat occupies (for distinguishing archetypes from class feats)
     choices?: string[];
 }
 
@@ -219,6 +220,7 @@ export interface Character {
     heritageId?: string;
     backgroundId: string;
     classId: string;
+    secondaryClassId?: string; // For Dual Class variant rule
     level: number;
 
     // Ability Scores
@@ -289,6 +291,16 @@ export interface Character {
     // Pets & Companions
     pets: Pet[];
 
+    // Variant Rules (GMG Options)
+    variantRules: {
+        freeArchetype: boolean;          // Extra class feats for archetypes
+        dualClass: boolean;               // Two classes at level 1
+        ancestryParagon: boolean;         // Extra ancestry feats
+        automaticBonusProgression: boolean; // ABP - built-in item bonuses
+        gradualAbilityBoosts: boolean;    // 1 boost per level instead of 4 every 5
+        proficiencyWithoutLevel: boolean; // Proficiency sans level (0/2/4/6/8)
+    };
+
     // Spellcasting (optional)
     spellcasting?: {
         tradition: 'arcane' | 'divine' | 'occult' | 'primal';
@@ -317,6 +329,16 @@ export interface CharacterSummary {
     updatedAt: string;
 }
 
+// Default variant rules object
+const DEFAULT_VARIANT_RULES = {
+    freeArchetype: false,
+    dualClass: false,
+    ancestryParagon: false,
+    automaticBonusProgression: false,
+    gradualAbilityBoosts: false,
+    proficiencyWithoutLevel: false,
+};
+
 // Utility function to create empty character
 export function createEmptyCharacter(): Character {
     return {
@@ -325,6 +347,7 @@ export function createEmptyCharacter(): Character {
         ancestryId: '',
         backgroundId: '',
         classId: '',
+        secondaryClassId: undefined,
         level: 1,
         abilityScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
         abilityBoosts: {
@@ -353,7 +376,61 @@ export function createEmptyCharacter(): Character {
         buffs: [],
         customResources: [],
         pets: [],
+        variantRules: { ...DEFAULT_VARIANT_RULES },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
+}
+
+/**
+ * Migration utility to ensure backwards compatibility
+ * Adds missing fields to existing characters loaded from localStorage
+ */
+export function migrateCharacter(data: any): Character {
+    const character = { ...data } as Character;
+
+    // Migrate variantRules (added in v0.1.0)
+    if (!character.variantRules) {
+        character.variantRules = { ...DEFAULT_VARIANT_RULES };
+    } else {
+        // Ensure all variant rule keys exist
+        for (const key of Object.keys(DEFAULT_VARIANT_RULES)) {
+            if (typeof character.variantRules[key as keyof typeof DEFAULT_VARIANT_RULES] !== 'boolean') {
+                character.variantRules = { ...DEFAULT_VARIANT_RULES, ...character.variantRules };
+                break;
+            }
+        }
+    }
+
+    // Migrate feats to add slotType (added for archetype support)
+    if (character.feats) {
+        character.feats = character.feats.map(feat => {
+            if (!feat.slotType) {
+                // For existing feats, set slotType to match source
+                // This ensures backwards compatibility
+                return {
+                    ...feat,
+                    slotType: feat.source as CharacterFeat['slotType']
+                };
+            }
+            return feat;
+        });
+    }
+
+    // Migrate pets array (added earlier)
+    if (!character.pets) {
+        character.pets = [];
+    }
+
+    // Migrate shieldState (added earlier)
+    if (character.shieldState === undefined) {
+        character.shieldState = undefined;
+    }
+
+    // Migrate restCooldowns (added earlier)
+    if (!character.restCooldowns) {
+        character.restCooldowns = {};
+    }
+
+    return character;
 }

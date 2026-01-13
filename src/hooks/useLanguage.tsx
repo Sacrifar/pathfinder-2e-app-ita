@@ -50,6 +50,7 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.heritage': 'Heritage',
         'builder.background': 'Background',
         'builder.class': 'Class',
+        'builder.secondaryClass': 'Secondary Class',
         'builder.abilities': 'Abilities',
         'builder.summary': 'Summary',
         'builder.search': 'Search...',
@@ -157,8 +158,10 @@ const translations: Record<Language, Record<string, string>> = {
         // Builder Desktop
         'builder.ancestryFeat': 'Ancestry Feat',
         'builder.classFeat': 'Class Feat',
+        'builder.archetypeFeat': 'Archetype Feat',
         'builder.skillFeat': 'Skill Feat',
         'builder.generalFeat': 'General Feat',
+        'builder.abilityBoost': 'Ability Boost',
         'builder.futureChoices': 'Future choices...',
         'builder.noWeapons': 'No weapons equipped. Add a weapon to get started.',
         'builder.addWeaponHint': 'Add a weapon to calculate attack bonuses.',
@@ -302,6 +305,11 @@ const translations: Record<Language, Record<string, string>> = {
         'tooltip.total': 'Total',
         'theme.dark': 'Dark Mode',
         'theme.light': 'Light Mode',
+
+        // Variant Rules
+        'menu.variantRules': 'Variant Rules',
+        'menu.configureVariantRules': 'Configure Variant Rules',
+        'menu.activeVariantRules': 'active',
     },
     it: {
         // Navigation
@@ -343,6 +351,7 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.heritage': 'Retaggio',
         'builder.background': 'Background',
         'builder.class': 'Classe',
+        'builder.secondaryClass': 'Classe Secondaria',
         'builder.abilities': 'Caratteristiche',
         'builder.summary': 'Riepilogo',
         'builder.search': 'Cerca...',
@@ -450,8 +459,10 @@ const translations: Record<Language, Record<string, string>> = {
         // Builder Desktop
         'builder.ancestryFeat': 'Talento di Stirpe',
         'builder.classFeat': 'Talento di Classe',
+        'builder.archetypeFeat': 'Talento di Archetipo',
         'builder.skillFeat': 'Talento di Abilità',
         'builder.generalFeat': 'Talento Generale',
+        'builder.abilityBoost': 'Incremento di Caratteristica',
         'builder.futureChoices': 'Scelte future...',
         'builder.noWeapons': 'Nessuna arma equipaggiata. Aggiungi un\'arma per iniziare.',
         'builder.addWeaponHint': 'Aggiungi un\'arma per calcolare i bonus d\'attacco.',
@@ -595,6 +606,11 @@ const translations: Record<Language, Record<string, string>> = {
         'tooltip.total': 'Totale',
         'theme.dark': 'Modalità Scura',
         'theme.light': 'Modalità Chiara',
+
+        // Variant Rules
+        'menu.variantRules': 'Regole Varianti',
+        'menu.configureVariantRules': 'Configura Regole Varianti',
+        'menu.activeVariantRules': 'attive',
     }
 };
 

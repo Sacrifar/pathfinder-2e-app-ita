@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ancestries, getHeritagesForAncestry, classes, backgrounds } from '../data';
 import type { Character } from '../types';
-import { createEmptyCharacter } from '../types';
+import { createEmptyCharacter, migrateCharacter } from '../types';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../hooks/useLanguage';
 import { calculateMaxHP } from '../utils/pf2e-math';
 
@@ -35,7 +35,7 @@ export function CharacterBuilderPage() {
                 const chars = JSON.parse(saved) as Character[];
                 const found = chars.find(c => c.id === characterId);
                 if (found) {
-                    setCharacter(found);
+                    setCharacter(migrateCharacter(found));
                 }
             }
         }

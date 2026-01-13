@@ -6,12 +6,14 @@ import '../../styles/desktop.css';
 
 interface ClassBrowserProps {
     currentClassId?: string;
+    excludeClassId?: string; // For Dual Class - exclude the primary class
     onClose: () => void;
     onSelect: (classId: string) => void;
 }
 
 export const ClassBrowser: React.FC<ClassBrowserProps> = ({
     currentClassId,
+    excludeClassId,
     onClose,
     onSelect,
 }) => {
@@ -25,11 +27,15 @@ export const ClassBrowser: React.FC<ClassBrowserProps> = ({
 
     const filteredClasses = useMemo(() => {
         const q = searchQuery.toLowerCase();
-        return classes.filter(c =>
-            c.name.toLowerCase().includes(q) ||
-            c.nameIt?.toLowerCase().includes(q)
-        );
-    }, [searchQuery]);
+        return classes.filter(c => {
+            // Exclude the primary class when selecting secondary class
+            if (excludeClassId && c.id === excludeClassId) {
+                return false;
+            }
+            return c.name.toLowerCase().includes(q) ||
+                c.nameIt?.toLowerCase().includes(q);
+        });
+    }, [searchQuery, excludeClassId]);
 
     const handleSelect = () => {
         if (selectedClass) {

@@ -13,6 +13,7 @@ interface MainMenuProps {
     onShareLink: () => Promise<void>;
     onSyncCloud: () => Promise<void>;
     onLoadFromCloud?: () => Promise<void>;
+    onShowVariantRules?: () => void;
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({
@@ -26,6 +27,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onShareLink,
     onSyncCloud,
     onLoadFromCloud,
+    onShowVariantRules,
 }) => {
     const { t } = useLanguage();
     const [showExportOptions, setShowExportOptions] = useState(false);
@@ -214,6 +216,46 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
                 {/* Menu Sections */}
                 <div style={{ padding: '8px 0' }}>
+                    {/* Variant Rules Section */}
+                    {onShowVariantRules && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <div style={{
+                                padding: '8px 20px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                textTransform: 'uppercase',
+                                color: 'var(--text-muted, #666)',
+                                letterSpacing: '0.5px',
+                            }}>
+                                {t('menu.variantRules') || 'Variant Rules'}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    onShowVariantRules();
+                                    onClose();
+                                }}
+                                style={buttonStyle}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary, #2a2a2a)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                            >
+                                <span style={{ fontSize: '18px' }}>⚙️</span>
+                                <span>{t('menu.configureVariantRules') || 'Configure Variant Rules'}</span>
+                            </button>
+
+                            {/* Active variant rules indicators */}
+                            {Object.values(character.variantRules || {}).filter(Boolean).length > 0 && (
+                                <div style={{
+                                    padding: '8px 20px',
+                                    fontSize: '11px',
+                                    color: 'var(--color-warning, #f59e0b)',
+                                }}>
+                                    {Object.values(character.variantRules || {}).filter(Boolean).length} {t('menu.activeVariantRules') || 'active'}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Export & Backup Section */}
                     <div>
                         <div style={{

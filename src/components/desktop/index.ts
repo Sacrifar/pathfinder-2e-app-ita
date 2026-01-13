@@ -25,6 +25,7 @@ export { RestModal } from './RestModal';
 export { AncestryBrowser } from './AncestryBrowser';
 export { HeritageBrowser } from './HeritageBrowser';
 export { BackgroundBrowser } from './BackgroundBrowser';
+export { BackgroundBoostModal } from './BackgroundBoostModal';
 export { ClassBrowser } from './ClassBrowser';
 export { AbilityBoostModal } from './AbilityBoostModal';
 export { FeatBrowser } from './FeatBrowser';

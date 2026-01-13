@@ -107,19 +107,39 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
         return checkSkillProficiency(skillName, requiredProf, character);
     }
 
-    // Pattern: "[ability] 14" / "Strength 16" etc.
-    const abilityMatch = prereq.match(/(strength|str|dexterity|dex|constitution|con|intelligence|int|wisdom|wis|charisma|cha)\s+(\d+)/i);
+    // Pattern: "[ability] +2" (modifier format) or "[ability] 14" (score format)
+    // Examples: "Int +2", "Strength 16", "Dex +1"
+    const abilityMatch = prereq.match(/(strength|str|dexterity|dex|constitution|con|intelligence|int|wisdom|wis|charisma|cha)\s+(\+)?(\d+)/i);
     if (abilityMatch) {
         const abilityKey = ABILITY_ALIASES[abilityMatch[1].toLowerCase()];
-        const requiredScore = parseInt(abilityMatch[2]);
+        const hasPlus = abilityMatch[2] === '+';
+        const requiredValue = parseInt(abilityMatch[3]);
 
-        if (abilityKey && character.abilityScores[abilityKey] >= requiredScore) {
-            return { met: true };
+        if (abilityKey) {
+            const currentScore = character.abilityScores[abilityKey];
+
+            if (hasPlus) {
+                // Modifier format: "Int +2" means mod of +2, which is score 14
+                // Mod +0 = score 10, +1 = 12, +2 = 14, +3 = 16, +4 = 18, etc.
+                const requiredScore = 10 + (requiredValue * 2);
+                if (currentScore >= requiredScore) {
+                    return { met: true };
+                }
+                return {
+                    met: false,
+                    reason: `Requires ${abilityMatch[1]} +${requiredValue}`
+                };
+            } else {
+                // Direct score format: "Int 14" means score of 14
+                if (currentScore >= requiredValue) {
+                    return { met: true };
+                }
+                return {
+                    met: false,
+                    reason: `Requires ${abilityMatch[1]} ${requiredValue}`
+                };
+            }
         }
-        return {
-            met: false,
-            reason: `Requires ${abilityMatch[1]} ${requiredScore}`
-        };
     }
 
     // Pattern: class feature checks (simple)

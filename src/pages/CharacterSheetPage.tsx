@@ -12,10 +12,10 @@ import {
     LevelUpBoostModal,
     SkillIncreaseModal
 } from '../components/desktop';
-import { Character, createEmptyCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
+import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
 import { LoadedFeat } from '../data/pf2e-loader';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'boost' | 'ancestryFeat' | 'classFeat' | 'skillTraining' | 'boost5' | 'boost10' | 'boost15' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -31,7 +31,7 @@ const CharacterSheetPage: React.FC = () => {
                 const characters: Character[] = JSON.parse(saved);
                 const found = characters.find((c) => c.id === id);
                 if (found) {
-                    setCharacter(found);
+                    setCharacter(migrateCharacter(found));
                     return;
                 }
             }
@@ -61,7 +61,7 @@ const CharacterSheetPage: React.FC = () => {
     };
 
     const handleOpenSelection = (type: string, targetLevel?: number) => {
-        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'boost', 'ancestryFeat', 'classFeat', 'skillTraining', 'boost5', 'boost10', 'boost15', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
         if (validTypes.includes(type)) {
             setSelectionType(type as SelectionType);
             setSelectionLevel(targetLevel ?? null);
@@ -99,6 +99,11 @@ const CharacterSheetPage: React.FC = () => {
             handleCharacterUpdate({
                 ...character,
                 backgroundId,
+                // Clear existing background boosts when changing background
+                abilityBoosts: {
+                    ...character.abilityBoosts,
+                    background: [],
+                },
             });
         }
         setSelectionType(null);
@@ -109,6 +114,16 @@ const CharacterSheetPage: React.FC = () => {
             handleCharacterUpdate({
                 ...character,
                 classId,
+            });
+        }
+        setSelectionType(null);
+    };
+
+    const handleSelectSecondaryClass = (classId: string) => {
+        if (character) {
+            handleCharacterUpdate({
+                ...character,
+                secondaryClassId: classId,
             });
         }
         setSelectionType(null);
@@ -130,15 +145,30 @@ const CharacterSheetPage: React.FC = () => {
             // Use selectionLevel if set, otherwise fall back to character.level
             const targetLevel = selectionLevel ?? character.level;
 
+            // Determine slotType based on selectionType
+            let slotType: CharacterFeat['slotType'] = undefined;
+            if (selectionType === 'archetypeFeat') {
+                slotType = 'archetype';
+            } else if (selectionType === 'ancestryFeat') {
+                slotType = 'ancestry';
+            } else if (selectionType === 'classFeat') {
+                slotType = 'class';
+            } else if (selectionType === 'skillFeat') {
+                slotType = 'skill';
+            } else if (selectionType === 'generalFeat') {
+                slotType = 'general';
+            }
+
             const newFeat: CharacterFeat = {
                 featId: feat.id,
                 level: targetLevel,
                 source: source,
+                slotType: slotType,
             };
 
-            // Replace existing feat of same source at target level, or add new
+            // Replace existing feat of same source, level, and slotType, or add new
             const existingIndex = character.feats.findIndex(
-                f => f.source === source && f.level === targetLevel
+                f => f.source === source && f.level === targetLevel && f.slotType === slotType
             );
 
             let updatedFeats: CharacterFeat[];
@@ -296,6 +326,15 @@ const CharacterSheetPage: React.FC = () => {
                 />
             )}
 
+            {selectionType === 'secondaryClass' && (
+                <ClassBrowser
+                    currentClassId={character.secondaryClassId || ''}
+                    excludeClassId={character.classId}
+                    onClose={handleCloseSelection}
+                    onSelect={handleSelectSecondaryClass}
+                />
+            )}
+
             {selectionType === 'boost' && (
                 <AbilityBoostModal
                     character={character}
@@ -323,6 +362,17 @@ const CharacterSheetPage: React.FC = () => {
                     characterLevel={selectionLevel ?? character.level}
                     classId={character.classId}
                     character={character}
+                />
+            )}
+
+            {selectionType === 'archetypeFeat' && (
+                <FeatBrowser
+                    onClose={handleCloseSelection}
+                    onSelect={handleSelectFeat}
+                    filterCategory="class"
+                    characterLevel={selectionLevel ?? character.level}
+                    character={character}
+                    archetypeOnly={true}
                 />
             )}
 
@@ -387,6 +437,141 @@ const CharacterSheetPage: React.FC = () => {
                     level={20}
                     onClose={handleCloseSelection}
                     onApply={(boosts) => handleApplyLevelUpBoosts(20, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost2' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={2}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(2, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost3' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={3}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(3, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost4' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={4}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(4, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost6' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={6}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(6, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost7' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={7}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(7, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost8' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={8}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(8, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost9' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={9}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(9, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost11' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={11}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(11, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost12' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={12}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(12, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost13' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={13}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(13, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost14' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={14}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(14, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost16' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={16}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(16, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost17' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={17}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(17, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost18' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={18}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(18, boosts)}
+                />
+            )}
+
+            {selectionType === 'boost19' && (
+                <LevelUpBoostModal
+                    character={character}
+                    level={19}
+                    onClose={handleCloseSelection}
+                    onApply={(boosts) => handleApplyLevelUpBoosts(19, boosts)}
                 />
             )}
 
