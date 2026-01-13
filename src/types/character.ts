@@ -154,12 +154,16 @@ export interface PetAbility {
 export interface FamiliarData {
     abilities: PetAbility[];  // Typically 2 base abilities
     selectedAbilities: string[];  // IDs of selected abilities
+    masterAbilitiesCount: number;  // Number of abilities available from master (base 2, +1 with feats)
+    familiarAbilitiesCount: number;  // Number of abilities familiar can learn
 }
 
 export interface AnimalCompanionData {
     companionType: string;  // e.g., 'wolf', 'bear', 'bird'
     size: 'tiny' | 'small' | 'medium' | 'large';
     level: number;  // Scales with master (usually master level - 1)
+    stage: 'young' | 'mature' | 'nimble' | 'savage';  // Progression stage
+    specialization?: 'undead' | 'construct' | null;  // Special companion types
     hitPoints: {
         current: number;
         max: number;
@@ -194,6 +198,7 @@ export interface EidolonData {
         will: Proficiency;
     };
     speed: Speed;
+    actTogetherUsed: boolean;  // Tracks if Act Together was used this round
 }
 
 export type PetSpecificData = FamiliarData | AnimalCompanionData | EidolonData;

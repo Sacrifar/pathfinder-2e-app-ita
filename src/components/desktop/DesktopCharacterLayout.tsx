@@ -770,7 +770,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
                         hasSpells={selectedClass?.spellcasting !== undefined}
-                        hasPets={true}
+                        hasPets={character.pets && character.pets.length > 0}
                     />
 
                     <div className="tab-content">

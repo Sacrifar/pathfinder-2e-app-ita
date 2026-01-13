@@ -11,7 +11,62 @@ import actionFree from '../../data/Azioni/action_free.png';
 import actionReaction from '../../data/Azioni/action_reaction.png';
 
 type ActionCost = 'free' | 'reaction' | '1' | '2' | '3';
-type ActionSource = 'basic' | 'feat' | 'skill';
+type ActionSource = 'basic' | 'feat' | 'skill' | 'pet';
+
+interface PetAction {
+    id: string;
+    name: string;
+    nameIt?: string;
+    cost: ActionCost;
+    description: string;
+    descriptionIt?: string;
+    traits: string[];
+    petType: 'familiar' | 'animal-companion' | 'eidolon';
+}
+
+// Pet-specific actions
+const PET_ACTIONS: PetAction[] = [
+    {
+        id: 'pet-command-animal',
+        name: 'Command an Animal',
+        nameIt: 'Comando un Animale',
+        cost: '1',
+        description: 'You issue an instruction to an animal. Attempt a Nature check against the animal\'s Will DC.',
+        descriptionIt: 'Dai un\'istruzione a un animale. Tenta un tiro Natura contro la CD di Volontà dell\'animale.',
+        traits: ['auditory', 'concentrate'],
+        petType: 'animal-companion',
+    },
+    {
+        id: 'pet-sustain-eidolon',
+        name: 'Sustain Eidolon',
+        nameIt: 'Sostenere Eidolon',
+        cost: '1',
+        description: 'You sustain a spell or effect your eidolon created. This allows you to extend the duration of certain spells.',
+        descriptionIt: 'Sostieni un incantesimo o effetto che il tuo eidolon ha creato. Questo ti permette di estendere la durata di certi incantesimi.',
+        traits: ['concentrate'],
+        petType: 'eidolon',
+    },
+    {
+        id: 'pet-act-together',
+        name: 'Act Together',
+        nameIt: 'Agire Insieme',
+        cost: '2',
+        description: 'You and your eidolon both act. You each take 1 action, or your eidolon takes 2 actions.',
+        descriptionIt: 'Tu e il tuo eidolon agite insieme. Ciascuno prende 1 azione, oppure il tuo eidolon prende 2 azioni.',
+        traits: ['concentrate'],
+        petType: 'eidolon',
+    },
+    {
+        id: 'pet-familiar-ability',
+        name: 'Familiar Ability',
+        nameIt: 'Abilità del Famiglio',
+        cost: 'free',
+        description: 'Your familiar uses one of its granted abilities.',
+        descriptionIt: 'Il tuo famiglio usa una delle sue abilità concesse.',
+        traits: [],
+        petType: 'familiar',
+    },
+];
 
 // Basic action names that are always available
 const BASIC_ACTION_NAMES = [
@@ -134,8 +189,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     character,
     onActionClick,
 }) => {
-    const { t } = useLanguage();
-    const [filter, setFilter] = useState<ActionCost | 'all' | 'skill' | 'feat'>('all');
+    const { t, language } = useLanguage();
+    const [filter, setFilter] = useState<ActionCost | 'all' | 'skill' | 'feat' | 'pet'>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Load all feats for cross-referencing
@@ -146,12 +201,24 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
         return new Set(character.feats?.map(f => f.featId) || []);
     }, [character.feats]);
 
+    // Get character's pet types
+    const characterPetTypes = useMemo(() => {
+        const types = new Set<'familiar' | 'animal-companion' | 'eidolon'>();
+        character.pets?.forEach(pet => {
+            if (pet.type === 'familiar') types.add('familiar');
+            if (pet.type === 'animal-companion') types.add('animal-companion');
+            if (pet.type === 'eidolon') types.add('eidolon');
+        });
+        return types;
+    }, [character.pets]);
+
     // Load and categorize actions from pf2e data
-    const { basicActions, skillActions, featActions } = useMemo(() => {
+    const { basicActions, skillActions, featActions, petActions } = useMemo(() => {
         const loaded = getActions();
         const basic: Action[] = [];
         const skill: Action[] = [];
         const feat: Action[] = [];
+        const pet: Action[] = [];
 
         for (const a of loaded) {
             const action: Action = {
@@ -196,13 +263,28 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
             }
         }
 
-        return { basicActions: basic, skillActions: skill, featActions: feat };
-    }, [character, characterFeatIds, allFeats]);
+        // Add pet-specific actions
+        for (const petAction of PET_ACTIONS) {
+            // Only include pet actions if character has that type of pet
+            if (characterPetTypes.has(petAction.petType)) {
+                pet.push({
+                    id: petAction.id,
+                    name: petAction.name,
+                    cost: petAction.cost,
+                    description: language === 'it' && petAction.descriptionIt ? petAction.descriptionIt : petAction.description,
+                    traits: petAction.traits,
+                    source: 'pet',
+                });
+            }
+        }
+
+        return { basicActions: basic, skillActions: skill, featActions: feat, petActions: pet };
+    }, [character, characterFeatIds, allFeats, characterPetTypes, language]);
 
     // Combined actions for "all" filter (basic + skill + feat actions available to character)
     const availableActions = useMemo(() => {
-        return [...basicActions, ...skillActions, ...featActions];
-    }, [basicActions, skillActions, featActions]);
+        return [...basicActions, ...skillActions, ...featActions, ...petActions];
+    }, [basicActions, skillActions, featActions, petActions]);
 
     // Get the icon image for action cost
     const getCostIcon = (cost: ActionCost): string => {
@@ -229,6 +311,9 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 break;
             case 'feat':
                 actions = featActions;
+                break;
+            case 'pet':
+                actions = petActions;
                 break;
             case '1':
             case '2':
@@ -320,6 +405,14 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                         onClick={() => setFilter('feat')}
                     >
                         {t('filters.feat') || 'Feat'}
+                    </button>
+                )}
+                {petActions.length > 0 && (
+                    <button
+                        className={`filter-btn ${filter === 'pet' ? 'active' : ''}`}
+                        onClick={() => setFilter('pet')}
+                    >
+                        {t('filters.pet') || 'Pet'}
                     </button>
                 )}
             </div>

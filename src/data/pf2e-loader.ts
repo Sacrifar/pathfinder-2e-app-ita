@@ -1245,3 +1245,448 @@ export function getClassById(id: string): LoadedClass | undefined {
 export function getClassByName(name: string): LoadedClass | undefined {
     return getClasses().find(c => c.name.toLowerCase() === name.toLowerCase());
 }
+
+// ============ Pet API ============
+
+export interface FamiliarAbility {
+    id: string;
+    name: string;
+    nameIt?: string;
+    description: string;
+    descriptionIt?: string;
+    type: 'passive' | 'action' | 'reaction' | 'free';
+    actionCost?: number;
+    source: string;
+}
+
+export interface CompanionType {
+    id: string;
+    name: string;
+    nameIt?: string;
+    size: 'tiny' | 'small' | 'medium' | 'large';
+    baseStats: {
+        hp: number;
+        speed: number;
+        perception: number;
+        fortitude: number;
+        reflex: number;
+        will: number;
+        ac: number;
+        attacks: Array<{
+            name: string;
+            damage: string;
+            damageType: string;
+            attackBonus?: number;
+        }>;
+    };
+    specialAbilities: string[];
+    description: string;
+}
+
+export interface EidolonEvolution {
+    id: string;
+    name: string;
+    nameIt?: string;
+    description: string;
+    descriptionIt?: string;
+    type: 'passive' | 'action' | 'reaction' | 'free';
+    actionCost?: number;
+    points: number; // Evolution point cost
+    prerequisites?: string[];
+    source: string;
+}
+
+let cachedFamiliarAbilities: FamiliarAbility[] | null = null;
+let cachedCompanionTypes: CompanionType[] | null = null;
+let cachedEidolonEvolutions: EidolonEvolution[] | null = null;
+
+/**
+ * Get all familiar abilities
+ * Familiars have base abilities (Damage avoidance, manual dexterity) and can learn more
+ */
+export function getFamiliarAbilities(): FamiliarAbility[] {
+    if (cachedFamiliarAbilities) return cachedFamiliarAbilities;
+
+    // Core familiar abilities from Pathfinder 2e Remaster
+    const abilities: FamiliarAbility[] = [
+        {
+            id: 'fam_bark_skin',
+            name: 'Bark Skin',
+            nameIt: 'Pelle di Corteccia',
+            description: 'Your familiar gains resistance to physical damage equal to half your level.',
+            descriptionIt: 'Il tuo famiglio guadagna resistenza ai danni fisici pari alla metà del tuo livello.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_cloud_and_liquid',
+            name: 'Cloud and Liquid Sight',
+            nameIt: 'Vista through Clouds and Liquids',
+            description: 'Your familiar can see through clouds and fog, and can see underwater as well as a human can see through air.',
+            descriptionIt: 'Il tuo famiglio può vedere attraverso nuvole e nebbia, e può vedere sott\'acqua come un umano vede attraverso l\'aria.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_darkvision',
+            name: 'Darkvision',
+            nameIt: 'Visione Oscura',
+            description: 'Your familiar can see in darkness as if it were bright light.',
+            descriptionIt: 'Il tuo famiglio può vedere al buio come se fosse luce brillante.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_damage_avoidance',
+            name: 'Damage Avoidance',
+            nameIt: 'Evitamento Danni',
+            description: 'Your familiar uses your saving throw modifiers for Fortitude and Reflex saves.',
+            descriptionIt: 'Il tuo famiglio usa i tuoi modificatori di tiro salvezza per i tiri salvezza di Fortezza e Riflessi.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_delicate_touch',
+            name: 'Delicate Touch',
+            nameIt: 'Tocco Delicato',
+            description: 'Your familiar can use its Manipulator appendages to Perform Thievery actions and use items.',
+            descriptionIt: 'Il tuo famiglio può usare i suoi appendici manipolatori per compiere azioni di Furto e usare oggetti.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_drawing_noticing',
+            name: 'Drawing Notice',
+            nameIt: 'Attirare l\'Attenzione',
+            description: 'Your familiar can use a single action to Feint, Demoralize, or Impersonate.',
+            descriptionIt: 'Il tuo famiglio può usare un\'azione singola per Ingannare, Demoralizzare o Impersonare.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_effortless_train',
+            name: 'Effortless Training',
+            nameIt: 'Addestramento Senza Sforzo',
+            description: 'Your familiar can use a single action to Command an Animal.',
+            descriptionIt: 'Il tuo famiglio può usare un\'azione singola per Comandare un Animale.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_flier',
+            name: 'Flier',
+            nameIt: 'Volatore',
+            description: 'Your familiar gains a fly Speed of 20 feet.',
+            descriptionIt: 'Il tuo famiglio guadagna una velocità di volo di 20 piedi.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_forager',
+            name: 'Forager',
+            nameIt: 'Raccoglitore',
+            description: 'Your familiar can forage for food while you travel, granting you a +2 circumstance bonus to Survival checks to Subsist.',
+            descriptionIt: 'Il tuo famiglio può cercare cibo mentre viaggi, concedendoti un bonus circostanziale di +2 ai tiri di Sopravvivenza per Sussistere.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_labourer',
+            name: 'Labourer',
+            nameIt: 'Lavoratore',
+            description: 'Your familiar can use a single action to Force Open.',
+            descriptionIt: 'Il tuo famiglio può usare un\'azione singola per Forzare l\'Apertura.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_manual_dexterity',
+            name: 'Manual Dexterity',
+            nameIt: 'Destrezza Manuale',
+            description: 'Your familiar can use one or more limbs to use items and Perform Interact actions.',
+            descriptionIt: 'Il tuo famiglio può usare uno o più arti per usare oggetti e compiere azioni di Interagire.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_mobility',
+            name: 'Mobility',
+            nameIt: 'Mobilità',
+            description: 'Your familiar gains a +10-foot status bonus to all its Speeds.',
+            descriptionIt: 'Il tuo famiglio guadagna un bonus di stato di +10 piedi a tutte le sue velocità.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_speech',
+            name: 'Speech',
+            nameIt: 'Parlato',
+            description: 'Your familiar can speak a language you know.',
+            descriptionIt: 'Il tuo famiglio può parlare una lingua che conosci.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_swimmer',
+            name: 'Swimmer',
+            nameIt: 'Nuotatore',
+            description: 'Your familiar gains a swim Speed of 20 feet.',
+            descriptionIt: 'Il tuo famiglio guadagna una velocità di nuoto di 20 piedi.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+        {
+            id: 'fam_winged',
+            name: 'Winged',
+            nameIt: 'Alato',
+            description: 'Your familiar has wings, allowing it to fly.',
+            descriptionIt: 'Il tuo famiglio ha le ali, che gli permettono di volare.',
+            type: 'passive',
+            source: 'Player Core',
+        },
+    ];
+
+    cachedFamiliarAbilities = abilities;
+    return abilities;
+}
+
+/**
+ * Get all animal companion types
+ * These are the base companions that can be selected
+ */
+export function getAnimalCompanionTypes(): CompanionType[] {
+    if (cachedCompanionTypes) return cachedCompanionTypes;
+
+    const companions: CompanionType[] = [
+        {
+            id: 'companion_bear',
+            name: 'Bear',
+            nameIt: 'Orso',
+            size: 'large',
+            baseStats: {
+                hp: 15,
+                speed: 40,
+                perception: 8,
+                fortitude: 7,
+                reflex: 3,
+                will: 3,
+                ac: 22,
+                attacks: [
+                    { name: 'Jaws', damage: '2d8+4', damageType: 'piercing' },
+                    { name: 'Claw', damage: '2d6+4', damageType: 'slashing' },
+                ],
+            },
+            specialAbilities: ['Scent', 'Powerful Jaws'],
+            description: 'A massive beast with powerful claws and jaws.',
+        },
+        {
+            id: 'companion_wolf',
+            name: 'Wolf',
+            nameIt: 'Lupo',
+            size: 'medium',
+            baseStats: {
+                hp: 12,
+                speed: 50,
+                perception: 8,
+                fortitude: 6,
+                reflex: 6,
+                will: 3,
+                ac: 23,
+                attacks: [
+                    { name: 'Jaws', damage: '1d8+3', damageType: 'piercing' },
+                ],
+            },
+            specialAbilities: ['Scent', 'Pack Attack'],
+            description: 'A loyal pack predator with keen senses.',
+        },
+        {
+            id: 'companion_bird',
+            name: 'Bird',
+            nameIt: 'Uccello',
+            size: 'small',
+            baseStats: {
+                hp: 8,
+                speed: 20,
+                perception: 8,
+                fortitude: 3,
+                reflex: 7,
+                will: 3,
+                ac: 23,
+                attacks: [
+                    { name: 'Beak', damage: '1d6+1', damageType: 'piercing' },
+                ],
+            },
+            specialAbilities: ['Scout'],
+            description: 'A nimble flying creature useful for reconnaissance.',
+        },
+        {
+            id: 'companion_cat',
+            name: 'Cat',
+            nameIt: 'Gatto',
+            size: 'small',
+            baseStats: {
+                hp: 8,
+                speed: 40,
+                perception: 9,
+                fortitude: 4,
+                reflex: 7,
+                will: 3,
+                ac: 24,
+                attacks: [
+                    { name: 'Jaws', damage: '1d6+2', damageType: 'piercing' },
+                ],
+            },
+            specialAbilities: ['Scent', 'Stealthy'],
+            description: 'A stealthy predator with sharp claws.',
+        },
+        {
+            id: 'companion_horse',
+            name: 'Horse',
+            nameIt: 'Cavallo',
+            size: 'large',
+            baseStats: {
+                hp: 15,
+                speed: 50,
+                perception: 7,
+                fortitude: 7,
+                reflex: 4,
+                will: 2,
+                ac: 22,
+                attacks: [
+                    { name: 'Hoof', damage: '2d4+4', damageType: 'bludgeoning' },
+                    { name: 'Jaws', damage: '1d6+4', damageType: 'piercing' },
+                ],
+            },
+            specialAbilities: ['Mount'],
+            description: 'A loyal mount for travel and combat.',
+        },
+        {
+            id: 'companion_dog',
+            name: 'Dog',
+            nameIt: 'Cane',
+            size: 'medium',
+            baseStats: {
+                hp: 10,
+                speed: 40,
+                perception: 8,
+                fortitude: 5,
+                reflex: 6,
+                will: 4,
+                ac: 23,
+                attacks: [
+                    { name: 'Jaws', damage: '1d8+2', damageType: 'piercing' },
+                ],
+            },
+            specialAbilities: ['Scent', 'Guard Dog'],
+            description: 'A faithful companion and guardian.',
+        },
+    ];
+
+    cachedCompanionTypes = companions;
+    return companions;
+}
+
+/**
+ * Get eidolon evolution abilities
+ * These are special abilities that eidolons can unlock with evolution points
+ */
+export function getEidolonEvolutions(): EidolonEvolution[] {
+    if (cachedEidolonEvolutions) return cachedEidolonEvolutions;
+
+    const evolutions: EidolonEvolution[] = [
+        {
+            id: 'evo_arms',
+            name: 'Additional Arms',
+            nameIt: 'Armi Addizionali',
+            description: 'Your eidolon gains two additional arms at the end of its torso.',
+            descriptionIt: 'Il tuo eidolon guadagna due braccia addizionali alla fine del suo torso.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_aquatic',
+            name: 'Aquatic',
+            nameIt: 'Acquatico',
+            description: 'Your eidolon gains a swim Speed equal to its land Speed and can breathe underwater.',
+            descriptionIt: 'Il tuo eidolon guadagna una velocità di nuoto pari alla sua velocità terrestre e può respirare sott\'acqua.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_cleave',
+            name: 'Cleave',
+            nameIt: 'Fendente',
+            description: 'Your eidolon can make a melee Strike to damage two adjacent foes.',
+            descriptionIt: 'Il tuo eidolon può fare un attacco melee per danneggiare due nemici adiacenti.',
+            type: 'action',
+            actionCost: 2,
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_climbing',
+            name: 'Climbing',
+            nameIt: 'Arrampicata',
+            description: 'Your eidolon gains a climb Speed equal to its land Speed.',
+            descriptionIt: 'Il tuo eidolon guadagna una velocità di arrampicata pari alla sua velocità terrestre.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_darkvision',
+            name: 'Darkvision',
+            nameIt: 'Visione Oscura',
+            description: 'Your eidolon can see in darkness as if it were bright light.',
+            descriptionIt: 'Il tuo eidolon può vedere al buio come se fosse luce brillante.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_flyer',
+            name: 'Flyer',
+            nameIt: 'Volatore',
+            description: 'Your eidolon gains a fly Speed equal to its land Speed.',
+            descriptionIt: 'Il tuo eidolon guadagna una velocità di volo pari alla sua velocità terrestre.',
+            type: 'passive',
+            points: 2,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_reach',
+            name: 'Greater Reach',
+            nameIt: 'Gittata Superiore',
+            description: 'Your eidolon\'s Reach increases by 5 feet.',
+            descriptionIt: 'La Gittata del tuo eidolon aumenta di 5 piedi.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_energy',
+            name: 'Energy Attacks',
+            nameIt: 'Attacchi di Energia',
+            description: 'Your eidolon deals additional energy damage on Strikes.',
+            descriptionIt: 'Il tuo eidolon infligge danni di energia addizionali sui colpi.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+        {
+            id: 'evo_resistances',
+            name: 'Resistances',
+            nameIt: 'Resistenze',
+            description: 'Your eidolon gains resistance to two energy types.',
+            descriptionIt: 'Il tuo eidolon guadagna resistenza a due tipi di energia.',
+            type: 'passive',
+            points: 1,
+            source: 'Player Core 2',
+        },
+    ];
+
+    cachedEidolonEvolutions = evolutions;
+    return evolutions;
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, Pet, PetType, Proficiency } from '../../types/character';
 import {
@@ -10,6 +10,7 @@ import {
     getEidolonTemplates,
 } from '../../data/pets';
 import { getAbilityModifier } from '../../utils/pf2e-math';
+import { calculateFamiliarStats, calculateCompanionStats, calculateEidolonStats } from '../../utils/petStats';
 
 interface PetsPanelProps {
     character: Character;
@@ -176,6 +177,28 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
         const isAnimalCompanion = pet.type === 'animal-companion';
         const isEidolon = pet.type === 'eidolon';
 
+        // Calculate stats dynamically based on master's stats
+        const familiarStats = useMemo(() => {
+            if (isFamiliar) {
+                return calculateFamiliarStats(pet as any, character);
+            }
+            return null;
+        }, [isFamiliar, pet, character]);
+
+        const companionStats = useMemo(() => {
+            if (isAnimalCompanion) {
+                return calculateCompanionStats(pet as any, character);
+            }
+            return null;
+        }, [isAnimalCompanion, pet, character]);
+
+        const eidolonStats = useMemo(() => {
+            if (isEidolon) {
+                return calculateEidolonStats(pet as any, character);
+            }
+            return null;
+        }, [isEidolon, pet, character]);
+
         return (
             <div
                 key={pet.id}
@@ -258,7 +281,7 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                 </div>
 
                 {/* Familiar View */}
-                {isFamiliar && (
+                {isFamiliar && familiarStats && (
                     <div className="familiar-view">
                         <div style={{ marginBottom: '12px' }}>
                             <h4 style={{
@@ -295,15 +318,20 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                             color: 'var(--text-secondary, #888)',
                             lineHeight: '1.5',
                         }}>
-                            <div>🎯 {t('pets.perception') || 'Perception'}: {character.level + 4}</div>
-                            <div>🛡️ {t('pets.ac') || 'AC'}: {10 + character.level + Math.floor(getAbilityModifier(character.abilityScores.dex) / 2)}</div>
+                            <div>🎯 {t('pets.perception') || 'Perception'}: {familiarStats.perception}</div>
+                            <div>🛡️ {t('pets.ac') || 'AC'}: {familiarStats.ac}</div>
+                            <div>❤️ {t('pets.hp') || 'HP'}: {familiarStats.hp}</div>
+                            <div>🎲 {t('pets.fortitude') || 'Fortitude'}: {familiarStats.saves.fortitude}</div>
+                            <div>⚡ {t('pets.reflex') || 'Reflex'}: {familiarStats.saves.reflex}</div>
+                            <div>🧠 {t('pets.will') || 'Will'}: {familiarStats.saves.will}</div>
+                            <div>👁️ {t('pets.stealth') || 'Stealth'}: {familiarStats.stealth}</div>
                             <div>🏃 {t('pets.speed') || 'Speed'}: 25 feet</div>
                         </div>
                     </div>
                 )}
 
                 {/* Animal Companion View */}
-                {isAnimalCompanion && (
+                {isAnimalCompanion && companionStats && (
                     <div className="animal-companion-view">
                         <div style={{
                             display: 'grid',
@@ -336,7 +364,7 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                                     {t('pets.hp') || 'HP'}
                                 </div>
                                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary, #fff)' }}>
-                                    {(pet.data as any).hitPoints.current} / {(pet.data as any).hitPoints.max}
+                                    {companionStats.hitPoints?.current || (pet.data as any).hitPoints.current} / {companionStats.hitPoints?.max || (pet.data as any).hitPoints.max}
                                 </div>
                             </div>
                             <div style={{
@@ -350,7 +378,7 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                                     {t('pets.ac') || 'AC'}
                                 </div>
                                 <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary, #fff)' }}>
-                                    {(pet.data as any).armorClass}
+                                    {companionStats.armorClass || (pet.data as any).armorClass}
                                 </div>
                             </div>
                         </div>
@@ -460,7 +488,7 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                 )}
 
                 {/* Eidolon View */}
-                {isEidolon && (
+                {isEidolon && eidolonStats && (
                     <div className="eidolon-view">
                         <div style={{
                             display: 'grid',
@@ -493,7 +521,7 @@ export const PetsPanel: React.FC<PetsPanelProps> = ({
                                     {t('pets.hp') || 'HP'}
                                 </div>
                                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary, #fff)' }}>
-                                    {(pet.data as any).hitPoints.current} / {(pet.data as any).hitPoints.max}
+                                    {eidolonStats.hitPoints?.current || (pet.data as any).hitPoints.current} / {eidolonStats.hitPoints?.max || (pet.data as any).hitPoints.max}
                                 </div>
                             </div>
                             <div style={{
