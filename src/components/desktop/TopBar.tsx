@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface TopBarProps {
     characterName: string;
@@ -21,6 +22,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     onNameChange,
 }) => {
     const { t, language, toggleLanguage } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
     const [isEditingName, setIsEditingName] = useState(false);
     const [editingName, setEditingName] = useState(characterName);
 
@@ -108,10 +110,48 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="topbar-right">
-                <button className="topbar-btn" onClick={toggleLanguage}>
-                    {language === 'en' ? '🇬🇧' : '🇮🇹'}
+                <button
+                    className="topbar-btn"
+                    onClick={toggleTheme}
+                    title={theme === 'dark' ? (t('theme.light') || 'Light Mode') : (t('theme.dark') || 'Dark Mode')}
+                    style={{
+                        transition: 'transform 0.2s ease, background 0.3s ease',
+                    }}
+                >
+                    <span
+                        style={{
+                            fontSize: '18px',
+                            display: 'inline-block',
+                            transition: 'transform 0.3s ease',
+                        }}
+                    >
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </span>
                 </button>
-                <button className="topbar-btn" onClick={onRestClick}>
+                <button
+                    className="topbar-btn"
+                    onClick={toggleLanguage}
+                    style={{
+                        transition: 'transform 0.2s ease, background 0.3s ease',
+                    }}
+                >
+                    <span
+                        style={{
+                            fontSize: '18px',
+                            display: 'inline-block',
+                            transition: 'transform 0.3s ease',
+                        }}
+                    >
+                        {language === 'en' ? '🇬🇧' : '🇮🇹'}
+                    </span>
+                </button>
+                <button
+                    className="topbar-btn"
+                    onClick={onRestClick}
+                    style={{
+                        transition: 'transform 0.2s ease, background 0.3s ease',
+                    }}
+                >
                     {t('actions.rest') || 'Rest'}
                 </button>
             </div>

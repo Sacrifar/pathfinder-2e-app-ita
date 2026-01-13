@@ -1,5 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useTheme } from '../../contexts/ThemeContext';
+import { StatTooltip } from './StatTooltip';
 
 interface StatsHeaderProps {
     hp: { current: number; max: number };
@@ -12,6 +14,10 @@ interface StatsHeaderProps {
     onAddCondition: () => void;
     onAddCustomBuff: () => void;
     onAdvanceRound?: () => void;
+    // Active modifiers
+    acModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    perceptionModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    speedModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
 }
 
 export const StatsHeader: React.FC<StatsHeaderProps> = ({
@@ -25,23 +31,119 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     onAddCondition,
     onAddCustomBuff,
     onAdvanceRound,
+    acModifiers = [],
+    perceptionModifiers = [],
+    speedModifiers = [],
 }) => {
     const { t } = useLanguage();
+    const { theme } = useTheme();
 
     const formatModifier = (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
     };
 
+    const hasActiveModifiers = (modifiers: typeof acModifiers) => {
+        return modifiers && modifiers.length > 0;
+    };
+
+    const getModifierBadges = (modifiers: typeof acModifiers) => {
+        if (!modifiers || modifiers.length === 0) return null;
+
+        const netModifier = modifiers.reduce((sum, mod) => sum + mod.value, 0);
+        const badgeColor = netModifier > 0
+            ? 'var(--color-success, #10b981)'
+            : netModifier < 0
+                ? 'var(--color-danger, #ef4444)'
+                : 'var(--text-secondary, #888)';
+
+        return (
+            <div
+                className="modifier-badges"
+                style={{
+                    display: 'flex',
+                    gap: '4px',
+                    marginTop: '4px',
+                }}
+            >
+                {modifiers.slice(0, 3).map((mod, index) => (
+                    <span
+                        key={index}
+                        className="badge-active"
+                        style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: mod.value > 0
+                                ? 'rgba(16, 185, 129, 0.2)'
+                                : 'rgba(239, 68, 68, 0.2)',
+                            color: mod.value > 0
+                                ? 'var(--color-success, #10b981)'
+                                : 'var(--color-danger, #ef4444)',
+                            border: `1px solid ${mod.value > 0
+                                ? 'var(--color-success, #10b981)'
+                                : 'var(--color-danger, #ef4444)'}`,
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                        }}
+                        title={mod.source}
+                    >
+                        {mod.source}
+                    </span>
+                ))}
+                {modifiers.length > 3 && (
+                    <span
+                        style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: 'var(--bg-secondary, #2a2a2a)',
+                            color: 'var(--text-secondary, #888)',
+                            border: '1px solid var(--border-primary, #333)',
+                        }}
+                    >
+                        +{modifiers.length - 3}
+                    </span>
+                )}
+            </div>
+        );
+    };
+
+    const createBreakdown = (base: number, modifiers: typeof acModifiers, baseLabel: string) => {
+        const breakdown = [
+            { label: baseLabel, value: base, type: 'base' as const },
+            ...modifiers.map(mod => ({
+                label: mod.source,
+                value: mod.value,
+                type: mod.type as 'buff' | 'penalty',
+            })),
+        ];
+        const total = breakdown.reduce((sum, item) => sum + item.value, 0);
+        return { breakdown, total };
+    };
+
+    const acBreakdown = createBreakdown(10, acModifiers, 'Base AC');
+    const perceptionBreakdown = createBreakdown(perception, [], 'Wisdom');
+    const speedBreakdown = createBreakdown(speed, speedModifiers, 'Base Speed');
+
     return (
         <div className="stats-header">
-            <div className="stat-box hp">
+            <div className={`stat-box hp ${hp.current <= hp.max / 2 ? 'low-hp' : ''}`}>
                 <span className="stat-box-label">HP</span>
                 <span className="stat-box-value">{hp.current}/{hp.max}</span>
             </div>
 
-            <div className="stat-box">
-                <span className="stat-box-label">{t('stats.speed') || 'Speed'}</span>
-                <span className="stat-box-value">{speed}</span>
+            <div className="stat-box" style={{ position: 'relative' }}>
+                <StatTooltip
+                    breakdown={speedBreakdown.breakdown}
+                    total={speedBreakdown.total}
+                    label={t('stats.speed') || 'Speed Breakdown'}
+                >
+                    <div>
+                        <span className="stat-box-label">{t('stats.speed') || 'Speed'}</span>
+                        <span className="stat-box-value">{speed}</span>
+                        {hasActiveModifiers(speedModifiers) && getModifierBadges(speedModifiers)}
+                    </div>
+                </StatTooltip>
             </div>
 
             <div className="stat-box">
@@ -49,14 +151,49 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                 <span className="stat-box-value">{size}</span>
             </div>
 
-            <div className="stat-box">
-                <span className="stat-box-label">{t('stats.perception') || 'Perception'}</span>
-                <span className="stat-box-value">{formatModifier(perception)}</span>
+            <div className="stat-box" style={{ position: 'relative' }}>
+                <StatTooltip
+                    breakdown={perceptionBreakdown.breakdown}
+                    total={perceptionBreakdown.total}
+                    label={t('stats.perception') || 'Perception Breakdown'}
+                >
+                    <div>
+                        <span className="stat-box-label">{t('stats.perception') || 'Perception'}</span>
+                        <span className="stat-box-value">{formatModifier(perception)}</span>
+                        {hasActiveModifiers(perceptionModifiers) && getModifierBadges(perceptionModifiers)}
+                    </div>
+                </StatTooltip>
             </div>
 
-            <div className="stat-box ac">
-                <span className="stat-box-label">AC</span>
-                <span className="stat-box-value">{ac}</span>
+            <div
+                className={`stat-box ac ${hasActiveModifiers(acModifiers) ? 'has-modifiers' : ''}`}
+                style={{
+                    position: 'relative',
+                    border: hasActiveModifiers(acModifiers)
+                        ? `1px solid ${theme === 'dark' ? 'var(--accent, #f59e0b)' : 'var(--accent, #8B0000)'}`
+                        : undefined,
+                }}
+            >
+                <StatTooltip
+                    breakdown={acBreakdown.breakdown}
+                    total={acBreakdown.total}
+                    label="Armor Class Breakdown"
+                >
+                    <div>
+                        <span className="stat-box-label">AC</span>
+                        <span
+                            className="stat-box-value"
+                            style={{
+                                color: hasActiveModifiers(acModifiers)
+                                    ? 'var(--accent, #f59e0b)'
+                                    : undefined,
+                            }}
+                        >
+                            {ac}
+                        </span>
+                        {hasActiveModifiers(acModifiers) && getModifierBadges(acModifiers)}
+                    </div>
+                </StatTooltip>
             </div>
 
             <div className="hero-points">

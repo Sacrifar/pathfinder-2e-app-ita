@@ -291,6 +291,17 @@ const translations: Record<Language, Record<string, string>> = {
         'pets.proficiency.expert': 'Expert',
         'pets.proficiency.master': 'Master',
         'pets.proficiency.legendary': 'Legendary',
+
+        // Tooltip & Calculation Breakdown
+        'tooltip.base': 'Base',
+        'tooltip.ability': 'Ability',
+        'tooltip.proficiency': 'Proficiency',
+        'tooltip.item': 'Item',
+        'tooltip.buff': 'Buff',
+        'tooltip.penalty': 'Penalty',
+        'tooltip.total': 'Total',
+        'theme.dark': 'Dark Mode',
+        'theme.light': 'Light Mode',
     },
     it: {
         // Navigation
@@ -573,6 +584,17 @@ const translations: Record<Language, Record<string, string>> = {
         'pets.proficiency.expert': 'Esperto',
         'pets.proficiency.master': 'Maestro',
         'pets.proficiency.legendary': 'Leggendario',
+
+        // Tooltip & Calculation Breakdown
+        'tooltip.base': 'Base',
+        'tooltip.ability': 'Caratteristica',
+        'tooltip.proficiency': 'Competenza',
+        'tooltip.item': 'Oggetto',
+        'tooltip.buff': 'Buff',
+        'tooltip.penalty': 'Penalità',
+        'tooltip.total': 'Totale',
+        'theme.dark': 'Modalità Scura',
+        'theme.light': 'Modalità Chiara',
     }
 };
 
