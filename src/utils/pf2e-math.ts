@@ -5,6 +5,7 @@
 
 import { Character } from '../types';
 import { ancestries, classes } from '../data';
+import { LoadedWeapon } from '../data/pf2e-loader';
 
 export enum ProficiencyRank {
     Untrained = 0,
@@ -208,3 +209,163 @@ export function ensureValidHP(character: Character): Character {
 
     return character;
 }
+
+/**
+ * Get the proficiency rank for a specific weapon category
+ */
+function getWeaponProficiencyRank(character: Character, weaponCategory: string): ProficiencyRank {
+    const profEntry = character.weaponProficiencies?.find(
+        p => p.category === weaponCategory || p.category === 'all'
+    );
+
+    if (!profEntry) return ProficiencyRank.Untrained;
+
+    switch (profEntry.proficiency) {
+        case 'trained': return ProficiencyRank.Trained;
+        case 'expert': return ProficiencyRank.Expert;
+        case 'master': return ProficiencyRank.Master;
+        case 'legendary': return ProficiencyRank.Legendary;
+        default: return ProficiencyRank.Untrained;
+    }
+}
+
+/**
+ * Calculates the attack bonuses for a specific weapon with MAP (Multiple Attack Penalty)
+ * Returns array of 3 numbers: [first attack, second attack, third attack]
+ *
+ * @param character Character data
+ * @param weapon Weapon to calculate attack bonus for
+ * @returns Array of 3 attack bonuses accounting for MAP
+ */
+export function calculateWeaponAttack(
+    character: Character,
+    weapon: LoadedWeapon
+): [number, number, number] {
+    const strMod = getAbilityModifier(character.abilityScores.str);
+    const dexMod = getAbilityModifier(character.abilityScores.dex);
+
+    // Determine key ability modifier based on weapon traits and range
+    let abilityMod: number;
+    const isRanged = weapon.range !== null && weapon.range > 0;
+    const hasFinesse = weapon.traits.includes('Finesse');
+    const hasThrown = weapon.traits.includes('Thrown');
+
+    if (isRanged && !hasThrown) {
+        // Ranged weapons use DEX (except thrown, which are melee that can be thrown)
+        abilityMod = dexMod;
+    } else if (hasFinesse) {
+        // Finesse weapons can use STR or DEX, whichever is higher
+        abilityMod = Math.max(strMod, dexMod);
+    } else {
+        // Default melee uses STR
+        abilityMod = strMod;
+    }
+
+    // Get proficiency bonus
+    const profRank = getWeaponProficiencyRank(character, weapon.category);
+    const profBonus = calculateProficiencyBonusWithVariant(
+        character.level || 1,
+        profRank,
+        character.variantRules?.proficiencyWithoutLevel
+    );
+
+    // Calculate item bonus (for weapon potency runes)
+    let itemBonus = 0;
+    if (character.variantRules?.automaticBonusProgression) {
+        const abp = getABPBonuses(character.level || 1);
+        itemBonus = abp.potency;
+    }
+    // TODO: Add non-ABP item bonus from equipment when equipment system is ready
+
+    const baseAttackBonus = abilityMod + profBonus + itemBonus;
+
+    // Calculate MAP (Multiple Attack Penalty)
+    // Agile weapons: 0, -4, -8
+    // Other weapons: 0, -5, -10
+    const hasAgile = weapon.traits.includes('Agile');
+    const map1 = 0;
+    const map2 = hasAgile ? -4 : -5;
+    const map3 = hasAgile ? -8 : -10;
+
+    return [
+        baseAttackBonus + map1,
+        baseAttackBonus + map2,
+        baseAttackBonus + map3,
+    ];
+}
+
+/**
+ * Calculates the damage string for a specific weapon
+ * Handles: STR bonus, Propulsive, Thrown, Two-Hand toggle
+ *
+ * @param character Character data
+ * @param weapon Weapon to calculate damage for
+ * @param isTwoHanded Whether two-hand-d* trait is active
+ * @returns Damage string (e.g., "1d8 + 3" or "2d6 + 1")
+ */
+export function calculateWeaponDamage(
+    character: Character,
+    weapon: LoadedWeapon,
+    isTwoHanded: boolean = false
+): string {
+    const strMod = getAbilityModifier(character.abilityScores.str);
+    const dexMod = getAbilityModifier(character.abilityScores.dex);
+
+    // Parse base damage dice
+    const damageMatch = weapon.damage.match(/^(\d+)d(\d+)$/);
+    if (!damageMatch) return weapon.damage;
+
+    let diceCount = parseInt(damageMatch[1]);
+    const dieSize = parseInt(damageMatch[2]);
+
+    // Handle Two-Hand trait (e.g., two-hand-d8: changes damage die to d8)
+    let actualDieSize = dieSize;
+    const twoHandTrait = weapon.traits.find(t => t.startsWith('two-hand-d'));
+    if (isTwoHanded && twoHandTrait) {
+        const twoHandDieMatch = twoHandTrait.match(/two-hand-d(\d+)/);
+        if (twoHandDieMatch) {
+            actualDieSize = parseInt(twoHandDieMatch[1]);
+        }
+    }
+
+    // Handle Striking runes (extra weapon dice)
+    let strikingBonus = 0;
+    if (character.variantRules?.automaticBonusProgression) {
+        const abp = getABPBonuses(character.level || 1);
+        strikingBonus = abp.striking;
+    }
+    // TODO: Add non-ABP striking bonus from equipment when equipment system is ready
+    diceCount += strikingBonus;
+
+    // Build damage dice string
+    const damageDice = `${diceCount}d${actualDieSize}`;
+
+    // Calculate damage modifier
+    let damageMod = 0;
+    const isRanged = weapon.range !== null && weapon.range > 0;
+    const hasThrown = weapon.traits.includes('Thrown');
+    const hasPropulsive = weapon.traits.includes('Propulsive');
+
+    if (isRanged && !hasThrown) {
+        // Ranged weapons (except thrown) usually don't add stat to damage
+        damageMod = 0;
+
+        // Propulsive adds half STR modifier to damage
+        if (hasPropulsive) {
+            damageMod = Math.floor(strMod / 2);
+        }
+    } else {
+        // Melee and thrown weapons add full STR modifier
+        damageMod = strMod;
+    }
+
+    // Build final damage string
+    if (damageMod > 0) {
+        return `${damageDice} + ${damageMod}`;
+    } else if (damageMod < 0) {
+        return `${damageDice} - ${Math.abs(damageMod)}`;
+    } else {
+        return damageDice;
+    }
+}
+

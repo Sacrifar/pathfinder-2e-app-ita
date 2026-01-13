@@ -240,6 +240,14 @@ const translations: Record<Language, Record<string, string>> = {
         'character.alignment': 'Alignment',
         'character.selectAlignment': 'Select Alignment',
 
+        // Weapons
+        'weapons.attack': 'Attack',
+        'weapons.firstAttack': 'First Attack',
+        'weapons.secondAttack': 'Second Attack (MAP)',
+        'weapons.thirdAttack': 'Third Attack (MAP)',
+        'weapons.twoHandToggle': 'Two-Hand Mode',
+        'weapons.map': 'MAP (Multiple Attack Penalty)',
+
         // Equipment
         'equipment.armor': 'Armor',
         'equipment.shield': 'Shield',
@@ -711,6 +719,14 @@ const translations: Record<Language, Record<string, string>> = {
         'character.notes': 'Note',
         'character.alignment': 'Allineamento',
         'character.selectAlignment': 'Seleziona Allineamento',
+
+        // Weapons
+        'weapons.attack': 'Attacco',
+        'weapons.firstAttack': 'Primo Attacco',
+        'weapons.secondAttack': 'Secondo Attacco (MAP)',
+        'weapons.thirdAttack': 'Terzo Attacco (MAP)',
+        'weapons.twoHandToggle': 'Modalità a Due Mani',
+        'weapons.map': 'MAP (Penalità Attacchi Multipli)',
 
         // Equipment
         'equipment.armor': 'Armatura',

@@ -2,16 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
-
-interface WeaponDisplay {
-    id: string;
-    name: string;
-    attackBonus: number;
-    damage: string;
-    damageType: string;
-    traits: string[];
-    hands: 1 | 2;
-}
+import { calculateWeaponAttack, calculateWeaponDamage } from '../../utils/pf2e-math';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -27,6 +18,9 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'simple' | 'martial' | 'advanced'>('all');
     const [selectedWeapon, setSelectedWeapon] = useState<LoadedWeapon | null>(null);
+
+    // Track which weapons are two-handed (for two-hand-d* trait)
+    const [twoHandedWeapons, setTwoHandedWeapons] = useState<Set<string>>(new Set());
 
     // Load all weapons from pf2e data
     const allWeapons = useMemo(() => getWeapons(), []);
@@ -53,51 +47,50 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         return weapons.slice(0, 50); // Limit for performance
     }, [allWeapons, categoryFilter, searchQuery]);
 
-    // Get proficiency bonus
-    const getProficiencyBonus = (prof: Proficiency, level: number) => {
-        switch (prof) {
-            case 'trained': return 2 + level;
-            case 'expert': return 4 + level;
-            case 'master': return 6 + level;
-            case 'legendary': return 8 + level;
-            default: return 0;
-        }
+    // Check if weapon has two-hand-d* trait
+    const hasTwoHandTrait = (weapon: LoadedWeapon) => {
+        return weapon.traits.some(t => t.startsWith('two-hand-d'));
     };
 
-    // Calculate attack bonus for a weapon
-    const calculateAttackBonus = (weaponCategory: string) => {
-        const strMod = Math.floor((character.abilityScores.str - 10) / 2);
-        const dexMod = Math.floor((character.abilityScores.dex - 10) / 2);
-
-        // Find weapon proficiency
-        const profEntry = character.weaponProficiencies.find(
-            p => p.category === weaponCategory || p.category === 'all'
-        );
-        const proficiency = profEntry?.proficiency || 'untrained';
-        const profBonus = getProficiencyBonus(proficiency, character.level || 1);
-
-        // Use DEX for finesse/ranged, STR otherwise
-        const abilityMod = Math.max(strMod, dexMod);
-
-        return abilityMod + profBonus;
+    // Toggle two-handed mode for a weapon
+    const toggleTwoHand = (weaponId: string) => {
+        setTwoHandedWeapons(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(weaponId)) {
+                newSet.delete(weaponId);
+            } else {
+                newSet.add(weaponId);
+            }
+            return newSet;
+        });
     };
 
-    // Parse equipped weapons
-    const equippedWeapons: WeaponDisplay[] = character.equipment
-        .filter(item => item.wielded)
-        .map(item => ({
-            id: item.id,
-            name: item.name,
-            attackBonus: calculateAttackBonus('martial'),
-            damage: '1d8',
-            damageType: 'slashing',
-            traits: [],
-            hands: item.wielded?.hands || 1,
-        }));
-
+    // Format modifier (e.g., -2, +5)
     const formatModifier = (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
     };
+
+    // Get equipped weapons with full weapon data
+    const equippedWeapons = useMemo(() => {
+        // Parse equipment to get wielded weapons with their full data
+        return character.equipment
+            .filter(item => item.wielded)
+            .map(item => {
+                // Find the weapon definition from allWeapons
+                const weaponDef = allWeapons.find(w => w.id === item.id);
+                if (!weaponDef) return null;
+
+                // Check if this weapon is in two-handed mode
+                const isTwoHanded = twoHandedWeapons.has(item.id);
+
+                return {
+                    ...item,
+                    weaponData: weaponDef,
+                    isTwoHanded,
+                };
+            })
+            .filter((item): item is NonNullable<typeof item> => item !== null);
+    }, [character.equipment, allWeapons, twoHandedWeapons]);
 
     return (
         <div className="weapons-panel">
@@ -121,42 +114,84 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                 </div>
             ) : (
                 <div className="weapons-list">
-                    {equippedWeapons.map(weapon => (
-                        <div key={weapon.id} className="weapon-card">
-                            <div className="weapon-header">
-                                <span className="weapon-name">{weapon.name}</span>
-                                <div className="weapon-traits">
-                                    {weapon.traits.map(trait => (
-                                        <span key={trait} className="weapon-trait">{trait}</span>
-                                    ))}
+                    {equippedWeapons.map(item => {
+                        const weapon = item.weaponData;
+                        const isTwoHanded = item.isTwoHanded;
+
+                        // Calculate attack bonuses with MAP
+                        const [attack1, attack2, attack3] = calculateWeaponAttack(character, weapon);
+
+                        // Calculate damage
+                        const damage = calculateWeaponDamage(character, weapon, isTwoHanded);
+
+                        // Check if has two-hand trait
+                        const hasTwoHand = hasTwoHandTrait(weapon);
+
+                        return (
+                            <div key={item.id} className="weapon-card">
+                                <div className="weapon-header">
+                                    <span className="weapon-name">{weapon.name}</span>
+                                    <div className="weapon-traits">
+                                        {weapon.traits.map((trait: string) => (
+                                            <span key={trait} className="weapon-trait">{trait}</span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="weapon-controls">
+                                    {/* Two-Hand Toggle */}
+                                    {hasTwoHand && (
+                                        <button
+                                            className={`two-hand-toggle ${isTwoHanded ? 'active' : ''}`}
+                                            onClick={() => toggleTwoHand(item.id)}
+                                            title={t('weapons.twoHandToggle') || 'Two-Hand Mode'}
+                                        >
+                                            {isTwoHanded ? '2H' : '1H'}
+                                        </button>
+                                    )}
+
+                                    {/* Attack Buttons with MAP */}
+                                    <div className="attack-buttons">
+                                        <button
+                                            className="attack-btn first-attack"
+                                            title={t('weapons.firstAttack') || 'First Attack'}
+                                        >
+                                            {t('weapons.attack') || 'Attack'} {formatModifier(attack1)}
+                                        </button>
+                                        <button
+                                            className="attack-btn second-attack"
+                                            title={t('weapons.secondAttack') || 'Second Attack (MAP)'}
+                                        >
+                                            {formatModifier(attack2)}
+                                        </button>
+                                        <button
+                                            className="attack-btn third-attack"
+                                            title={t('weapons.thirdAttack') || 'Third Attack (MAP)'}
+                                        >
+                                            {formatModifier(attack3)}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="weapon-stats">
+                                    <div className="weapon-stat damage-stat">
+                                        <span className="weapon-stat-label">
+                                            {t('stats.damage') || 'Damage'}
+                                        </span>
+                                        <span className="weapon-stat-value">
+                                            {damage} {weapon.damageType}
+                                        </span>
+                                    </div>
+                                    <div className="weapon-stat">
+                                        <span className="weapon-stat-label">
+                                            {t('stats.hands') || 'Hands'}
+                                        </span>
+                                        <span className="weapon-stat-value">{weapon.hands}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="weapon-stats">
-                                <div className="weapon-stat">
-                                    <span className="weapon-stat-label">
-                                        {t('stats.attack') || 'Attack'}
-                                    </span>
-                                    <span className="weapon-stat-value attack-bonus">
-                                        {formatModifier(weapon.attackBonus)}
-                                    </span>
-                                </div>
-                                <div className="weapon-stat">
-                                    <span className="weapon-stat-label">
-                                        {t('stats.damage') || 'Damage'}
-                                    </span>
-                                    <span className="weapon-stat-value">
-                                        {weapon.damage} {weapon.damageType}
-                                    </span>
-                                </div>
-                                <div className="weapon-stat">
-                                    <span className="weapon-stat-label">
-                                        {t('stats.hands') || 'Hands'}
-                                    </span>
-                                    <span className="weapon-stat-value">{weapon.hands}</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
