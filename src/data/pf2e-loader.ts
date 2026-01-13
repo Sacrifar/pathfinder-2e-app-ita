@@ -414,7 +414,7 @@ export interface LoadedGear {
 function transformWeapon(raw: RawPF2eItem): LoadedWeapon | null {
     if (raw.type !== 'weapon') return null;
 
-    const sys = raw.system as RawWeaponSystem;
+    const sys = raw.system as unknown as RawWeaponSystem;
     if (!sys.damage) return null;
 
     const usage = sys.usage?.value || 'held-in-one-hand';
@@ -445,7 +445,7 @@ function transformWeapon(raw: RawPF2eItem): LoadedWeapon | null {
 function transformAction(raw: RawPF2eItem): LoadedAction | null {
     if (raw.type !== 'action') return null;
 
-    const sys = raw.system as RawActionSystem;
+    const sys = raw.system as unknown as RawActionSystem;
 
     let cost: LoadedAction['cost'] = '1';
     if (sys.actionType?.value === 'free') cost = 'free';
@@ -467,7 +467,7 @@ function transformAction(raw: RawPF2eItem): LoadedAction | null {
 function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
     if (raw.type !== 'spell') return null;
 
-    const sys = raw.system as RawSpellSystem;
+    const sys = raw.system as unknown as RawSpellSystem;
 
     // Get damage string
     let damage: string | null = null;
@@ -510,7 +510,7 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
 function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
     if (raw.type !== 'feat') return null;
 
-    const sys = raw.system as RawFeatSystem;
+    const sys = raw.system as unknown as RawFeatSystem;
 
     // Determine action type
     let actionType: LoadedFeat['actionType'] = 'passive';
@@ -555,7 +555,7 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
 function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
     if (raw.type !== 'condition') return null;
 
-    const sys = raw.system as RawConditionSystem;
+    const sys = raw.system as unknown as RawConditionSystem;
 
     // Parse rules into our format
     const rules: ConditionRule[] = [];
@@ -613,7 +613,7 @@ function transformCondition(raw: RawPF2eItem): LoadedCondition | null {
 function transformArmor(raw: RawPF2eItem): LoadedArmor | null {
     if (raw.type !== 'armor') return null;
 
-    const sys = raw.system as RawArmorSystem;
+    const sys = raw.system as unknown as RawArmorSystem;
     const price = sys.price?.value || {};
     const priceGp = (price.gp || 0) + (price.sp || 0) / 10 + (price.cp || 0) / 100;
 
@@ -639,7 +639,7 @@ function transformArmor(raw: RawPF2eItem): LoadedArmor | null {
 function transformShield(raw: RawPF2eItem): LoadedShield | null {
     if (raw.type !== 'shield') return null;
 
-    const sys = raw.system as RawShieldSystem;
+    const sys = raw.system as unknown as RawShieldSystem;
     const price = sys.price?.value || {};
     const priceGp = (price.gp || 0) + (price.sp || 0) / 10 + (price.cp || 0) / 100;
 
@@ -663,7 +663,7 @@ function transformShield(raw: RawPF2eItem): LoadedShield | null {
 function transformAncestry(raw: RawPF2eItem): LoadedAncestry | null {
     if (raw.type !== 'ancestry') return null;
 
-    const sys = raw.system as RawAncestrySystem;
+    const sys = raw.system as unknown as RawAncestrySystem;
 
     // Extract boosts from the record structure
     const boosts: string[] = [];
@@ -725,7 +725,7 @@ function transformAncestry(raw: RawPF2eItem): LoadedAncestry | null {
 function transformHeritage(raw: RawPF2eItem): LoadedHeritage | null {
     if (raw.type !== 'heritage') return null;
 
-    const sys = raw.system as RawHeritageSystem;
+    const sys = raw.system as unknown as RawHeritageSystem;
 
     return {
         id: raw._id,
@@ -742,7 +742,7 @@ function transformHeritage(raw: RawPF2eItem): LoadedHeritage | null {
 function transformClass(raw: RawPF2eItem): LoadedClass | null {
     if (raw.type !== 'class') return null;
 
-    const sys = raw.system as RawClassSystem;
+    const sys = raw.system as unknown as RawClassSystem;
 
     // Extract class features from items
     const classFeatures: Array<{ name: string; level: number }> = [];
@@ -811,7 +811,7 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
     const validTypes = ['equipment', 'consumable', 'treasure', 'backpack', 'kit'];
     if (!raw.type || !validTypes.includes(raw.type)) return null;
 
-    const sys = raw.system as RawGearSystem;
+    const sys = raw.system as unknown as RawGearSystem;
     if (!sys) return null;
 
     const price = sys.price?.value || {};

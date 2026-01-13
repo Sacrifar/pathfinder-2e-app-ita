@@ -74,7 +74,7 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
     onCharacterUpdate,
     onClose,
 }) => {
-    const { t, language } = useLanguage();
+    const { language } = useLanguage();
     const { theme } = useTheme();
 
     const handleToggleRule = (ruleKey: keyof Character['variantRules']) => {

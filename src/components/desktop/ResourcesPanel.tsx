@@ -16,7 +16,7 @@ export const ResourcesPanel: React.FC<ResourcesPanelProps> = ({
     const [newResourceName, setNewResourceName] = useState('');
     const [newResourceMax, setNewResourceMax] = useState(1);
     const [newResourceFrequency, setNewResourceFrequency] = useState<'daily' | 'per-encounter'>('daily');
-    const [editingResource, setEditingResource] = useState<string | null>(null);
+    // const [editingResource, setEditingResource] = useState<string | null>(null);  // Reserved for inline edit
 
     const resources = character.customResources || [];
 

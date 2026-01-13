@@ -191,7 +191,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
 }) => {
     const { t, language } = useLanguage();
     const [filter, setFilter] = useState<ActionCost | 'all' | 'skill' | 'feat' | 'pet'>('all');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery] = useState('');
 
     // Load all feats for cross-referencing
     const allFeats = useMemo(() => getFeats(), []);
@@ -338,7 +338,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
 
         // Sort: basic first, then skill, then feat
         actions.sort((a, b) => {
-            const sourceOrder = { basic: 0, skill: 1, feat: 2 };
+            const sourceOrder: Record<ActionSource, number> = { basic: 0, skill: 1, feat: 2, pet: 3 };
             const orderDiff = sourceOrder[a.source] - sourceOrder[b.source];
             if (orderDiff !== 0) return orderDiff;
             return a.name.localeCompare(b.name);

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { classes } from '../../data';
-import { ClassDef } from '../../types';
+import { classes, TranslatedClass } from '../../data';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../../hooks/useLanguage';
 import '../../styles/desktop.css';
 
@@ -21,7 +20,7 @@ export const ClassBrowser: React.FC<ClassBrowserProps> = ({
     const getName = useLocalizedName();
     const getDescription = useLocalizedDescription();
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedClass, setSelectedClass] = useState<ClassDef | null>(
+    const [selectedClass, setSelectedClass] = useState<TranslatedClass | null>(
         currentClassId ? classes.find(c => c.id === currentClassId) || null : null
     );
 

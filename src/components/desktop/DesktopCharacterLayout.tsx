@@ -33,7 +33,6 @@ import {
 import {
     calculateMaxHP,
     calculateACWithABP,
-    getAbilityModifier,
     ProficiencyRank,
     calculateProficiencyBonusWithVariant
 } from '../../utils/pf2e-math';

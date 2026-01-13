@@ -3,7 +3,7 @@
  * Definitions for Familiars, Animal Companions, and Eidolons
  */
 
-import { PetType, Pet, PetAbility, PetAttack, FamiliarData, AnimalCompanionData, EidolonData, Proficiency, Speed } from '../types/character';
+import { PetAbility, PetAttack, Speed } from '../types/character';
 
 // ============ Familiar Abilities ============
 

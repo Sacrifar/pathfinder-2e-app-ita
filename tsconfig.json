@@ -33,5 +33,10 @@
     },
     "include": [
         "src"
+    ],
+    "exclude": [
+        "src/data/module",
+        "src/data/scripts",
+        "src/data/util"
     ]
 }

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Character, Buff } from '../../types';
-import { getConditions, LoadedCondition } from '../../data/pf2e-loader';
+import { Character } from '../../types';
+import { getConditions } from '../../data/pf2e-loader';
 import { useLanguage } from '../../hooks/useLanguage';
 
 interface ActiveConditionsProps {

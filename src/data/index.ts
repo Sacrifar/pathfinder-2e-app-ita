@@ -2,8 +2,35 @@
  * Data barrel - exports all data with translations
  */
 
-// Export raw loader functions
-export * from './pf2e-loader';
+// Export raw loader functions (excluding duplicates from pets.ts)
+export {
+    getWeapons,
+    getActions,
+    getSpells,
+    getFeats,
+    getConditions,
+    getAncestries,
+    getHeritages,
+    getClasses,
+    getArmor,
+    getShields,
+    getEquipment,
+    getAnimalCompanionTypes,
+    type LoadedWeapon,
+    type LoadedAction,
+    type LoadedSpell,
+    type LoadedFeat,
+    type LoadedCondition,
+    type LoadedAncestry,
+    type LoadedHeritage,
+    type LoadedClass,
+    type LoadedArmor,
+    type LoadedShield,
+    type LoadedEquipment,
+    type AnimalCompanionType,
+    type FamiliarAbility,
+    type EidolonEvolution,
+} from './pf2e-loader';
 
 // Export translations
 export * from './translations';
@@ -14,7 +41,7 @@ export * from './backgrounds';
 // Export skills
 export * from './skills';
 
-// Export pets
+// Export pets (includes getFamiliarAbilities and getEidolonEvolutions)
 export * from './pets';
 
 // ============ Compatibility wrappers ============
@@ -24,7 +51,6 @@ import {
     getAncestries as getAncestriesRaw,
     getClasses as getClassesRaw,
     getHeritages as getHeritagesRaw,
-    getHeritagesForAncestry as getHeritagesForAncestryRaw,
     type LoadedAncestry,
     type LoadedClass,
     type LoadedHeritage,

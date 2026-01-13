@@ -18,7 +18,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     children,
     actions,
 }) => {
-    const { t } = useLanguage();
+    const { t: _t } = useLanguage();  // Kept for future use
 
     if (!isOpen) return null;
 
@@ -63,7 +63,6 @@ interface ActionDetailProps {
 }
 
 export const ActionDetailContent: React.FC<ActionDetailProps> = ({
-    name,
     cost,
     description,
     traits,
@@ -109,7 +108,6 @@ interface WeaponDetailProps {
 }
 
 export const WeaponDetailContent: React.FC<WeaponDetailProps> = ({
-    name,
     attackBonus,
     damage,
     damageType,
@@ -169,7 +167,6 @@ interface SkillDetailProps {
 }
 
 export const SkillDetailContent: React.FC<SkillDetailProps> = ({
-    name,
     modifier,
     proficiency,
     ability,

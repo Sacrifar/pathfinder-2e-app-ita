@@ -136,7 +136,6 @@ export const LevelUpBoostModal: React.FC<LevelUpBoostModalProps> = ({
                         {ABILITIES.map(ability => {
                             const current = currentScores[ability.key];
                             const preview = previewScores[ability.key];
-                            const isSelected = selectedBoosts.includes(ability.key);
                             const boosted = preview > current;
 
                             return (

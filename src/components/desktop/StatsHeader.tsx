@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { useTheme } from '../../contexts/ThemeContext';
 import { StatTooltip } from './StatTooltip';
 
 interface StatsHeaderProps {
@@ -36,7 +35,7 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     speedModifiers = [],
 }) => {
     const { t } = useLanguage();
-    const { theme } = useTheme();
+    // const { theme } = useTheme();  // Reserved for styling enhancements
 
     const formatModifier = (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Buff, BonusType, BonusSelector, AbilityName } from '../../types';
+import { Buff, BonusType, BonusSelector } from '../../types';
 import '../../styles/desktop.css';
 
 interface BuffBrowserProps {

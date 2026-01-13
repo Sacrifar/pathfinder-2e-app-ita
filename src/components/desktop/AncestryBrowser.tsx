@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ancestries, getHeritagesForAncestry } from '../../data';
-import { Ancestry } from '../../types';
+import { ancestries, TranslatedAncestry } from '../../data';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../../hooks/useLanguage';
 import '../../styles/desktop.css';
 
@@ -19,7 +18,7 @@ export const AncestryBrowser: React.FC<AncestryBrowserProps> = ({
     const getName = useLocalizedName();
     const getDescription = useLocalizedDescription();
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedAncestry, setSelectedAncestry] = useState<Ancestry | null>(
+    const [selectedAncestry, setSelectedAncestry] = useState<TranslatedAncestry | null>(
         currentAncestryId ? ancestries.find(a => a.id === currentAncestryId) || null : null
     );
 

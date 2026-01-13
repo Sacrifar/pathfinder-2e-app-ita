@@ -3,7 +3,7 @@
  */
 
 import { Character } from '../types';
-import { ancestries, classes, skills as skillsData } from '../data';
+import { ancestries, classes } from '../data';
 
 /**
  * Export character as JSON file

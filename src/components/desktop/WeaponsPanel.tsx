@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Proficiency } from '../../types';
+import { Character } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 
 interface WeaponDisplay {

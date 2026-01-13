@@ -57,29 +57,30 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
 
         // Ancestry boosts
         if (ancestry) {
-            const fixedBoosts = ancestry.abilityBoosts.filter(b => b !== 'free') as AbilityName[];
+            const ancestryBoosts = ancestry.abilityBoosts as (AbilityName | 'free')[];
+            const ancestryFlaws = ancestry.abilityFlaws as AbilityName[];
+            const fixedBoosts = ancestryBoosts.filter(b => b !== 'free') as AbilityName[];
 
             sources.push({
                 id: 'ancestry',
                 label: language === 'it' ? 'Stirpe' : 'Ancestry',
-                boosts: ancestry.abilityBoosts,
-                flaws: ancestry.abilityFlaws,
+                boosts: ancestryBoosts,
+                flaws: ancestryFlaws,
                 selected: [...fixedBoosts, ...character.abilityBoosts.ancestry.filter(b => !fixedBoosts.includes(b))],
-                required: ancestry.abilityBoosts.length,
+                required: ancestryBoosts.length,
             });
         }
 
         // Background boosts - special handling
         // Background gives: 1 boost from 2 options, 1 free boost (not from those 2)
         if (background) {
-            const backgroundOptions = background.abilityBoosts.filter(b => b !== 'free') as AbilityName[];
-            const hasFree = background.abilityBoosts.includes('free');
+            const backgroundBoosts = background.abilityBoosts as (AbilityName | 'free')[];
+            const backgroundOptions = backgroundBoosts.filter(b => b !== 'free') as AbilityName[];
+            const hasFree = backgroundBoosts.includes('free');
             const bgBoosts = character.abilityBoosts.background;
 
-            // First boost: chosen from the 2 options
-            const chosenBoost = bgBoosts[0];
-            // Second boost: free (but can't be one of the 2 options)
-            const chosenFreeBoost = bgBoosts[1];
+            // bgBoosts[0] is chosen from the 2 options
+            // bgBoosts[1] is free (but can't be one of the 2 options)
 
             sources.push({
                 id: 'background',
@@ -95,13 +96,13 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
 
         // Class boost
         if (classData) {
-            const keyAbility = Array.isArray(classData.keyAbility)
+            const keyAbility = (Array.isArray(classData.keyAbility)
                 ? classData.keyAbility
-                : [classData.keyAbility];
+                : [classData.keyAbility]) as (AbilityName | 'free')[];
             sources.push({
                 id: 'class',
                 label: language === 'it' ? 'Classe' : 'Class',
-                boosts: keyAbility.length > 1 ? ['free'] : keyAbility,
+                boosts: keyAbility.length > 1 ? ['free' as const] : keyAbility,
                 selected: character.abilityBoosts.class ? [character.abilityBoosts.class] : [],
                 required: 1,
             });
@@ -126,17 +127,19 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
         // Apply ancestry flaws
         if (ancestry) {
             for (const flaw of ancestry.abilityFlaws) {
-                scores[flaw] -= 2;
+                if (flaw in scores) {
+                    scores[flaw as AbilityName] -= 2;
+                }
             }
         }
 
         // Apply all boosts
         for (const source of boostSources) {
             for (const ability of source.selected) {
-                if (scores[ability] >= 18) {
-                    scores[ability] += 1;
+                if (scores[ability as AbilityName] >= 18) {
+                    scores[ability as AbilityName] += 1;
                 } else {
-                    scores[ability] += 2;
+                    scores[ability as AbilityName] += 2;
                 }
             }
         }
@@ -200,11 +203,6 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
             free: freeBoosts,
             levelUp: character.abilityBoosts.levelUp,
         });
-    };
-
-    const getAbilityName = (ability: AbilityName) => {
-        const ab = ABILITIES.find(a => a.key === ability);
-        return language === 'it' ? ab?.nameIt : ab?.name;
     };
 
     const getMod = (score: number) => {
@@ -306,9 +304,9 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
                                     <div className="boost-options">
                                         {ABILITIES.map(ability => {
                                             const isSelected = source.selected.includes(ability.key);
-                                            const isFixed = source.boosts.includes(ability.key) && ability.key !== 'free';
+                                            const isFixed = source.boosts.includes(ability.key as (AbilityName | 'free'));
                                             const isFlaw = source.flaws?.includes(ability.key);
-                                            const canSelect = source.boosts.includes('free') || source.boosts.includes(ability.key);
+                                            const canSelect = source.boosts.includes('free') || source.boosts.includes(ability.key as (AbilityName | 'free'));
 
                                             return (
                                                 <button

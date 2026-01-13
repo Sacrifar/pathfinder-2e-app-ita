@@ -30,7 +30,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onShowVariantRules,
 }) => {
     const { t } = useLanguage();
-    const [showExportOptions, setShowExportOptions] = useState(false);
+    // const [showExportOptions, setShowExportOptions] = useState(false);  // Reserved for future submenu
 
     if (!isOpen) return null;
 

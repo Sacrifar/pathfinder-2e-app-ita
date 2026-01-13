@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { SkillDefinition } from '../../data/skills';
 import { Proficiency } from '../../types';

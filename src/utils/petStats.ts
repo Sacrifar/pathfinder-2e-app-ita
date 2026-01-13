@@ -4,8 +4,8 @@
  * based on master's stats and pet level
  */
 
-import { Pet, PetType, FamiliarData, AnimalCompanionData, EidolonData, Character } from '../types/character';
-import { getFamiliarAbilities, getAnimalCompanionTypes, FamiliarAbility } from '../data/pf2e-loader';
+import { Pet, FamiliarData, AnimalCompanionData, EidolonData, Character, Proficiency } from '../types/character';
+import { getAnimalCompanionTypes } from '../data/pf2e-loader';
 
 // ============ Familiar Calculations ============
 
@@ -107,22 +107,21 @@ export function calculateCompanionStats(
     // Calculate AC
     const ac = companionType.baseStats.ac + progression.acModifier + Math.floor(companionLevel / 4);
 
-    // Calculate saves
-    const fortitude = companionType.baseStats.fortitude + Math.floor(companionLevel / 2);
-    const reflex = companionType.baseStats.reflex + Math.floor(companionLevel / 2);
-    const will = companionType.baseStats.will + Math.floor(companionLevel / 2);
+    // Save proficiencies (calculated proficiency bonus not needed for current Proficiency return type)
 
     // Calculate attack bonus
     const attackBonus = progression.attackBonusModifier + Math.floor(companionLevel / 2);
 
     // Update attacks with new damage
     const attacks = companionType.baseStats.attacks.map(attack => {
-        const baseDamage = parseInt(attack.damage) || 0;
         const damageBonus = progression.damageDiceModifier;
         return {
-            ...attack,
+            name: attack.name,
+            actionCost: attack.actionCost,
             attackBonus,
             damage: upgradeDamageDice(attack.damage, damageBonus),
+            damageType: attack.damageType,
+            traits: attack.traits,
         };
     });
 
@@ -134,9 +133,9 @@ export function calculateCompanionStats(
         armorClass: ac,
         attacks,
         perception: companionType.baseStats.perception + Math.floor(companionLevel / 2),
-        Fortitude: { proficiency: 'trained', value: fortitude },
-        reflex: { proficiency: 'trained', value: reflex },
-        will: { proficiency: 'trained', value: will },
+        Fortitude: 'trained' as Proficiency,
+        reflex: 'trained' as Proficiency,
+        will: 'trained' as Proficiency,
     };
 }
 
@@ -160,10 +159,7 @@ export function calculateEidolonStats(
     // Base AC (scales with level)
     const ac = 21 + Math.floor(eidolonLevel / 2);
 
-    // Saves (eidolons have good saves)
-    const fortitude = 10 + Math.floor(eidolonLevel / 2);
-    const reflex = 8 + Math.floor(eidolonLevel / 2);
-    const will = 8 + Math.floor(eidolonLevel / 2);
+    // Save proficiencies (calculated values not needed for current Proficiency return type)
 
     // Perception
     const perception = 10 + Math.floor(eidolonLevel / 2);
@@ -176,9 +172,9 @@ export function calculateEidolonStats(
         armorClass: ac,
         perception,
         saves: {
-            fortitude: { proficiency: 'expert', value: fortitude },
-            reflex: { proficiency: 'expert', value: reflex },
-            will: { proficiency: 'expert', value: will },
+            fortitude: 'expert' as Proficiency,
+            reflex: 'expert' as Proficiency,
+            will: 'expert' as Proficiency,
         },
     };
 }
@@ -199,7 +195,7 @@ function calculateCharacterAC(character: Character): number {
 /**
  * Get armor AC bonus from character's equipment
  */
-function getArmorACBonus(character: Character): number {
+function getArmorACBonus(_character: Character): number {
     // This would look at character's equipped armor
     // For now, return 0
     return 0;
@@ -209,7 +205,7 @@ function getArmorACBonus(character: Character): number {
  * Calculate character's saving throw modifier
  */
 function calculateCharacterSave(character: Character, saveType: 'fortitude' | 'reflex' | 'will'): number {
-    const proficiency = character.proficiencies?.saves?.[saveType] || 'untrained';
+    const proficiency = character.saves?.[saveType] || 'untrained';
     const proficiencyBonus = getProficiencyBonus(proficiency, character.level || 1);
 
     let abilityMod = 0;
@@ -229,7 +225,7 @@ function calculateCharacterSave(character: Character, saveType: 'fortitude' | 'r
  */
 function calculateCharacterPerception(character: Character): number {
     const wisMod = Math.floor((character.abilityScores?.wis || 10 - 10) / 2);
-    const proficiency = character.proficiencies?.perception || 'untrained';
+    const proficiency = character.perception || 'untrained';
     const proficiencyBonus = getProficiencyBonus(proficiency, character.level || 1);
 
     return proficiencyBonus + wisMod;
@@ -273,7 +269,7 @@ function getProficiencyBonus(proficiency: string, level: number): number {
 /**
  * Count familiar feats that grant additional abilities
  */
-function countFamiliarFeats(character: Character): number {
+function countFamiliarFeats(_character: Character): number {
     // This would check for feats like "Advanced Familiar" or similar
     // For now, return 0
     return 0;

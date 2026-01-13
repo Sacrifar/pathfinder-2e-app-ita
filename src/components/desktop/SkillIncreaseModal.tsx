@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Proficiency, SkillProficiency } from '../../types';
+import { Character, Proficiency } from '../../types';
 import { skills as allSkills } from '../../data';
 import '../../styles/desktop.css';
 

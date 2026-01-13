@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Proficiency } from '../../types';
+import { Character } from '../../types';
 import { getSpells, LoadedSpell } from '../../data/pf2e-loader';
 
 interface SpellsPanelProps {

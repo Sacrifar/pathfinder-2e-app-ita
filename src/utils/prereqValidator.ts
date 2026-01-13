@@ -18,14 +18,14 @@ interface LoadedFeatLike {
 // Proficiency levels in order
 const PROFICIENCY_ORDER: Proficiency[] = ['untrained', 'trained', 'expert', 'master', 'legendary'];
 
-// Minimum level required for each proficiency
-const PROFICIENCY_MIN_LEVEL: Record<Proficiency, number> = {
-    'untrained': 1,
-    'trained': 1,
-    'expert': 1,
-    'master': 7,
-    'legendary': 15,
-};
+// Minimum level required for each proficiency (reserved for advanced validation)
+// const PROFICIENCY_MIN_LEVEL: Record<Proficiency, number> = {
+//     'untrained': 1,
+//     'trained': 1,
+//     'expert': 1,
+//     'master': 7,
+//     'legendary': 15,
+// };
 
 // Skill name mappings (for fuzzy matching)
 const SKILL_ALIASES: Record<string, string> = {
