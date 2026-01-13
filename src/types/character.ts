@@ -49,6 +49,23 @@ export interface Speed {
     burrow?: number;
 }
 
+export interface MagicalItemProperties {
+    // For items with daily charges (Staves, some magical items)
+    charges?: {
+        current: number;
+        max: number;
+    };
+    // For Staves: list of spell IDs linked to this staff
+    linkedSpells?: string[];
+    // For Wands: overcharge flag when risking wand breakage
+    overcharge?: boolean;
+    // For Wands: track daily usage
+    dailyUses?: {
+        current: number;
+        max: number;
+    };
+}
+
 export interface EquippedItem {
     id: string;
     name: string;
@@ -62,6 +79,7 @@ export interface EquippedItem {
     isContainer?: boolean;   // Whether this item is a container (backpack, pouch, etc.)
     capacity?: number;       // Bulk capacity of this container (if isContainer)
     bulkReduction?: number;  // How much bulk is ignored for items inside (Backpack: 2 if worn)
+    magical?: MagicalItemProperties;  // Properties for magical items (Staves, Wands, etc.)
 }
 
 export interface PreparedSpell {
@@ -321,6 +339,7 @@ export interface Character {
         preparedSpells?: PreparedSpell[];
         focusPool?: FocusPool;
         focusSpells?: string[];
+        rituals?: string[];  // IDs of known rituals (time-based spells that don't use slots)
     };
 
     // Formula Book & Crafting
@@ -453,6 +472,21 @@ export function migrateCharacter(data: any): Character {
     // Migrate restCooldowns (added earlier)
     if (!character.restCooldowns) {
         character.restCooldowns = {};
+    }
+
+    // Migrate spellcasting.rituals (added for Spellcasting Enhancements)
+    if (character.spellcasting && !character.spellcasting.rituals) {
+        character.spellcasting.rituals = [];
+    }
+
+    // Migrate equipment items with magical properties (added for Spellcasting Enhancements)
+    if (character.equipment) {
+        character.equipment = character.equipment.map(item => {
+            if (!item.magical) {
+                return { ...item, magical: undefined };
+            }
+            return item;
+        });
     }
 
     return character;

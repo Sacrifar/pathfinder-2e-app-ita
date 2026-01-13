@@ -578,3 +578,958 @@
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
+
+/* ===================================
+   FOCUS TRACKER STYLES
+   =================================== */
+
+.focus-tracker {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.focus-tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.focus-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.focus-count {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+}
+
+/* Focus Gems Visual Display */
+.focus-gems {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+    padding: var(--space-4) 0;
+    margin-bottom: var(--space-4);
+}
+
+.focus-gem {
+    width: 48px;
+    height: 48px;
+    position: relative;
+    transition: all var(--transition-normal);
+}
+
+.gem-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+/* Empty gem */
+.focus-gem.empty .gem-inner {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-secondary);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Filled gem - purple/indigo for magical feel */
+.focus-gem.filled .gem-inner {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);
+    border: 2px solid #a78bfa;
+    box-shadow:
+        0 0 12px rgba(139, 92, 246, 0.6),
+        0 0 24px rgba(99, 102, 241, 0.4),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 2px 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Gem shine effect */
+.gem-shine {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: gem-shine 3s ease-in-out infinite;
+}
+
+@keyframes gem-shine {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+/* Focus Actions */
+.focus-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.focus-action-group {
+    position: relative;
+}
+
+.focus-action-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.focus-action-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
+.focus-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.focus-action-btn.spend-btn {
+    border-color: var(--color-danger, #ef4444);
+}
+
+.focus-action-btn.spend-btn:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--color-danger, #ef4444);
+}
+
+.focus-action-btn.recover-btn {
+    border-color: var(--color-success, #10b981);
+}
+
+.focus-action-btn.recover-btn:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--color-success, #10b981);
+}
+
+.focus-action-btn.refocus-btn {
+    background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+    color: white;
+    border-color: transparent;
+    font-weight: var(--font-weight-semibold);
+}
+
+.focus-action-btn.refocus-btn:hover:not(:disabled) {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+    transform: translateY(-1px);
+}
+
+/* Confirm Actions Popup */
+.focus-confirm-actions {
+    position: absolute;
+    bottom: calc(100% + var(--space-2));
+    left: 0;
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    white-space: nowrap;
+}
+
+.focus-confirm-btn {
+    min-width: 40px;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.focus-confirm-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
+.focus-cancel-btn {
+    width: 32px;
+    padding: var(--space-2);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.focus-cancel-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Focus Note */
+.focus-note {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    line-height: var(--line-height-normal);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .focus-gem {
+        width: 40px;
+        height: 40px;
+    }
+
+    .focus-actions {
+        flex-direction: column;
+    }
+
+    .focus-action-btn {
+        width: 100%;
+    }
+}
+
+/* ===================================
+   RITUALS PANEL STYLES
+   =================================== */
+
+.rituals-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.rituals-header {
+    border-bottom: 1px solid;
+    border-image: linear-gradient(90deg, #a78bfa, #8b5cf6, #6366f1) 1;
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.rituals-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.rituals-icon {
+    font-size: var(--font-size-xl);
+}
+
+/* Rituals Empty State */
+.rituals-empty {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+}
+
+/* Ritual Cards */
+.rituals-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.ritual-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all var(--transition-normal);
+}
+
+.ritual-card:hover {
+    border-color: rgba(167, 139, 250, 0.6);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+}
+
+.ritual-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.ritual-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.ritual-remove-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    transition: all var(--transition-fast);
+}
+
+.ritual-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--color-danger, #ef4444);
+    color: var(--color-danger, #ef4444);
+}
+
+.ritual-meta {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.ritual-level-badge {
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+
+.ritual-cast-time {
+    padding: 2px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.ritual-checks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.ritual-check {
+    display: flex;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+.check-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.check-value {
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+}
+
+.ritual-cost {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.cost-label {
+    font-weight: var(--font-weight-medium);
+    color: #eab308;
+}
+
+.cost-value {
+    color: var(--text-primary);
+}
+
+.ritual-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+    margin: 0;
+}
+
+/* Ritual Browser Modal */
+.ritual-browser-modal {
+    width: 90%;
+    max-width: 1000px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ritual-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+.ritual-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.ritual-list-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-secondary);
+}
+
+.ritual-list-item.selected {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: #8b5cf6;
+}
+
+.ritual-item-level {
+    min-width: 32px;
+    padding: 4px 8px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+}
+
+.ritual-item-name {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.ritual-item-traits {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.ritual-trait {
+    padding: 2px 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* Ritual Detail Panel */
+.ritual-detail {
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-primary);
+    overflow-y: auto;
+}
+
+.ritual-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.ritual-detail-header h4 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+}
+
+.ritual-traits-section {
+    margin-bottom: var(--space-4);
+}
+
+.ritual-detail-grid {
+    display: grid;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.cost-value {
+    color: #eab308;
+}
+
+.add-ritual-btn {
+    width: 100%;
+    padding: var(--space-3);
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.add-ritual-btn:hover:not(:disabled) {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+    transform: translateY(-1px);
+}
+
+.add-ritual-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-tertiary);
+}
+
+/* ===================================
+   MAGICAL ITEMS PANEL STYLES
+   =================================== */
+
+.magical-items-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.magical-items-section {
+    margin-bottom: var(--space-6);
+}
+
+.magical-items-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.section-icon {
+    font-size: var(--font-size-xl);
+}
+
+/* Staves Grid */
+.staves-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-4);
+}
+
+.staff-card {
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all var(--transition-normal);
+}
+
+.staff-card:hover {
+    border-color: rgba(251, 146, 60, 0.6);
+    box-shadow: 0 0 12px rgba(251, 146, 60, 0.2);
+}
+
+.staff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.staff-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.prepare-staff-btn {
+    padding: var(--space-1) var(--space-3);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.prepare-staff-btn:hover {
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Staff Charges */
+.staff-charges {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.charges-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+
+.charges-pips {
+    display: flex;
+    gap: 4px;
+}
+
+.charge-pip {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.charge-pip.filled {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 0 6px rgba(251, 146, 60, 0.6);
+}
+
+.charge-pip.empty {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+}
+
+.charges-count {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: #f59e0b;
+    margin-left: auto;
+}
+
+/* Staff Spells */
+.staff-spells {
+    margin-bottom: var(--space-3);
+}
+
+.staff-spells-label {
+    display: block;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.staff-spells-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.staff-spell-btn {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.staff-spell-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: #f59e0b;
+}
+
+.staff-spell-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Wands Grid */
+.wands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--space-4);
+}
+
+.wand-card {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all var(--transition-normal);
+}
+
+.wand-card:hover {
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+.wand-card.depleted {
+    opacity: 0.6;
+    border-color: var(--border-secondary);
+}
+
+.wand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.wand-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.wand-depleted-badge {
+    padding: 2px 8px;
+    background: var(--color-danger, #ef4444);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Wand Uses */
+.wand-uses {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.uses-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    min-width: 70px;
+}
+
+.uses-pips {
+    display: flex;
+    gap: 4px;
+}
+
+.use-pip {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.use-pip.available {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+    box-shadow: 0 0 6px rgba(168, 85, 247, 0.6);
+}
+
+.use-pip.used {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+}
+
+.uses-count {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: #a855f7;
+    margin-left: auto;
+}
+
+/* Cast Wand Button */
+.cast-wand-btn {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.cast-wand-btn:hover:not(:disabled) {
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+    transform: translateY(-1px);
+}
+
+.cast-wand-btn:disabled {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.cast-wand-btn.overcharge-risk {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.cast-wand-btn.overcharge-risk:hover:not(:disabled) {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+/* Magical Items Empty State */
+.magical-items-empty {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+}
+
+/* Overcharge Warning Modal */
+.overcharge-warning-modal {
+    width: 90%;
+    max-width: 500px;
+    background: var(--bg-elevated);
+    border: 2px solid #ef4444;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.warning-header {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+    border-bottom: 2px solid #ef4444;
+}
+
+.warning-header h3 {
+    color: #ef4444;
+    margin: 0;
+}
+
+.warning-content {
+    padding: var(--space-5);
+}
+
+.warning-content p {
+    color: var(--text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--space-4);
+}
+
+.overcharge-details {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.overcharge-check,
+.overcharge-fail,
+.overcharge-crit-fail {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+.overcharge-check:last-child,
+.overcharge-fail:last-child,
+.overcharge-crit-fail:last-child {
+    margin-bottom: 0;
+}
+
+.check-label,
+.fail-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+}
+
+.check-value {
+    font-family: var(--font-family-mono);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.fail-value {
+    color: #ef4444;
+}
+
+.warning-actions {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.warning-btn {
+    flex: 1;
+    padding: var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.cancel-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+}
+
+.cancel-btn:hover {
+    background: var(--bg-hover);
+}
+
+.risk-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.risk-btn:hover {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .staves-grid,
+    .wands-grid {
+        grid-template-columns: 1fr;
+    }
+}
