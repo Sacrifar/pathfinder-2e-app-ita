@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { SkillDisplay } from './SkillsPanel';
 
@@ -10,7 +10,33 @@ interface CombatColumnProps {
     skills: SkillDisplay[];
 }
 
-export const CombatColumn: React.FC<CombatColumnProps> = ({
+// Componente memoizzato per render singolo skill
+const SkillItem = React.memo<{
+    skill: SkillDisplay;
+    t: (key: string) => string;
+    formatModifier: (val: number) => string;
+    getProficiencyIcon: (prof: string) => string;
+    getProficiencyColor: (prof: string) => string;
+}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor }) => (
+    <div className="skill-item">
+        <span className="skill-name">
+            {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
+        </span>
+        <div className="skill-modifier-container">
+            <span
+                className="skill-proficiency"
+                style={{ color: getProficiencyColor(skill.proficiency) }}
+            >
+                {getProficiencyIcon(skill.proficiency)}
+            </span>
+            <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
+        </div>
+    </div>
+));
+
+SkillItem.displayName = 'SkillItem';
+
+export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
     heroPoints,
     classDC,
     perception,
@@ -19,11 +45,11 @@ export const CombatColumn: React.FC<CombatColumnProps> = ({
 }) => {
     const { t } = useLanguage();
 
-    const formatModifier = (value: number) => {
+    const formatModifier = useMemo(() => (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
-    };
+    }, []);
 
-    const getProficiencyIcon = (proficiency: string) => {
+    const getProficiencyIcon = useMemo(() => (proficiency: string) => {
         switch (proficiency) {
             case 'untrained': return 'U';
             case 'trained': return 'T';
@@ -32,9 +58,9 @@ export const CombatColumn: React.FC<CombatColumnProps> = ({
             case 'legendary': return 'L';
             default: return 'U';
         }
-    };
+    }, []);
 
-    const getProficiencyColor = (proficiency: string) => {
+    const getProficiencyColor = useMemo(() => (proficiency: string) => {
         switch (proficiency) {
             case 'untrained': return '#888';
             case 'trained': return '#fff';
@@ -43,7 +69,7 @@ export const CombatColumn: React.FC<CombatColumnProps> = ({
             case 'legendary': return '#f59e0b';
             default: return '#888';
         }
-    };
+    }, []);
 
     return (
         <div className="combat-column">
@@ -81,25 +107,21 @@ export const CombatColumn: React.FC<CombatColumnProps> = ({
                 <h4 className="skills-title">{t('stats.skills') || 'Skills'}</h4>
                 <div className="skills-list">
                     {skills.map((skill, index) => (
-                        <div key={index} className="skill-item">
-                            <span className="skill-name">
-                                {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
-                            </span>
-                            <div className="skill-modifier-container">
-                                <span
-                                    className="skill-proficiency"
-                                    style={{ color: getProficiencyColor(skill.proficiency) }}
-                                >
-                                    {getProficiencyIcon(skill.proficiency)}
-                                </span>
-                                <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
-                            </div>
-                        </div>
+                        <SkillItem
+                            key={index}
+                            skill={skill}
+                            t={t}
+                            formatModifier={formatModifier}
+                            getProficiencyIcon={getProficiencyIcon}
+                            getProficiencyColor={getProficiencyColor}
+                        />
                     ))}
                 </div>
             </div>
         </div>
     );
-};
+});
+
+CombatColumn.displayName = 'CombatColumn';
 
 export default CombatColumn;

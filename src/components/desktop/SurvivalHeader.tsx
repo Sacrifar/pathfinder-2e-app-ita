@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface SurvivalHeaderProps {
     ac: number;
@@ -14,7 +14,7 @@ interface SurvivalHeaderProps {
     onAddBuff: () => void;
 }
 
-export const SurvivalHeader: React.FC<SurvivalHeaderProps> = ({
+export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
     ac,
     hp,
     fortitude,
@@ -24,8 +24,11 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = ({
     onAddCondition,
     onAddBuff,
 }) => {
-    const hpPercentage = (hp.current / hp.max) * 100;
-    const hpColor = hpPercentage > 50 ? '#4caf50' : hpPercentage > 25 ? '#ff9800' : '#f44336';
+    const hpPercentage = useMemo(() => (hp.current / hp.max) * 100, [hp.current, hp.max]);
+    const hpColor = useMemo(() =>
+        hpPercentage > 50 ? '#4caf50' : hpPercentage > 25 ? '#ff9800' : '#f44336',
+        [hpPercentage]
+    );
 
     return (
         <div className="survival-header">
@@ -90,4 +93,6 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = ({
             </div>
         </div>
     );
-};
+});
+
+SurvivalHeader.displayName = 'SurvivalHeader';

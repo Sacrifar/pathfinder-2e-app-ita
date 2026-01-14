@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
 // Import icons
@@ -32,7 +32,7 @@ interface LevelSidebarProps {
     onLevelChange?: (newLevel: number) => void;
 }
 
-// Icon mapping based on choice type
+// Icon mapping
 const getIconForType = (type: string): string => {
     const iconMap: Record<string, string> = {
         'ancestry': 'ancestry',
@@ -69,24 +69,24 @@ const isCompleted = (choice: BuildChoice): boolean => {
     return !!choice.value && choice.value !== '';
 };
 
-export const LevelSidebar: React.FC<LevelSidebarProps> = ({
+export const LevelSidebar: React.FC<LevelSidebarProps> = React.memo(({
     sections,
     currentLevel,
     onLevelChange,
 }) => {
     const { t } = useLanguage();
 
-    const handleLevelUp = () => {
+    const handleLevelUp = useCallback(() => {
         if (currentLevel < 20 && onLevelChange) {
             onLevelChange(currentLevel + 1);
         }
-    };
+    }, [currentLevel, onLevelChange]);
 
-    const handleLevelDown = () => {
+    const handleLevelDown = useCallback(() => {
         if (currentLevel > 1 && onLevelChange) {
             onLevelChange(currentLevel - 1);
         }
-    };
+    }, [currentLevel, onLevelChange]);
 
     return (
         <div className="level-sidebar-new">
@@ -230,6 +230,8 @@ export const LevelSidebar: React.FC<LevelSidebarProps> = ({
             </div>
         </div>
     );
-};
+});
+
+LevelSidebar.displayName = 'LevelSidebar';
 
 export default LevelSidebar;

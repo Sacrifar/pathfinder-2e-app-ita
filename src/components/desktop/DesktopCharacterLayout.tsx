@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { TopBar } from './TopBar';
 import { LevelSidebar } from './LevelSidebar';
 import { MainMenu } from './MainMenu';
@@ -6,24 +6,42 @@ import { CharacterTabs, TabId } from './CharacterTabs';
 import { SkillDisplay } from './SkillsPanel';
 import { CombatColumn } from './CombatColumn';
 import { SurvivalHeader } from './SurvivalHeader';
-import { WeaponsPanel } from './WeaponsPanel';
-import { DefensePanel } from './DefensePanel';
-import { GearPanel } from './GearPanel';
-import { ResourcesPanel } from './ResourcesPanel';
-import { SpellsPanel } from './SpellsPanel';
-import { PetsPanel } from './PetsPanel';
-import { FeatsPanel } from './FeatsPanel';
-import { ActionsPanel } from './ActionsPanel';
-import { DetailModal, ActionDetailContent } from './DetailModal';
-import { RestModal } from './RestModal';
-import { VariantRulesPanel } from './VariantRulesPanel';
+
+// Lazy load panels - caricate solo quando necessarie
+const WeaponsPanel = lazy(() => import('./WeaponsPanel').then(m => ({ default: m.WeaponsPanel })));
+const DefensePanel = lazy(() => import('./DefensePanel').then(m => ({ default: m.DefensePanel })));
+const GearPanel = lazy(() => import('./GearPanel').then(m => ({ default: m.GearPanel })));
+const ResourcesPanel = lazy(() => import('./ResourcesPanel').then(m => ({ default: m.ResourcesPanel })));
+const SpellsPanel = lazy(() => import('./SpellsPanel').then(m => ({ default: m.SpellsPanel })));
+const PetsPanel = lazy(() => import('./PetsPanel').then(m => ({ default: m.PetsPanel })));
+const FeatsPanel = lazy(() => import('./FeatsPanel').then(m => ({ default: m.FeatsPanel })));
+const ActionsPanel = lazy(() => import('./ActionsPanel').then(m => ({ default: m.ActionsPanel })));
+const BiographyPanel = lazy(() => import('./BiographyPanel').then(m => ({ default: m.BiographyPanel })));
+const DetailModal = lazy(() => import('./DetailModal').then(m => ({ default: m.DetailModal, ActionDetailContent: m.ActionDetailContent })));
+const RestModal = lazy(() => import('./RestModal').then(m => ({ default: m.RestModal })));
+const ConditionBrowser = lazy(() => import('./ConditionBrowser').then(m => ({ default: m.ConditionBrowser })));
+const BuffBrowser = lazy(() => import('./BuffBrowser').then(m => ({ default: m.BuffBrowser })));
+const EquipmentBrowser = lazy(() => import('./EquipmentBrowser').then(m => ({ default: m.EquipmentBrowser })));
+const DeityBrowser = lazy(() => import('./DeityBrowser').then(m => ({ default: m.DeityBrowser })));
+const VariantRulesPanel = lazy(() => import('./VariantRulesPanel').then(m => ({ default: m.VariantRulesPanel })));
+
+// ActiveConditions e CharacterTabs devono rimanere non-lazy per performance
 import { ActiveConditions } from './ActiveConditions';
-import { ConditionBrowser } from './ConditionBrowser';
-import { BuffBrowser } from './BuffBrowser';
-import { EquipmentBrowser } from './EquipmentBrowser';
-import { BiographyPanel } from './BiographyPanel';
-import { DeityBrowser } from './DeityBrowser';
+
 import { RichTextEditor } from '../common/RichTextEditor';
+
+// Componente di loading per Suspense
+const LoadingFallback = () => (
+    <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '40px',
+        color: 'var(--desktop-text-secondary)'
+    }}>
+        Loading...
+    </div>
+);
 import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff, AbilityName } from '../../types';
@@ -836,68 +854,84 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     <div className="tab-content">
                         <div className="main-content-area">
                             {activeTab === 'weapons' && (
-                                <WeaponsPanel
-                                    character={character}
-                                    onCharacterUpdate={onCharacterUpdate}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <WeaponsPanel
+                                        character={character}
+                                        onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'defense' && (
-                                <DefensePanel
-                                    character={character}
-                                    ac={getAC()}
-                                    onCharacterUpdate={onCharacterUpdate}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <DefensePanel
+                                        character={character}
+                                        ac={getAC()}
+                                        onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'gear' && (
-                                <GearPanel
-                                    character={character}
-                                    onAddGear={() => setShowEquipmentBrowser(true)}
-                                    onCharacterUpdate={onCharacterUpdate}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <GearPanel
+                                        character={character}
+                                        onAddGear={() => setShowEquipmentBrowser(true)}
+                                        onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'resources' && (
-                                <ResourcesPanel
-                                    character={character}
-                                    onCharacterUpdate={onCharacterUpdate}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <ResourcesPanel
+                                        character={character}
+                                        onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'spells' && (
-                                <SpellsPanel
-                                    character={character}
-                                    onCastSpell={(spellId) => console.log('Cast:', spellId)}
-                                    onAddSpell={() => console.log('Add spell')}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <SpellsPanel
+                                        character={character}
+                                        onCastSpell={(spellId) => console.log('Cast:', spellId)}
+                                        onAddSpell={() => console.log('Add spell')}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'pets' && (
-                                <PetsPanel
-                                    character={character}
-                                    onCharacterUpdate={onCharacterUpdate}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <PetsPanel
+                                        character={character}
+                                        onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'feats' && (
-                                <FeatsPanel
-                                    character={character}
-                                    onFeatClick={(feat) => console.log('Feat:', feat)}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <FeatsPanel
+                                        character={character}
+                                        onFeatClick={(feat) => console.log('Feat:', feat)}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'biography' && (
-                                <BiographyPanel
-                                    character={character}
-                                    onBiographyUpdate={(biography) => {
-                                        onCharacterUpdate({
-                                            ...character,
-                                            biography,
-                                        });
-                                    }}
-                                    onDeitySelect={() => setShowDeityBrowser(true)}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <BiographyPanel
+                                        character={character}
+                                        onBiographyUpdate={(biography) => {
+                                            onCharacterUpdate({
+                                                ...character,
+                                                biography,
+                                            });
+                                        }}
+                                        onDeitySelect={() => setShowDeityBrowser(true)}
+                                    />
+                                </Suspense>
                             )}
 
                             {activeTab === 'notes' && (
@@ -944,10 +978,12 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             )}
 
                             {activeTab === 'actions' && (
-                                <ActionsPanel
-                                    character={character}
-                                    onActionClick={(action) => setSelectedAction(action as ActionData)}
-                                />
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <ActionsPanel
+                                        character={character}
+                                        onActionClick={(action) => setSelectedAction(action as ActionData)}
+                                    />
+                                </Suspense>
                             )}
                         </div>
                     </div>
@@ -955,85 +991,98 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             </div>
 
             {/* Action Detail Modal */}
-            <DetailModal
-                isOpen={selectedAction !== null}
-                onClose={() => setSelectedAction(null)}
-                title={selectedAction?.name || ''}
-            >
-                {selectedAction && (
-                    <ActionDetailContent
-                        name={selectedAction.name}
-                        cost={selectedAction.cost === '1' ? '◆' : selectedAction.cost === '2' ? '◆◆' : selectedAction.cost === '3' ? '◆◆◆' : selectedAction.cost === 'reaction' ? '⟲' : '◇'}
-                        description={selectedAction.description}
-                        traits={selectedAction.traits}
-                        skill={selectedAction.skill}
-                    />
-                )}
-            </DetailModal>
-
+            <Suspense fallback={<LoadingFallback />}>
+                <DetailModal
+                    isOpen={selectedAction !== null}
+                    onClose={() => setSelectedAction(null)}
+                    title={selectedAction?.name || ''}
+                >
+                    {selectedAction && (
+                        <ActionDetailContent
+                            name={selectedAction.name}
+                            cost={selectedAction.cost === '1' ? '◆' : selectedAction.cost === '2' ? '◆◆' : selectedAction.cost === '3' ? '◆◆◆' : selectedAction.cost === 'reaction' ? '⟲' : '◇'}
+                            description={selectedAction.description}
+                            traits={selectedAction.traits}
+                            skill={selectedAction.skill}
+                        />
+                    )}
+                </DetailModal>
+            </Suspense>
 
             {/* Condition Browser Modal */}
             {
                 showConditionBrowser && (
-                    <ConditionBrowser
-                        onClose={() => setShowConditionBrowser(false)}
-                        onAdd={handleAddCondition}
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <ConditionBrowser
+                            onClose={() => setShowConditionBrowser(false)}
+                            onAdd={handleAddCondition}
+                        />
+                    </Suspense>
                 )
             }
 
             {/* Buff Browser Modal */}
             {
                 showBuffBrowser && (
-                    <BuffBrowser
-                        onClose={() => setShowBuffBrowser(false)}
-                        onAddBuff={handleAddBuff}
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <BuffBrowser
+                            onClose={() => setShowBuffBrowser(false)}
+                            onAddBuff={handleAddBuff}
+                        />
+                    </Suspense>
                 )
             }
 
             {/* Equipment Browser Modal */}
             {
                 showEquipmentBrowser && (
-                    <EquipmentBrowser
-                        onClose={() => setShowEquipmentBrowser(false)}
-                        onEquipArmor={() => { }}
-                        onEquipShield={() => { }}
-                        onEquipGear={handleEquipGear}
-                        initialTab="gear"
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <EquipmentBrowser
+                            onClose={() => setShowEquipmentBrowser(false)}
+                            onEquipArmor={() => { }}
+                            onEquipShield={() => { }}
+                            onEquipGear={handleEquipGear}
+                            initialTab="gear"
+                        />
+                    </Suspense>
                 )
             }
 
             {/* Rest & Recovery Modal */}
             {
                 showRestModal && (
-                    <RestModal
-                        character={character}
-                        onClose={() => setShowRestModal(false)}
-                        onCharacterUpdate={onCharacterUpdate}
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <RestModal
+                            character={character}
+                            onClose={() => setShowRestModal(false)}
+                            onCharacterUpdate={onCharacterUpdate}
+                        />
+                    </Suspense>
                 )
             }
 
             {/* Variant Rules Modal */}
             {
                 showVariantRules && (
-                    <VariantRulesPanel
-                        character={character}
-                        onClose={() => setShowVariantRules(false)}
-                        onCharacterUpdate={onCharacterUpdate}
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <VariantRulesPanel
+                            character={character}
+                            onClose={() => setShowVariantRules(false)}
+                            onCharacterUpdate={onCharacterUpdate}
+                        />
+                    </Suspense>
                 )
             }
 
             {/* Deity Browser Modal */}
             {
                 showDeityBrowser && (
-                    <DeityBrowser
-                        onSelectDeity={handleSelectDeity}
-                        onClose={() => setShowDeityBrowser(false)}
-                    />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <DeityBrowser
+                            onSelectDeity={handleSelectDeity}
+                            onClose={() => setShowDeityBrowser(false)}
+                        />
+                    </Suspense>
                 )
             }
 

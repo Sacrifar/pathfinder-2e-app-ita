@@ -477,6 +477,19 @@
     overflow-x: hidden;
 }
 
+.skills-list.virtual-list {
+    overflow: hidden;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.skills-list.virtual-list > div {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
 .skill-item {
     display: flex;
     justify-content: space-between;
