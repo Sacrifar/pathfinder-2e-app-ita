@@ -50,6 +50,7 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.heritage': 'Heritage',
         'builder.background': 'Background',
         'builder.class': 'Class',
+        'builder.classSpecialization': 'Class Specialization',
         'builder.secondaryClass': 'Secondary Class',
         'builder.notSelected': 'Not Selected',
         'builder.abilities': 'Abilities',
@@ -559,6 +560,11 @@ const translations: Record<Language, Record<string, string>> = {
         'deity.select': 'Select',
         'deity.setYourAlignment': 'Set your alignment first',
 
+        // Specialization
+        'specialization.title': 'Class Specialization',
+        'specialization.notAvailable': 'This class does not have a specialization option.',
+        'specialization.selectPrompt': 'Select a specialization from the list to view details.',
+
         // Notes
         'notes.edit': 'Edit',
         'notes.preview': 'Preview',
@@ -606,6 +612,7 @@ const translations: Record<Language, Record<string, string>> = {
         'builder.heritage': 'Retaggio',
         'builder.background': 'Background',
         'builder.class': 'Classe',
+        'builder.classSpecialization': 'Specializzazione di Classe',
         'builder.secondaryClass': 'Classe Secondaria',
         'builder.notSelected': 'Non Selezionato',
         'builder.abilities': 'Caratteristiche',
@@ -1114,6 +1121,11 @@ const translations: Record<Language, Record<string, string>> = {
         'deity.anathema': 'Anatema',
         'deity.select': 'Seleziona',
         'deity.setYourAlignment': 'Imposta prima il tuo allineamento',
+
+        // Specialization
+        'specialization.title': 'Specializzazione di Classe',
+        'specialization.notAvailable': 'Questa classe non ha una opzione di specializzazione.',
+        'specialization.selectPrompt': 'Seleziona una specializzazione dalla lista per vedere i dettagli.',
 
         // Notes
         'notes.edit': 'Modifica',

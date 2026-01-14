@@ -6,6 +6,7 @@ import {
     HeritageBrowser,
     BackgroundBrowser,
     ClassBrowser,
+    ClassSpecializationBrowser,
     AbilityBoostModal,
     FeatBrowser,
     SkillTrainingModal,
@@ -14,8 +15,9 @@ import {
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
 import { LoadedFeat } from '../data/pf2e-loader';
+import { getDefaultSpecializationForClass, classHasSpecializations } from '../data/classSpecializations';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -31,7 +33,22 @@ const CharacterSheetPage: React.FC = () => {
                 const characters: Character[] = JSON.parse(saved);
                 const found = characters.find((c) => c.id === id);
                 if (found) {
-                    setCharacter(migrateCharacter(found));
+                    const migrated = migrateCharacter(found);
+
+                    // Auto-assign default specialization for existing characters that don't have one
+                    if (!migrated.classSpecializationId && migrated.classId && classHasSpecializations(migrated.classId)) {
+                        const defaultSpec = getDefaultSpecializationForClass(migrated.classId);
+                        if (defaultSpec) {
+                            migrated.classSpecializationId = defaultSpec;
+                            // Save the migrated character with default specialization
+                            const updatedCharacters = characters.map(c =>
+                                c.id === migrated.id ? migrated : c
+                            );
+                            localStorage.setItem('pf2e-characters', JSON.stringify(updatedCharacters));
+                        }
+                    }
+
+                    setCharacter(migrated);
                     return;
                 }
             }
@@ -61,7 +78,7 @@ const CharacterSheetPage: React.FC = () => {
     };
 
     const handleOpenSelection = (type: string, targetLevel?: number) => {
-        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
         if (validTypes.includes(type)) {
             setSelectionType(type as SelectionType);
             setSelectionLevel(targetLevel ?? null);
@@ -114,6 +131,16 @@ const CharacterSheetPage: React.FC = () => {
             handleCharacterUpdate({
                 ...character,
                 classId,
+            });
+        }
+        setSelectionType(null);
+    };
+
+    const handleSelectClassSpecialization = (specializationId: string) => {
+        if (character) {
+            handleCharacterUpdate({
+                ...character,
+                classSpecializationId: specializationId,
             });
         }
         setSelectionType(null);
@@ -323,6 +350,15 @@ const CharacterSheetPage: React.FC = () => {
                     currentClassId={character.classId}
                     onClose={handleCloseSelection}
                     onSelect={handleSelectClass}
+                />
+            )}
+
+            {selectionType === 'classSpecialization' && (
+                <ClassSpecializationBrowser
+                    classId={character.classId}
+                    currentSpecializationId={character.classSpecializationId}
+                    onClose={handleCloseSelection}
+                    onSelect={handleSelectClassSpecialization}
                 />
             )}
 

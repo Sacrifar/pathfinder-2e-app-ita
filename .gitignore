@@ -24,6 +24,7 @@ pnpm-debug.log*
 .cache/
 .temp/
 tmp/
+tmpclaude*
 
 # OS Files
 .DS_Store

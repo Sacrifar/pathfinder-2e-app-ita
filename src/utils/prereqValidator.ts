@@ -4,6 +4,7 @@
  */
 
 import { Character, Proficiency, AbilityName } from '../types';
+import { getSpecializationById } from '../data/classSpecializations';
 
 export interface PrereqResult {
     met: boolean;
@@ -179,6 +180,39 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
             return {
                 met: false,
                 reason: `Requires ${ancestryMatch[1]} ancestry`
+            };
+        }
+    }
+
+    // Class specialization checks (instinct, muse, doctrine, bloodline, etc.)
+    // Pattern: "[specialization name] [type]" e.g., "dragon instinct", "enigma muse", "warpriest doctrine"
+    const specializationTypes = ['instinct', 'muse', 'doctrine', 'bloodline', 'research field', 'mystery', 'philosophy', 'way', 'hybrid study', 'rune', 'style', 'element', 'conscious mind', 'lesson', 'gate', 'innovation', 'implement', 'arcane school', 'eidolon'];
+    const specTypePattern = new RegExp(`(\\w+\\s*\\w*?)\\s+(${specializationTypes.join('|')})`, 'i');
+    const specMatch = prereq.match(specTypePattern);
+
+    if (specMatch && character.classSpecializationId) {
+        const requiredSpecName = specMatch[1].toLowerCase().trim();
+
+        // Get the character's current specialization
+        const characterSpec = getSpecializationById(character.classSpecializationId);
+
+        if (characterSpec) {
+            // Check if the character's specialization matches the prerequisite
+            // Compare names (case-insensitive)
+            const charSpecName = characterSpec.name.toLowerCase();
+            const charSpecNameIt = characterSpec.nameIt?.toLowerCase() || '';
+
+            // Check for exact match or partial match (to handle "dragon" matching "dragon instinct")
+            if (charSpecName.includes(requiredSpecName) ||
+                charSpecNameIt.includes(requiredSpecName) ||
+                requiredSpecName.includes(charSpecName) ||
+                requiredSpecName.includes(charSpecNameIt)) {
+                return { met: true };
+            }
+
+            return {
+                met: false,
+                reason: `Requires ${specMatch[0]}`
             };
         }
     }

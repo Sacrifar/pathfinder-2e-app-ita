@@ -357,6 +357,7 @@ export interface Character {
     heritageId?: string;
     backgroundId: string;
     classId: string;
+    classSpecializationId?: string; // Class specialization (Muse, Doctrine, Instinct, etc.)
     secondaryClassId?: string; // For Dual Class variant rule
     level: number;
 
@@ -617,6 +618,12 @@ export function migrateCharacter(data: any): Character {
     // Migrate biography (added for Notes & Biology module)
     if (!character.biography) {
         character.biography = undefined;
+    }
+
+    // Migrate classSpecializationId (added for Class Specializations system)
+    // Note: Default specialization will be assigned in CharacterSheetPage on load
+    if (character.classSpecializationId === undefined) {
+        character.classSpecializationId = undefined;
     }
 
     // Migrate equipment weapon customization (added for Weapon Options system)

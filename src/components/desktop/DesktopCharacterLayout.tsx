@@ -27,6 +27,7 @@ import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff, AbilityName } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
+import { getSpecializationById, classHasSpecializations, getSpecializationsForClass } from '../../data/classSpecializations';
 import {
     calculateConditionPenalties,
     getSkillPenalty,
@@ -183,6 +184,35 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         required: true,
                         onClick: () => onOpenSelection('class', 1),
                     },
+                    // Add class specialization choice if the class has specializations
+                    ...(classHasSpecializations(character.classId) ? [{
+                        id: 'classSpecialization',
+                        type: 'classSpecialization',
+                        label: (() => {
+                            const specTypes = getSpecializationsForClass(character.classId);
+                            const specType = specTypes.length > 0 ? specTypes[0] : null;
+                            if (!specType) return 'builder.classSpecialization';
+                            // Use Italian translation if the UI is in Italian
+                            if (t('specialization.title') === 'Specializzazione di Classe' && specType.nameIt) {
+                                return specType.nameIt;
+                            }
+                            return specType.name;
+                        })(),
+                        value: (() => {
+                            if (character.classSpecializationId) {
+                                const spec = getSpecializationById(character.classSpecializationId);
+                                if (spec) {
+                                    // Return localized name if available
+                                    return spec.nameIt && t('specialization.title') === 'Specializzazione di Classe'
+                                        ? spec.nameIt
+                                        : spec.name;
+                                }
+                            }
+                            return '';
+                        })(),
+                        required: true,
+                        onClick: () => onOpenSelection('classSpecialization', 1),
+                    } as const] : []),
                     ...(variantRules.dualClass ? [{
                         id: 'secondaryClass',
                         type: 'secondaryClass',

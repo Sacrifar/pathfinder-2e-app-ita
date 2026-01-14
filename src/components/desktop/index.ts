@@ -27,6 +27,7 @@ export { HeritageBrowser } from './HeritageBrowser';
 export { BackgroundBrowser } from './BackgroundBrowser';
 export { BackgroundBoostModal } from './BackgroundBoostModal';
 export { ClassBrowser } from './ClassBrowser';
+export { ClassSpecializationBrowser } from './ClassSpecializationBrowser';
 export { AbilityBoostModal } from './AbilityBoostModal';
 export { FeatBrowser } from './FeatBrowser';
 export { SkillTrainingModal } from './SkillTrainingModal';
