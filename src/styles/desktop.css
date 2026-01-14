@@ -3371,6 +3371,39 @@
     flex-direction: column;
 }
 
+.type-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 12px 0;
+    border-bottom: 1px solid var(--desktop-border);
+    background: var(--desktop-bg-tertiary);
+}
+
+.type-tab {
+    padding: 8px 16px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: var(--desktop-text);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.type-tab:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.type-tab.active {
+    background: var(--desktop-bg-secondary);
+    border-color: var(--desktop-accent-red);
+    border-bottom: 1px solid var(--desktop-bg-secondary);
+    margin-bottom: -1px;
+    color: var(--desktop-accent-red);
+}
+
 .browser-content {
     display: flex;
     flex: 1;

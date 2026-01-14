@@ -6,6 +6,99 @@
 import { getClasses } from './pf2e-loader';
 import type { LoadedClass } from './pf2e-loader';
 
+// Import specialization JSON files from pf2e data
+import bomberData from './pf2e/class-features/bomber.json';
+import chirurgeonData from './pf2e/class-features/chirurgeon.json';
+import mutagenistData from './pf2e/class-features/mutagenist.json';
+import toxicologistData from './pf2e/class-features/toxicologist.json';
+
+import distantGraspData from './pf2e/class-features/the-distant-grasp.json';
+import infiniteEyeData from './pf2e/class-features/the-infinite-eye.json';
+import oscillatingWaveData from './pf2e/class-features/the-oscillating-wave.json';
+import silentWhisperData from './pf2e/class-features/the-silent-whisper.json';
+import tangibleDreamData from './pf2e/class-features/the-tangible-dream.json';
+import unboundStepData from './pf2e/class-features/the-unbound-step.json';
+
+import airGateData from './pf2e/class-features/air-gate.json';
+import earthGateData from './pf2e/class-features/earth-gate.json';
+import fireGateData from './pf2e/class-features/fire-gate.json';
+import metalGateData from './pf2e/class-features/metal-gate.json';
+import waterGateData from './pf2e/class-features/water-gate.json';
+import woodGateData from './pf2e/class-features/wood-gate.json';
+
+import armorInnovationData from './pf2e/class-features/armor-innovation.json';
+import constructInnovationData from './pf2e/class-features/construct-innovation.json';
+import weaponInnovationData from './pf2e/class-features/weapon-innovation.json';
+
+import amuletData from './pf2e/class-features/amulet.json';
+import bellData from './pf2e/class-features/bell.json';
+import chaliceData from './pf2e/class-features/chalice.json';
+import lanternData from './pf2e/class-features/lantern.json';
+import mirrorData from './pf2e/class-features/mirror.json';
+import regaliaData from './pf2e/class-features/regalia.json';
+import tomeData from './pf2e/class-features/tome.json';
+import wandData from './pf2e/class-features/wand.json';
+import weaponData from './pf2e/class-features/weapon.json';
+
+import arcaneSchoolData from './pf2e/class-features/arcane-school.json';
+import elementalSchoolData from './pf2e/class-features/elemental-school.json';
+import schoolOfArsGrammaticaData from './pf2e/class-features/school-of-ars-grammatica.json';
+import schoolOfBattleMagicData from './pf2e/class-features/school-of-battle-magic.json';
+import schoolOfCivicWizardryData from './pf2e/class-features/school-of-civic-wizardry.json';
+import schoolOfGatesData from './pf2e/class-features/school-of-gates.json';
+import schoolOfKalistradeData from './pf2e/class-features/school-of-kalistrade.json';
+import schoolOfMagicalTechnologiesData from './pf2e/class-features/school-of-magical-technologies.json';
+import schoolOfMentalismData from './pf2e/class-features/school-of-mentalism.json';
+import schoolOfProteanFormData from './pf2e/class-features/school-of-protean-form.json';
+import schoolOfRedMantisMagicData from './pf2e/class-features/red-mantis-magic-school.json';
+import schoolOfRootedWisdomData from './pf2e/class-features/school-of-rooted-wisdom.json';
+import schoolOfTheBoundaryData from './pf2e/class-features/school-of-the-boundary.json';
+import schoolOfTheReclamationData from './pf2e/class-features/school-of-the-reclamation.json';
+import schoolOfUnifiedMagicalTheoryData from './pf2e/class-features/school-of-unified-magical-theory.json';
+
+import arcaneThesisData from './pf2e/class-features/arcane-thesis.json';
+import experimentalSpellshapingData from './pf2e/class-features/experimental-spellshaping.json';
+import improvedFamiliarAttunementData from './pf2e/class-features/improved-familiar-attunement.json';
+import spellBlendingData from './pf2e/class-features/spell-blending.json';
+import spellSubstitutionData from './pf2e/class-features/spell-substitution.json';
+import staffNexusData from './pf2e/class-features/staff-nexus.json';
+
+import angelEidolonData from './pf2e/class-features/angel-eidolon.json';
+import angerPhantomEidolonData from './pf2e/class-features/anger-phantom-eidolon.json';
+import beastEidolonData from './pf2e/class-features/beast-eidolon.json';
+import constructEidolonData from './pf2e/class-features/construct-eidolon.json';
+import demonEidolonData from './pf2e/class-features/demon-eidolon.json';
+import devotionPhantomEidolonData from './pf2e/class-features/devotion-phantom-eidolon.json';
+import dragonEidolonData from './pf2e/class-features/dragon-eidolon.json';
+import elementalEidolonData from './pf2e/class-features/elemental-eidolon.json';
+import feyEidolonData from './pf2e/class-features/fey-eidolon.json';
+import plantEidolonData from './pf2e/class-features/plant-eidolon.json';
+import psychopompEidolonData from './pf2e/class-features/psychopomp-eidolon.json';
+import undeadEidolonData from './pf2e/class-features/undead-eidolon.json';
+
+import liturgistData from './pf2e/class-features/liturgist.json';
+import mediumData from './pf2e/class-features/medium.json';
+import seerData from './pf2e/class-features/seer.json';
+import shamanData from './pf2e/class-features/shaman.json';
+
+/**
+ * Convert Foundry VTT feat data to ClassSpecialization format
+ */
+function convertFoundryFeatToSpecialization(
+    data: any,
+    className: string,
+    source: string
+): ClassSpecialization {
+    return {
+        id: data._id || data.name.toLowerCase().replace(/\s+/g, '-'),
+        name: data.name,
+        nameIt: '', // Italian translations not available in Foundry data
+        className: className,
+        description: data.system?.description?.value?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
+        source: source,
+    };
+}
+
 export interface ClassSpecialization {
     id: string;
     name: string;
@@ -517,6 +610,105 @@ const SWASHBUCKLER_STYLES: ClassSpecialization[] = [
     },
 ];
 
+// Alchemist Research Fields - loaded from Foundry VTT data
+const ALCHEMIST_RESEARCH_FIELDS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(bomberData, 'Alchemist', 'Player Core 2'),
+    convertFoundryFeatToSpecialization(chirurgeonData, 'Alchemist', 'Player Core 2'),
+    convertFoundryFeatToSpecialization(mutagenistData, 'Alchemist', 'Player Core 2'),
+    convertFoundryFeatToSpecialization(toxicologistData, 'Alchemist', 'Player Core 2'),
+];
+
+// Psychic Conscious Minds - loaded from Foundry VTT data
+const PSYCHIC_CONSCIOUS_MINDS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(distantGraspData, 'Psychic', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(infiniteEyeData, 'Psychic', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(oscillatingWaveData, 'Psychic', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(silentWhisperData, 'Psychic', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(tangibleDreamData, 'Psychic', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(unboundStepData, 'Psychic', 'Dark Archive'),
+];
+
+// Kineticist Gates - loaded from Foundry VTT data (Single Gate only for now)
+const KINETICIST_GATES: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(airGateData, 'Kineticist', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(earthGateData, 'Kineticist', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(fireGateData, 'Kineticist', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(metalGateData, 'Kineticist', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(waterGateData, 'Kineticist', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(woodGateData, 'Kineticist', 'Rage of Elements'),
+];
+
+// Inventor Innovations - loaded from Foundry VTT data
+const INVENTOR_INNOVATIONS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(armorInnovationData, 'Inventor', 'Guns & Gears'),
+    convertFoundryFeatToSpecialization(constructInnovationData, 'Inventor', 'Guns & Gears'),
+    convertFoundryFeatToSpecialization(weaponInnovationData, 'Inventor', 'Guns & Gears'),
+];
+
+// Thaumaturge Implements - loaded from Foundry VTT data
+const THAUMATURGE_IMPLEMENTS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(amuletData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(bellData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(chaliceData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(lanternData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(mirrorData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(regaliaData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(tomeData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(wandData, 'Thaumaturge', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(weaponData, 'Thaumaturge', 'Dark Archive'),
+];
+
+// Wizard Arcane Schools - loaded from Foundry VTT data
+const WIZARD_ARCANE_SCHOOLS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(elementalSchoolData, 'Wizard', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(schoolOfArsGrammaticaData, 'Wizard', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(schoolOfBattleMagicData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfCivicWizardryData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfGatesData, 'Wizard', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(schoolOfKalistradeData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfMagicalTechnologiesData, 'Wizard', 'Guns & Gears'),
+    convertFoundryFeatToSpecialization(schoolOfMentalismData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfProteanFormData, 'Wizard', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(schoolOfRedMantisMagicData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfRootedWisdomData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(schoolOfTheBoundaryData, 'Wizard', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(schoolOfTheReclamationData, 'Wizard', 'Dark Archive'),
+    convertFoundryFeatToSpecialization(schoolOfUnifiedMagicalTheoryData, 'Wizard', 'Player Core'),
+];
+
+// Wizard Arcane Theses - loaded from Foundry VTT data
+const WIZARD_ARCANE_THESES: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(experimentalSpellshapingData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(improvedFamiliarAttunementData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(spellBlendingData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(spellSubstitutionData, 'Wizard', 'Player Core'),
+    convertFoundryFeatToSpecialization(staffNexusData, 'Wizard', 'Player Core'),
+];
+
+// Summoner Eidolons - loaded from Foundry VTT data
+const SUMMONER_EIDOLONS: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(angelEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(angerPhantomEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(beastEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(constructEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(demonEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(devotionPhantomEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(dragonEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(elementalEidolonData, 'Summoner', 'Rage of Elements'),
+    convertFoundryFeatToSpecialization(feyEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(plantEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(psychopompEidolonData, 'Summoner', 'Secrets of Magic'),
+    convertFoundryFeatToSpecialization(undeadEidolonData, 'Summoner', 'Book of the Dead'),
+];
+
+// Animist Animistic Practices - loaded from Foundry VTT data
+const ANIMIST_ANIMISTIC_PRACTICES: ClassSpecialization[] = [
+    convertFoundryFeatToSpecialization(liturgistData, 'Animist', 'War of Immortals'),
+    convertFoundryFeatToSpecialization(mediumData, 'Animist', 'War of Immortals'),
+    convertFoundryFeatToSpecialization(seerData, 'Animist', 'War of Immortals'),
+    convertFoundryFeatToSpecialization(shamanData, 'Animist', 'War of Immortals'),
+];
+
 // All class specializations by class name (not ID)
 export const CLASS_SPECIALIZATIONS_BY_NAME: Record<string, ClassSpecializationType[]> = {
     'Bard': [
@@ -659,17 +851,104 @@ export const CLASS_SPECIALIZATIONS_BY_NAME: Record<string, ClassSpecializationTy
             options: SWASHBUCKLER_STYLES,
         },
     ],
+    'Alchemist': [
+        {
+            id: 'alchemist_research_fields',
+            name: 'Research Field',
+            nameIt: 'Campo di Ricerca',
+            className: 'Alchemist',
+            tag: 'alchemist-research-field',
+            options: ALCHEMIST_RESEARCH_FIELDS,
+        },
+    ],
+    'Psychic': [
+        {
+            id: 'psychic_conscious_minds',
+            name: 'Conscious Mind',
+            nameIt: 'Mente Cosciente',
+            className: 'Psychic',
+            tag: 'psychic-conscious-mind',
+            options: PSYCHIC_CONSCIOUS_MINDS,
+        },
+    ],
+    'Kineticist': [
+        {
+            id: 'kineticist_gates',
+            name: 'Kinetic Gate',
+            nameIt: 'Cancello Cinetico',
+            className: 'Kineticist',
+            tag: 'kineticist-gate',
+            options: KINETICIST_GATES,
+        },
+    ],
+    'Inventor': [
+        {
+            id: 'inventor_innovations',
+            name: 'Innovation',
+            nameIt: 'Innovazione',
+            className: 'Inventor',
+            tag: 'inventor-innovation',
+            options: INVENTOR_INNOVATIONS,
+        },
+    ],
+    'Thaumaturge': [
+        {
+            id: 'thaumaturge_implements',
+            name: 'Implement',
+            nameIt: 'Strumento',
+            className: 'Thaumaturge',
+            tag: 'thaumaturge-implement',
+            options: THAUMATURGE_IMPLEMENTS,
+        },
+    ],
+    'Wizard': [
+        {
+            id: 'wizard_arcane_schools',
+            name: 'Arcane School',
+            nameIt: 'Scuola Arcana',
+            className: 'Wizard',
+            tag: 'wizard-arcane-school',
+            options: WIZARD_ARCANE_SCHOOLS,
+        },
+        {
+            id: 'wizard_arcane_theses',
+            name: 'Arcane Thesis',
+            nameIt: 'Tesi Arcana',
+            className: 'Wizard',
+            tag: 'wizard-arcane-thesis',
+            options: WIZARD_ARCANE_THESES,
+        },
+    ],
+    'Summoner': [
+        {
+            id: 'summoner_eidolons',
+            name: 'Eidolon',
+            nameIt: 'Eidolon',
+            className: 'Summoner',
+            tag: 'summoner-eidolon',
+            options: SUMMONER_EIDOLONS,
+        },
+    ],
+    'Animist': [
+        {
+            id: 'animist_animistic_practices',
+            name: 'Animistic Practice',
+            nameIt: 'Pratica Animistica',
+            className: 'Animist',
+            tag: 'animist-animistic-practice',
+            options: ANIMIST_ANIMISTIC_PRACTICES,
+        },
+    ],
 };
 
 // Classes that don't have specializations or have complex/unsupported systems
 const CLASSES_WITHOUT_SPECIALIZATIONS = [
-    'Fighter',
-    'Monk',
+    'Fighter', // No specialization by design
+    'Monk', // No specialization by design
+    'Guardian', // No specialization by design
     // Newer classes without simple specializations or insufficient data
-    'Exemplar', // Insufficient data in current source files
-    'Commander', // Insufficient data in current source files
-    'Guardian', // Insufficient data in current source files
-    'Animist', // Insufficient data in current source files
+    'Exemplar', // Requires multi-select system (3 ikons) - see TODO-EXEMPLAR.md
+    'Commander', // Requires multi-select system (3 tactics) - see TODO-COMMANDER.md
 ];
 
 /**

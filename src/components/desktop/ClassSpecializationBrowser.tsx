@@ -23,43 +23,49 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
 }) => {
     const { t, language } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedSpecialization, setSelectedSpecialization] = useState<ClassSpecialization | null>(
-        currentSpecializationId ? null : null // We'll set this from the options
-    );
+    const [selectedSpecialization, setSelectedSpecialization] = useState<ClassSpecialization | null>(null);
+    const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
 
     // Get specializations for this class
     const specializationTypes = useMemo(() => {
         return getSpecializationsForClass(classId);
     }, [classId]);
 
-    // Flatten all specializations for the list
-    const allSpecializations = useMemo(() => {
-        const all: (ClassSpecialization & { type: ClassSpecializationType })[] = [];
-        for (const specType of specializationTypes) {
-            for (const spec of specType.options) {
-                all.push({ ...spec, type: specType });
-            }
-        }
-        return all;
-    }, [specializationTypes]);
+    // Get the current type
+    const currentType = specializationTypes[selectedTypeIndex];
+
+    // Get specializations for the current type
+    const currentSpecializations = useMemo(() => {
+        if (!currentType) return [];
+        return currentType.options;
+    }, [currentType]);
 
     // Filter specializations based on search
     const filteredSpecializations = useMemo(() => {
         const q = searchQuery.toLowerCase();
-        return allSpecializations.filter(spec => {
+        return currentSpecializations.filter(spec => {
             return spec.name.toLowerCase().includes(q) ||
                 spec.nameIt?.toLowerCase().includes(q) ||
                 spec.description.toLowerCase().includes(q);
         });
-    }, [searchQuery, allSpecializations]);
+    }, [searchQuery, currentSpecializations]);
 
     // Set initial selected specialization if provided
     React.useEffect(() => {
         if (currentSpecializationId && !selectedSpecialization) {
-            const found = allSpecializations.find(s => s.id === currentSpecializationId);
-            if (found) setSelectedSpecialization(found);
+            // Search in all types for the current specialization
+            for (const specType of specializationTypes) {
+                const found = specType.options.find(s => s.id === currentSpecializationId);
+                if (found) {
+                    setSelectedSpecialization(found);
+                    // Also set the correct type index
+                    const typeIndex = specializationTypes.indexOf(specType);
+                    if (typeIndex >= 0) setSelectedTypeIndex(typeIndex);
+                    break;
+                }
+            }
         }
-    }, [currentSpecializationId, allSpecializations]);
+    }, [currentSpecializationId, specializationTypes]);
 
     const handleSelect = () => {
         if (selectedSpecialization) {
@@ -97,14 +103,27 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
         <div className="modal-overlay" onClick={onClose}>
             <div className="selection-modal class-browser" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>
-                        {specializationTypes.length > 0
-                            ? getTypeName(specializationTypes[0])
-                            : (t('specialization.title') || 'Class Specialization')
-                        }
-                    </h2>
+                    <h2>{t('specialization.title') || 'Class Specialization'}</h2>
                     <button className="close-btn" onClick={onClose}>×</button>
                 </div>
+
+                {/* Type tabs - show when there are multiple types */}
+                {specializationTypes.length > 1 && (
+                    <div className="type-tabs">
+                        {specializationTypes.map((type, index) => (
+                            <button
+                                key={type.id}
+                                className={`type-tab ${selectedTypeIndex === index ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedTypeIndex(index);
+                                    setSelectedSpecialization(null);
+                                }}
+                            >
+                                {getTypeName(type)}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <div className="browser-content">
                     <div className="browser-sidebar">
