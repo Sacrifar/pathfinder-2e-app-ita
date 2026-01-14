@@ -474,6 +474,7 @@
     flex-direction: column;
     gap: 4px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .skill-item {
@@ -726,8 +727,8 @@
 .level-sidebar-new {
     width: 220px;
     min-width: 220px;
-    background: #1E2A3A;
-    border-right: 1px solid #0F1720;
+    background: var(--desktop-bg-secondary);
+    border-right: 1px solid var(--desktop-border);
     overflow-y: auto;
     height: calc(100vh - 48px);
     display: flex;
@@ -737,8 +738,8 @@
 /* Level Selector Header */
 .level-selector-header-new {
     padding: 16px;
-    background: #162030;
-    border-bottom: 1px solid #0F1720;
+    background: var(--desktop-bg-tertiary);
+    border-bottom: 1px solid var(--desktop-border);
 }
 
 .level-controls {
@@ -751,9 +752,9 @@
 .level-btn {
     width: 32px;
     height: 32px;
-    border: 1px solid #3A4A5A;
-    background: #253546;
-    color: #CCCCCC;
+    border: 1px solid var(--desktop-border);
+    background: var(--desktop-bg);
+    color: var(--desktop-text);
     font-size: 18px;
     font-weight: 600;
     border-radius: 6px;
@@ -811,10 +812,10 @@
 /* Level Section */
 .level-section-new {
     margin-bottom: 8px;
-    background: #253546;
+    background: var(--desktop-bg-tertiary);
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid #3A4A5A;
+    border: 1px solid var(--desktop-border);
 }
 
 .level-section-new.future-level {
@@ -845,7 +846,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    background: #2A3A4A;
+    background: var(--desktop-bg);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
@@ -854,12 +855,12 @@
 }
 
 .choice-card:hover {
-    background: #304050;
-    border-color: #4A5A6A;
+    background: var(--desktop-card-hover);
+    border-color: var(--desktop-border-light);
 }
 
 .choice-card.completed {
-    border-color: #4A5A6A;
+    border-color: var(--desktop-border-light);
 }
 
 .choice-card.incomplete {
