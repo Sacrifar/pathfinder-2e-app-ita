@@ -360,6 +360,7 @@ export interface Character {
     classSpecializationId?: string; // Class specialization (Muse, Doctrine, Instinct, etc.)
     secondaryClassId?: string; // For Dual Class variant rule
     level: number;
+    xp?: number; // Experience points
 
     // Deity
     deityId?: string;

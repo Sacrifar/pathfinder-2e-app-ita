@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
-export type TabId = 'weapons' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions' | 'biography' | 'notes';
+export type TabId = 'weapons' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions';
 
 interface CharacterTabsProps {
     activeTab: TabId;
@@ -25,8 +25,6 @@ export const CharacterTabs: React.FC<CharacterTabsProps> = ({
         { id: 'resources', label: t('tabs.resources') || 'Resources', show: true },
         { id: 'spells', label: t('tabs.spells') || 'Spells', show: hasSpells },
         { id: 'pets', label: t('tabs.pets') || 'Pets', show: hasPets },
-        { id: 'biography', label: t('tabs.biography') || 'Biography', show: true },
-        { id: 'notes', label: t('tabs.notes') || 'Notes', show: true },
         { id: 'details', label: t('tabs.details') || 'Details', show: true },
         { id: 'feats', label: t('tabs.feats') || 'Feats', show: true },
         { id: 'actions', label: t('tabs.actions') || 'Actions', show: true },

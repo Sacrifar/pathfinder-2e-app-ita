@@ -6,6 +6,17 @@ interface TopBarProps {
     characterName: string;
     className: string;
     level: number;
+    xp?: number;
+    size?: string;
+    speed?: number;
+    abilityScores?: {
+        str: number;
+        dex: number;
+        con: number;
+        int: number;
+        wis: number;
+        cha: number;
+    };
     onMenuClick: () => void;
     onRestClick: () => void;
     onLevelChange?: (newLevel: number) => void;
@@ -16,6 +27,10 @@ export const TopBar: React.FC<TopBarProps> = ({
     characterName,
     className,
     level,
+    xp = 0,
+    size = 'Medium',
+    speed = 25,
+    abilityScores,
     onMenuClick,
     onRestClick,
     onLevelChange,
@@ -65,94 +80,95 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="topbar-center">
-                <span className="character-info">
-                    {characterName || t('character.unnamed')} - {className}
-                    {onNameChange && (
-                        <button
-                            className="name-edit-btn"
-                            onClick={handleStartEditingName}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--color-muted, #888)',
-                                cursor: 'pointer',
-                                marginLeft: '8px',
-                                padding: '2px 6px',
-                                fontSize: '14px'
-                            }}
-                            title={t('actions.edit') || 'Edit name'}
-                        >
-                            ✎
-                        </button>
-                    )}
-                </span>
-                <div className="level-controls">
-                    <button
-                        className="level-btn"
-                        onClick={handleLevelDown}
-                        disabled={level <= 1}
-                        title="Level Down"
-                    >
-                        −
-                    </button>
-                    <span className="level-display">
-                        {t('builder.level') || 'Lv'} {level}
+                <div className="character-identity">
+                    <span className="character-name">
+                        {characterName || t('character.unnamed')}
+                        {onNameChange && (
+                            <button
+                                className="name-edit-btn"
+                                onClick={handleStartEditingName}
+                                title={t('actions.edit') || 'Edit name'}
+                            >
+                                ✎
+                            </button>
+                        )}
                     </span>
-                    <button
-                        className="level-btn"
-                        onClick={handleLevelUp}
-                        disabled={level >= 20}
-                        title="Level Up"
-                    >
-                        +
-                    </button>
+                    <span className="character-class">{className}</span>
                 </div>
+                <div className="character-progress">
+                    <div className="level-display-value">
+                        <span className="progress-label">{t('builder.level') || 'Lv'}</span>
+                        <span className="progress-value">{level}</span>
+                    </div>
+                    <div className="xp-display">
+                        <span className="progress-label">{t('builder.xp') || 'XP'}</span>
+                        <span className="progress-value">{xp}</span>
+                    </div>
+                </div>
+                <div className="character-physical">
+                    <div className="physical-stat">
+                        <span className="physical-label">{t('stats.size') || 'Size'}</span>
+                        <span className="physical-value">{size}</span>
+                    </div>
+                    <div className="physical-stat">
+                        <span className="physical-label">{t('stats.speed') || 'Speed'}</span>
+                        <span className="physical-value">{speed}ft</span>
+                    </div>
+                </div>
+                {/* Ability Scores */}
+                {abilityScores && (
+                    <div className="ability-scores-bar">
+                        {Object.entries(abilityScores).map(([key, value]) => {
+                            const modifier = Math.floor((value - 10) / 2);
+                            const modStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+                            return (
+                                <div key={key} className="ability-score-mini">
+                                    <span className="ability-name">{key.toUpperCase()}</span>
+                                    <div className="ability-score-content">
+                                        <span className="ability-value">{value}</span>
+                                        <span className="ability-modifier">{modStr}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <div className="topbar-right">
+                {/* Level Controls */}
+                {onLevelChange && (
+                    <div className="level-controls">
+                        <button
+                            className="level-btn"
+                            onClick={handleLevelDown}
+                            disabled={level <= 1}
+                            title="Level Down"
+                        >
+                            −
+                        </button>
+                        <button
+                            className="level-btn"
+                            onClick={handleLevelUp}
+                            disabled={level >= 20}
+                            title="Level Up"
+                        >
+                            +
+                        </button>
+                    </div>
+                )}
                 <button
                     className="topbar-btn"
                     onClick={toggleTheme}
                     title={theme === 'dark' ? (t('theme.light') || 'Light Mode') : (t('theme.dark') || 'Dark Mode')}
-                    style={{
-                        transition: 'transform 0.2s ease, background 0.3s ease',
-                    }}
                 >
-                    <span
-                        style={{
-                            fontSize: '18px',
-                            display: 'inline-block',
-                            transition: 'transform 0.3s ease',
-                        }}
-                    >
-                        {theme === 'dark' ? '☀️' : '🌙'}
-                    </span>
+                    <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
                 </button>
                 <button
                     className="topbar-btn"
                     onClick={toggleLanguage}
-                    style={{
-                        transition: 'transform 0.2s ease, background 0.3s ease',
-                    }}
                 >
-                    <span
-                        style={{
-                            fontSize: '18px',
-                            display: 'inline-block',
-                            transition: 'transform 0.3s ease',
-                        }}
-                    >
-                        {language === 'en' ? '🇬🇧' : '🇮🇹'}
-                    </span>
-                </button>
-                <button
-                    className="topbar-btn"
-                    onClick={onRestClick}
-                    style={{
-                        transition: 'transform 0.2s ease, background 0.3s ease',
-                    }}
-                >
-                    {t('actions.rest') || 'Rest'}
+                    <span>{language === 'en' ? '🇬🇧' : '🇮🇹'}</span>
                 </button>
             </div>
 

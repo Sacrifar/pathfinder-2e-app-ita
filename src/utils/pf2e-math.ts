@@ -460,3 +460,36 @@ export function calculateSpellDC(
     return { attack, dc };
 }
 
+/**
+ * Calculate Saving Throw modifier
+ * @param character Character data
+ * @param saveType 'fortitude' | 'reflex' | 'will'
+ * @returns Saving throw modifier
+ */
+export function calculateSavingThrow(
+    character: Character,
+    saveType: 'fortitude' | 'reflex' | 'will'
+): number {
+    const proficiency = character.saves?.[saveType] || 'untrained';
+    const profBonus = calculateProficiencyBonusWithVariant(
+        character.level || 1,
+        proficiency === 'untrained' ? ProficiencyRank.Untrained :
+        proficiency === 'trained' ? ProficiencyRank.Trained :
+        proficiency === 'expert' ? ProficiencyRank.Expert :
+        proficiency === 'master' ? ProficiencyRank.Master :
+        ProficiencyRank.Legendary,
+        character.variantRules?.proficiencyWithoutLevel
+    );
+
+    let abilityMod = 0;
+    if (saveType === 'fortitude') {
+        abilityMod = getAbilityModifier(character.abilityScores.con || 10);
+    } else if (saveType === 'reflex') {
+        abilityMod = getAbilityModifier(character.abilityScores.dex || 10);
+    } else if (saveType === 'will') {
+        abilityMod = getAbilityModifier(character.abilityScores.wis || 10);
+    }
+
+    return profBonus + abilityMod;
+}
+

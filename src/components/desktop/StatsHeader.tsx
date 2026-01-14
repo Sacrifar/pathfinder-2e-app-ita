@@ -10,6 +10,17 @@ interface StatsHeaderProps {
     ac: number;
     heroPoints: number;
     classDC?: number;
+    fortitude?: number;
+    reflex?: number;
+    will?: number;
+    abilityScores?: {
+        str: number;
+        dex: number;
+        con: number;
+        int: number;
+        wis: number;
+        cha: number;
+    };
     onAddCondition: () => void;
     onAddCustomBuff: () => void;
     onAdvanceRound?: () => void;
@@ -27,6 +38,10 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     ac,
     heroPoints,
     classDC,
+    fortitude,
+    reflex,
+    will,
+    abilityScores,
     onAddCondition,
     onAddCustomBuff,
     onAdvanceRound,
@@ -169,7 +184,7 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                 style={{
                     position: 'relative',
                     border: hasActiveModifiers(acModifiers)
-                        ? `1px solid ${theme === 'dark' ? 'var(--accent, #f59e0b)' : 'var(--accent, #8B0000)'}`
+                        ? '1px solid var(--accent, #f59e0b)'
                         : undefined,
                 }}
             >
@@ -194,6 +209,60 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                     </div>
                 </StatTooltip>
             </div>
+
+            {/* Saving Throws */}
+            {(fortitude !== undefined || reflex !== undefined || will !== undefined) && (
+                <>
+                    {fortitude !== undefined && (
+                        <div className="stat-box save-box">
+                            <span className="stat-box-label">{t('stats.fortitude') || 'Fort'}</span>
+                            <span className="stat-box-value">{formatModifier(fortitude)}</span>
+                        </div>
+                    )}
+                    {reflex !== undefined && (
+                        <div className="stat-box save-box">
+                            <span className="stat-box-label">{t('stats.reflex') || 'Ref'}</span>
+                            <span className="stat-box-value">{formatModifier(reflex)}</span>
+                        </div>
+                    )}
+                    {will !== undefined && (
+                        <div className="stat-box save-box">
+                            <span className="stat-box-label">{t('stats.will') || 'Will'}</span>
+                            <span className="stat-box-value">{formatModifier(will)}</span>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Ability Scores */}
+            {abilityScores && (
+                <>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.str') || 'STR'}</span>
+                        <span className="stat-box-value">{abilityScores.str}</span>
+                    </div>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.dex') || 'DEX'}</span>
+                        <span className="stat-box-value">{abilityScores.dex}</span>
+                    </div>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.con') || 'CON'}</span>
+                        <span className="stat-box-value">{abilityScores.con}</span>
+                    </div>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.int') || 'INT'}</span>
+                        <span className="stat-box-value">{abilityScores.int}</span>
+                    </div>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.wis') || 'WIS'}</span>
+                        <span className="stat-box-value">{abilityScores.wis}</span>
+                    </div>
+                    <div className="stat-box ability-box">
+                        <span className="stat-box-label">{t('stats.cha') || 'CHA'}</span>
+                        <span className="stat-box-value">{abilityScores.cha}</span>
+                    </div>
+                </>
+            )}
 
             <div className="hero-points">
                 <span className="hero-points-label">{t('stats.heroPoints') || 'Hero Points'}</span>

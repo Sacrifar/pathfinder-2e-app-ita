@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { TopBar } from './TopBar';
 import { LevelSidebar } from './LevelSidebar';
 import { MainMenu } from './MainMenu';
-import { StatsHeader } from './StatsHeader';
 import { CharacterTabs, TabId } from './CharacterTabs';
-import { SkillsPanel, SkillDisplay } from './SkillsPanel';
+import { SkillDisplay } from './SkillsPanel';
+import { CombatColumn } from './CombatColumn';
+import { SurvivalHeader } from './SurvivalHeader';
 import { WeaponsPanel } from './WeaponsPanel';
 import { DefensePanel } from './DefensePanel';
 import { GearPanel } from './GearPanel';
@@ -38,7 +39,8 @@ import {
     calculateMaxHP,
     calculateACWithABP,
     ProficiencyRank,
-    calculateProficiencyBonusWithVariant
+    calculateProficiencyBonusWithVariant,
+    calculateSavingThrow,
 } from '../../utils/pf2e-math';
 import {
     exportCharacterAsJSON,
@@ -356,11 +358,6 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const handleRest = () => {
         // Open the Rest & Recovery modal
         setShowRestModal(true);
-    };
-
-    const handleSkillClick = (skill: any) => {
-        // Show skill actions popup
-        console.log('Skill clicked:', skill);
     };
 
     // Condition Handlers
@@ -705,6 +702,17 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 characterName={character.name || t('character.unnamed')}
                 className={displayClassName || t('character.noClass')}
                 level={character.level || 1}
+                xp={character.xp}
+                size={selectedAncestry?.size || 'Medium'}
+                speed={character.speed.land}
+                abilityScores={{
+                    str: character.abilityScores.str || 10,
+                    dex: character.abilityScores.dex || 10,
+                    con: character.abilityScores.con || 10,
+                    int: character.abilityScores.int || 10,
+                    wis: character.abilityScores.wis || 10,
+                    cha: character.abilityScores.cha || 10,
+                }}
                 onMenuClick={() => setMenuOpen(!menuOpen)}
                 onRestClick={handleRest}
                 onNameChange={(newName) => {
@@ -747,6 +755,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             />
 
             <div className="desktop-main">
+                {/* Column 1: Level Sidebar - Origins & Progression */}
                 <LevelSidebar
                     sections={buildSections}
                     currentLevel={character.level || 1}
@@ -783,21 +792,30 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     }}
                 />
 
+                {/* Column 2: Combat Column - Character Sheet */}
+                <CombatColumn
+                    heroPoints={1}
+                    classDC={getClassDC()}
+                    perception={getPerceptionMod()}
+                    initiative={getPerceptionMod()}
+                    skills={calculatedSkills}
+                />
+
+                {/* Column 3: Content Area - Status & Management */}
                 <div className="desktop-content">
-                    <StatsHeader
+                    {/* Survival Header - AC, HP, Saving Throws */}
+                    <SurvivalHeader
+                        ac={getAC()}
                         hp={{
                             current: character.hitPoints.current || calculateMaxHP(character),
                             max: character.hitPoints.max || calculateMaxHP(character)
                         }}
-                        speed={character.speed.land}
-                        size={selectedAncestry?.size || 'Medium'}
-                        perception={getPerceptionMod()}
-                        ac={getAC()}
-                        heroPoints={1}
-                        classDC={getClassDC()}
+                        fortitude={calculateSavingThrow(character, 'fortitude')}
+                        reflex={calculateSavingThrow(character, 'reflex')}
+                        will={calculateSavingThrow(character, 'will')}
+                        onRest={handleRest}
                         onAddCondition={() => setShowConditionBrowser(true)}
-                        onAddCustomBuff={() => setShowBuffBrowser(true)}
-                        onAdvanceRound={handleAdvanceRound}
+                        onAddBuff={() => setShowBuffBrowser(true)}
                     />
 
                     <ActiveConditions
@@ -816,11 +834,6 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     />
 
                     <div className="tab-content">
-                        <SkillsPanel
-                            skills={calculatedSkills}
-                            onSkillClick={handleSkillClick}
-                        />
-
                         <div className="main-content-area">
                             {activeTab === 'weapons' && (
                                 <WeaponsPanel
