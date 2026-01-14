@@ -235,22 +235,30 @@ function getWeaponProficiencyRank(character: Character, weaponCategory: string):
  *
  * @param character Character data
  * @param weapon Weapon to calculate attack bonus for
+ * @param equippedWeapon Optional equipped weapon data with runes and customization
  * @returns Array of 3 attack bonuses accounting for MAP
  */
 export function calculateWeaponAttack(
     character: Character,
-    weapon: LoadedWeapon
+    weapon: LoadedWeapon,
+    equippedWeapon?: { runes?: { potencyRune?: number }; customization?: { bonusAttack?: number; attackAbilityOverride?: string } }
 ): [number, number, number] {
     const strMod = getAbilityModifier(character.abilityScores.str);
     const dexMod = getAbilityModifier(character.abilityScores.dex);
 
-    // Determine key ability modifier based on weapon traits and range
+    // Determine key ability modifier based on weapon traits, range, and customization
     let abilityMod: number;
     const isRanged = weapon.range !== null && weapon.range > 0;
     const hasFinesse = weapon.traits.includes('Finesse');
     const hasThrown = weapon.traits.includes('Thrown');
 
-    if (isRanged && !hasThrown) {
+    // Check for attack ability override from customization
+    const abilityOverride = equippedWeapon?.customization?.attackAbilityOverride;
+
+    if (abilityOverride && abilityOverride !== 'auto') {
+        // Use the overridden ability
+        abilityMod = getAbilityModifier(character.abilityScores[abilityOverride as keyof typeof character.abilityScores]);
+    } else if (isRanged && !hasThrown) {
         // Ranged weapons use DEX (except thrown, which are melee that can be thrown)
         abilityMod = dexMod;
     } else if (hasFinesse) {
@@ -274,10 +282,15 @@ export function calculateWeaponAttack(
     if (character.variantRules?.automaticBonusProgression) {
         const abp = getABPBonuses(character.level || 1);
         itemBonus = abp.potency;
+    } else {
+        // Add potency rune bonus from equipped weapon
+        itemBonus = equippedWeapon?.runes?.potencyRune || 0;
     }
-    // TODO: Add non-ABP item bonus from equipment when equipment system is ready
 
-    const baseAttackBonus = abilityMod + profBonus + itemBonus;
+    // Add manual attack bonus override from customization
+    const manualBonus = equippedWeapon?.customization?.bonusAttack || 0;
+
+    const baseAttackBonus = abilityMod + profBonus + itemBonus + manualBonus;
 
     // Calculate MAP (Multiple Attack Penalty)
     // Agile weapons: 0, -4, -8
@@ -296,17 +309,19 @@ export function calculateWeaponAttack(
 
 /**
  * Calculates the damage string for a specific weapon
- * Handles: STR bonus, Propulsive, Thrown, Two-Hand toggle
+ * Handles: STR bonus, Propulsive, Thrown, Two-Hand toggle, Striking runes, Customization
  *
  * @param character Character data
  * @param weapon Weapon to calculate damage for
  * @param isTwoHanded Whether two-hand-d* trait is active
+ * @param equippedWeapon Optional equipped weapon data with runes and customization
  * @returns Damage string (e.g., "1d8 + 3" or "2d6 + 1")
  */
 export function calculateWeaponDamage(
     character: Character,
     weapon: LoadedWeapon,
-    isTwoHanded: boolean = false
+    isTwoHanded: boolean = false,
+    equippedWeapon?: { runes?: { strikingRune?: string }; customization?: { bonusDamage?: number; customDamageType?: string } }
 ): string {
     const strMod = getAbilityModifier(character.abilityScores.str);
     const dexMod = getAbilityModifier(character.abilityScores.dex);
@@ -333,8 +348,17 @@ export function calculateWeaponDamage(
     if (character.variantRules?.automaticBonusProgression) {
         const abp = getABPBonuses(character.level || 1);
         strikingBonus = abp.striking;
+    } else {
+        // Add striking rune bonus from equipped weapon
+        const strikingRune = equippedWeapon?.runes?.strikingRune;
+        if (strikingRune === 'striking') {
+            strikingBonus = 1;  // +1 weapon die
+        } else if (strikingRune === 'greaterStriking') {
+            strikingBonus = 2;  // +2 weapon dice
+        } else if (strikingRune === 'majorStriking') {
+            strikingBonus = 3;  // +3 weapon dice
+        }
     }
-    // TODO: Add non-ABP striking bonus from equipment when equipment system is ready
     diceCount += strikingBonus;
 
     // Build damage dice string
@@ -359,6 +383,10 @@ export function calculateWeaponDamage(
         damageMod = strMod;
     }
 
+    // Add manual damage bonus override from customization
+    const manualDamageBonus = equippedWeapon?.customization?.bonusDamage || 0;
+    damageMod += manualDamageBonus;
+
     // Build final damage string
     if (damageMod > 0) {
         return `${damageDice} + ${damageMod}`;
@@ -367,5 +395,68 @@ export function calculateWeaponDamage(
     } else {
         return damageDice;
     }
+}
+
+/**
+ * Get the key ability for a spellcasting tradition
+ */
+function getSpellcastingKeyAbility(tradition: string): 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' {
+    // Bard, Sorcerer -> Cha
+    if (['arcane', 'occult'].includes(tradition)) return 'cha';
+    // Cleric, Druid -> Wis
+    if (['divine', 'primal'].includes(tradition)) return 'wis';
+    // Wizard -> Int
+    return 'int';
+}
+
+/**
+ * Get spell attack roll and DC for a character
+ * Returns the spell attack modifier and class DC for spell DC
+ *
+ * @param character Character data
+ * @param tradition Spellcasting tradition (arcane, divine, occult, primal)
+ * @returns Object with attack (modifier) and dc (class DC value)
+ */
+export function calculateSpellDC(
+    character: Character,
+    tradition: string
+): { attack: number; dc: number } {
+    // Get key ability for tradition
+    const keyAbility = getSpellcastingKeyAbility(tradition);
+    const abilityMod = getAbilityModifier(character.abilityScores[keyAbility]);
+
+    // Determine proficiency based on class and level
+    // Most casters are Trained at level 1, Expert at level 7
+    let profRank = ProficiencyRank.Trained;
+    if (character.level >= 7) profRank = ProficiencyRank.Expert;
+    if (character.level >= 15) profRank = ProficiencyRank.Master;
+    if (character.level >= 19) profRank = ProficiencyRank.Legendary;
+
+    // Check for specific class features that boost proficiency
+    const cls = classes.find(c => c.id === character.classId);
+    if (cls) {
+        // Wizards get Expert spell DC at level 1
+        if (cls.id === 'wizard' && character.level >= 1) {
+            profRank = ProficiencyRank.Expert;
+        }
+        // Clerics with Divine Mastery get Master at level 17
+        if (cls.id === 'cleric' && character.level >= 17) {
+            profRank = ProficiencyRank.Master;
+        }
+    }
+
+    const profBonus = calculateProficiencyBonusWithVariant(
+        character.level || 1,
+        profRank,
+        character.variantRules?.proficiencyWithoutLevel
+    );
+
+    // Spell Attack = Key Ability Mod + Proficiency Bonus
+    const attack = abilityMod + profBonus;
+
+    // Spell DC = 10 + Key Ability Mod + Proficiency Bonus
+    const dc = 10 + abilityMod + profBonus;
+
+    return { attack, dc };
 }
 

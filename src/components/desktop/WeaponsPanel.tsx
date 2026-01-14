@@ -1,23 +1,31 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character } from '../../types';
+import { Character, EquippedItem } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
-import { calculateWeaponAttack, calculateWeaponDamage } from '../../utils/pf2e-math';
+import { calculateWeaponDamage } from '../../utils/pf2e-math';
+import { WeaponOptionsModal } from './WeaponOptionsModal';
 
 interface WeaponsPanelProps {
     character: Character;
-    onAddWeapon: () => void;
+    onCharacterUpdate: (character: Character) => void;
 }
 
 export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     character,
-    onAddWeapon,
+    onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'simple' | 'martial' | 'advanced'>('all');
     const [selectedWeapon, setSelectedWeapon] = useState<LoadedWeapon | null>(null);
+
+    // Weapon Options Modal state
+    const [showOptionsModal, setShowOptionsModal] = useState(false);
+    const [selectedEquippedWeapon, setSelectedEquippedWeapon] = useState<{
+        weapon: LoadedWeapon;
+        equippedItem: EquippedItem;
+    } | null>(null);
 
     // Track which weapons are two-handed (for two-hand-d* trait)
     const [twoHandedWeapons, setTwoHandedWeapons] = useState<Set<string>>(new Set());
@@ -62,6 +70,70 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                 newSet.add(weaponId);
             }
             return newSet;
+        });
+    };
+
+    // Add weapon to character's inventory
+    const handleAddWeapon = (weapon: LoadedWeapon) => {
+        const currentEquipment = character.equipment || [];
+
+        // Check if weapon already exists in equipment
+        const existingWeapon = currentEquipment.find(item => item.id === weapon.id);
+        if (existingWeapon) {
+            // Weapon already exists, just wield it
+            onCharacterUpdate({
+                ...character,
+                equipment: currentEquipment.map(item =>
+                    item.id === weapon.id
+                        ? { ...item, wielded: { hands: weapon.hands as 1 | 2 } }
+                        : item
+                ),
+            });
+        } else {
+            // Create new equipment item from LoadedWeapon
+            const newEquipmentItem = {
+                id: weapon.id,
+                name: weapon.name,
+                bulk: weapon.bulk,
+                invested: false,
+                worn: false,
+                wielded: { hands: weapon.hands as 1 | 2 },
+            };
+
+            // Add the weapon to equipment
+            onCharacterUpdate({
+                ...character,
+                equipment: [...currentEquipment, newEquipmentItem],
+            });
+        }
+
+        setShowBrowser(false);
+        setSelectedWeapon(null);
+    };
+
+    // Remove weapon from character's inventory
+    const handleRemoveWeapon = (weaponId: string) => {
+        const currentEquipment = character.equipment || [];
+        onCharacterUpdate({
+            ...character,
+            equipment: currentEquipment.filter(item => item.id !== weaponId),
+        });
+    };
+
+    // Open weapon options modal
+    const handleOpenOptions = (weapon: LoadedWeapon, equippedItem: EquippedItem) => {
+        setSelectedEquippedWeapon({ weapon, equippedItem });
+        setShowOptionsModal(true);
+    };
+
+    // Save weapon options
+    const handleSaveWeaponOptions = (updatedItem: EquippedItem) => {
+        const currentEquipment = character.equipment || [];
+        onCharacterUpdate({
+            ...character,
+            equipment: currentEquipment.map(item =>
+                item.id === updatedItem.id ? updatedItem : item
+            ),
         });
     };
 
@@ -118,19 +190,36 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                         const weapon = item.weaponData;
                         const isTwoHanded = item.isTwoHanded;
 
-                        // Calculate attack bonuses with MAP
-                        const [attack1, attack2, attack3] = calculateWeaponAttack(character, weapon);
-
-                        // Calculate damage
-                        const damage = calculateWeaponDamage(character, weapon, isTwoHanded);
+                        // Calculate damage with equipped weapon data (runes, customization)
+                        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, item);
 
                         // Check if has two-hand trait
                         const hasTwoHand = hasTwoHandTrait(weapon);
 
+                        // Get custom name if set
+                        const displayName = item.customization?.customName || weapon.name;
+
                         return (
                             <div key={item.id} className="weapon-card">
+                                {/* Header with name, options button, and remove button */}
                                 <div className="weapon-header">
-                                    <span className="weapon-name">{weapon.name}</span>
+                                    <div className="weapon-title-section">
+                                        <span className="weapon-name">{displayName}</span>
+                                        <button
+                                            className="weapon-options-btn"
+                                            onClick={() => handleOpenOptions(weapon, item)}
+                                            title={t('weapons.options') || 'Weapon Options'}
+                                        >
+                                            ⚙️
+                                        </button>
+                                        <button
+                                            className="remove-weapon-btn"
+                                            onClick={() => handleRemoveWeapon(item.id)}
+                                            title={t('actions.remove') || 'Remove'}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                     <div className="weapon-traits">
                                         {weapon.traits.map((trait: string) => (
                                             <span key={trait} className="weapon-trait">{trait}</span>
@@ -138,56 +227,64 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="weapon-controls">
-                                    {/* Two-Hand Toggle */}
-                                    {hasTwoHand && (
-                                        <button
-                                            className={`two-hand-toggle ${isTwoHanded ? 'active' : ''}`}
-                                            onClick={() => toggleTwoHand(item.id)}
-                                            title={t('weapons.twoHandToggle') || 'Two-Hand Mode'}
-                                        >
-                                            {isTwoHanded ? '2H' : '1H'}
-                                        </button>
-                                    )}
+                                {/* Attack section */}
+                                <div className="weapon-attack-section">
+                                    <div className="attack-label">{t('weapons.attack') || 'Attack'}</div>
+                                    <div className="weapon-controls">
+                                        {/* Two-Hand Toggle */}
+                                        {hasTwoHand && (
+                                            <button
+                                                className={`two-hand-toggle ${isTwoHanded ? 'active' : ''}`}
+                                                onClick={() => toggleTwoHand(item.id)}
+                                                title={t('weapons.twoHandToggle') || 'Two-Hand Mode'}
+                                            >
+                                                {isTwoHanded ? '2H' : '1H'}
+                                            </button>
+                                        )}
 
-                                    {/* Attack Buttons with MAP */}
-                                    <div className="attack-buttons">
+                                        {/* Main Attack Button - rolls dice */}
                                         <button
-                                            className="attack-btn first-attack"
-                                            title={t('weapons.firstAttack') || 'First Attack'}
+                                            className="attack-btn main-attack"
+                                            title={t('weapons.rollAttack') || 'Roll Attack'}
                                         >
-                                            {t('weapons.attack') || 'Attack'} {formatModifier(attack1)}
+                                            🎲
                                         </button>
-                                        <button
-                                            className="attack-btn second-attack"
-                                            title={t('weapons.secondAttack') || 'Second Attack (MAP)'}
-                                        >
-                                            {formatModifier(attack2)}
-                                        </button>
-                                        <button
-                                            className="attack-btn third-attack"
-                                            title={t('weapons.thirdAttack') || 'Third Attack (MAP)'}
-                                        >
-                                            {formatModifier(attack3)}
-                                        </button>
+
+                                        {/* MAP Attack Buttons - show only numbers */}
+                                        <div className="attack-buttons">
+                                            <button
+                                                className="attack-btn map-attack"
+                                                title={t('weapons.secondAttack') || 'Second Attack (MAP)'}
+                                            >
+                                                2
+                                            </button>
+                                            <button
+                                                className="attack-btn map-attack"
+                                                title={t('weapons.thirdAttack') || 'Third Attack (MAP)'}
+                                            >
+                                                3
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="weapon-stats">
-                                    <div className="weapon-stat damage-stat">
-                                        <span className="weapon-stat-label">
-                                            {t('stats.damage') || 'Damage'}
-                                        </span>
-                                        <span className="weapon-stat-value">
-                                            {damage} {weapon.damageType}
-                                        </span>
+                                {/* Damage and stats section */}
+                                <div className="weapon-stats-section">
+                                    <div className="weapon-stat-row">
+                                        <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
+                                        <span className="stat-value">{damage} {item.customization?.customDamageType || weapon.damageType}</span>
                                     </div>
-                                    <div className="weapon-stat">
-                                        <span className="weapon-stat-label">
-                                            {t('stats.hands') || 'Hands'}
-                                        </span>
-                                        <span className="weapon-stat-value">{weapon.hands}</span>
+                                    <div className="weapon-stat-row">
+                                        <span className="stat-label">{t('stats.hands') || 'Hands'}:</span>
+                                        <span className="stat-value">{weapon.hands}</span>
                                     </div>
+                                    {/* Critical Specialization Effect */}
+                                    {item.customization?.criticalSpecialization && (
+                                        <div className="weapon-stat-row crit-spec-row">
+                                            <span className="stat-label">{t('weapons.criticalSpecialization') || 'Crit Spec'}:</span>
+                                            <span className="stat-value crit-spec-enabled">✓ Enabled</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -305,11 +402,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         </div>
                                     )}
                                     <p className="weapon-description">{selectedWeapon.description}</p>
-                                    <button className="add-weapon-btn" onClick={() => {
-                                        // TODO: Add weapon to character
-                                        setShowBrowser(false);
-                                        setSelectedWeapon(null);
-                                    }}>
+                                    <button className="add-weapon-btn" onClick={() => handleAddWeapon(selectedWeapon)}>
                                         + {t('actions.addToInventory') || 'Add to Inventory'}
                                     </button>
                                 </div>
@@ -317,6 +410,17 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Weapon Options Modal */}
+            {showOptionsModal && selectedEquippedWeapon && (
+                <WeaponOptionsModal
+                    character={character}
+                    weapon={selectedEquippedWeapon.weapon}
+                    equippedWeapon={selectedEquippedWeapon.equippedItem}
+                    onClose={() => setShowOptionsModal(false)}
+                    onSave={handleSaveWeaponOptions}
+                />
             )}
         </div>
     );

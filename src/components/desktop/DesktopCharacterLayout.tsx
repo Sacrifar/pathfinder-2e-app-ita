@@ -795,7 +795,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             {activeTab === 'weapons' && (
                                 <WeaponsPanel
                                     character={character}
-                                    onAddWeapon={() => console.log('Add weapon')}
+                                    onCharacterUpdate={onCharacterUpdate}
                                 />
                             )}
 

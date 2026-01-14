@@ -28,6 +28,17 @@ export interface SavingThrow {
     proficiency: Proficiency;
 }
 
+export interface Resistance {
+    id: string;
+    type: string; // e.g., "Fire", "Cold", "Electricity", "Acid", "Poison", "Mental", "Physical"
+    value: number;
+}
+
+export interface Immunity {
+    id: string;
+    type: string; // e.g., "Fire", "Disease", "Mind-affecting", "Non-magical"
+}
+
 export interface ArmorClass {
     base: number;
     proficiency: Proficiency;
@@ -66,6 +77,76 @@ export interface MagicalItemProperties {
     };
 }
 
+export type StrikingRune = 'striking' | 'greaterStriking' | 'majorStriking';
+
+export type ResilientRune = 1 | 2 | 3;
+
+export type ReinforcingRune = 1 | 2 | 3 | 4 | 5 | 6;
+
+export type SpecialMaterial = 'coldIron' | 'silver' | 'adamantine' | 'orichalcum' | 'mithral';
+
+export type AbilityOverride = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' | 'auto';
+
+export interface WeaponRunes {
+    potencyRune?: number;        // +1, +2, or +3 potency rune
+    strikingRune?: StrikingRune; // Striking, Greater Striking, Major Striking
+    propertyRunes?: string[];    // Array of property rune IDs/names
+}
+
+export interface ArmorRunes {
+    potencyRune?: number;        // +1, +2, +3, or +4 armor potency rune
+    resilientRune?: ResilientRune; // Resilient, Greater Resilient, Major Resilient
+    propertyRunes?: string[];    // Array of property rune IDs/names
+}
+
+export interface ShieldRunes {
+    reinforcingRune?: ReinforcingRune; // Minor through Supreme reinforcing
+    propertyRunes?: string[];    // Array of property rune IDs/names
+    // Shields can also have weapon runes if they have shield boss or spikes
+    weaponRunes?: WeaponRunes;
+}
+
+export interface WeaponCustomization {
+    // Material & Physical Properties
+    material?: SpecialMaterial;  // Special material override
+    isLarge?: boolean;           // Large weapon toggle (affects bulk/cost/damage)
+    bulkOverride?: number;       // Manual bulk override
+
+    // Advanced Customization
+    attackAbilityOverride?: AbilityOverride; // Force specific ability (auto = default logic)
+    customName?: string;         // Custom display name (e.g., "Goblin Smasher")
+
+    // Manual Bonuses
+    bonusAttack?: number;        // Manual attack bonus override
+    bonusDamage?: number;        // Manual damage bonus override
+    customDamageType?: string;   // Custom damage type
+
+    // Trait Mechanics
+    criticalSpecialization?: boolean; // Enable critical specialization effect
+
+    // Ammunition Tracking
+    linkedAmmunitionId?: string; // ID of ammunition item linked to this weapon
+    ammunitionRemaining?: number; // Current ammo count
+}
+
+export interface ArmorCustomization {
+    // Customization options for armor
+    customName?: string;         // Custom display name
+    bonusAC?: number;            // Manual AC bonus override
+    checkPenaltyOverride?: number; // Override armor check penalty
+    speedPenaltyOverride?: number; // Override speed penalty
+    dexCapOverride?: number;     // Override Dex cap
+}
+
+export interface ShieldCustomization {
+    // Customization options for shields
+    customName?: string;         // Custom display name
+    hardnessOverride?: number;   // Manual hardness override
+    maxHPOverride?: number;      // Manual max HP override
+    currentHP?: number;          // Current shield HP
+    broken?: boolean;            // Whether shield is broken
+}
+
 export interface EquippedItem {
     id: string;
     name: string;
@@ -80,6 +161,10 @@ export interface EquippedItem {
     capacity?: number;       // Bulk capacity of this container (if isContainer)
     bulkReduction?: number;  // How much bulk is ignored for items inside (Backpack: 2 if worn)
     magical?: MagicalItemProperties;  // Properties for magical items (Staves, Wands, etc.)
+
+    // Item-specific customization (based on item type)
+    runes?: WeaponRunes | ArmorRunes | ShieldRunes;  // Rune system for weapons, armor, or shields
+    customization?: WeaponCustomization | ArmorCustomization | ShieldCustomization; // Advanced customization options
 }
 
 export interface PreparedSpell {
@@ -337,6 +422,10 @@ export interface Character {
     conditions: { id: string; value?: number; duration?: number }[];
     buffs: Buff[];
 
+    // Resistances & Immunities
+    resistances: Resistance[];
+    immunities: Immunity[];
+
     // Custom Resources (for daily/per-encounter abilities)
     customResources: CustomResource[];
 
@@ -445,6 +534,8 @@ export function createEmptyCharacter(): Character {
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
         buffs: [],
+        resistances: [],
+        immunities: [],
         customResources: [],
         pets: [],
         variantRules: { ...DEFAULT_VARIANT_RULES },
@@ -526,6 +617,20 @@ export function migrateCharacter(data: any): Character {
     // Migrate biography (added for Notes & Biology module)
     if (!character.biography) {
         character.biography = undefined;
+    }
+
+    // Migrate equipment weapon customization (added for Weapon Options system)
+    if (character.equipment) {
+        character.equipment = character.equipment.map(item => {
+            // Initialize weapon customization fields if they don't exist
+            if (!item.runes) {
+                item.runes = undefined;
+            }
+            if (!item.customization) {
+                item.customization = undefined;
+            }
+            return item;
+        });
     }
 
     return character;

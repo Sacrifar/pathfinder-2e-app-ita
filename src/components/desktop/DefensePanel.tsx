@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Proficiency } from '../../types';
+import { Character, Proficiency, Resistance, Immunity, EquippedItem } from '../../types';
 import { EquipmentBrowser } from './EquipmentBrowser';
 import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
+import { ArmorOptionsModal } from './ArmorOptionsModal';
+import { ShieldOptionsModal } from './ShieldOptionsModal';
 
 interface DefensePanelProps {
     character: Character;
@@ -18,6 +20,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     const { t } = useLanguage();
     const [showBrowser, setShowBrowser] = useState(false);
     const [browserTab, setBrowserTab] = useState<'armor' | 'shield'>('armor');
+    const [showResistancesModal, setShowResistancesModal] = useState(false);
+
+    // Options modals state
+    const [showArmorOptionsModal, setShowArmorOptionsModal] = useState(false);
+    const [showShieldOptionsModal, setShowShieldOptionsModal] = useState(false);
+    const [selectedArmorItem, setSelectedArmorItem] = useState<EquippedItem | null>(null);
+    const [selectedShieldItem, setSelectedShieldItem] = useState<EquippedItem | null>(null);
 
     // Resolve equipped items
     const equippedArmor = useMemo(() => {
@@ -29,6 +38,17 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         if (!character.equippedShield) return null;
         return getShields().find(s => s.id === character.equippedShield);
     }, [character.equippedShield]);
+
+    // Get EquippedItem with runes for armor/shield from equipment array
+    const getArmorEquippedItem = (): EquippedItem | null => {
+        if (!character.equippedArmor) return null;
+        return character.equipment.find(item => item.id === character.equippedArmor) || null;
+    };
+
+    const getShieldEquippedItem = (): EquippedItem | null => {
+        if (!character.equippedShield) return null;
+        return character.equipment.find(item => item.id === character.equippedShield) || null;
+    };
 
     const handleEquipArmor = (armor: LoadedArmor) => {
         onCharacterUpdate({
@@ -76,6 +96,45 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         });
     };
 
+    // Handlers for armor/shield options
+    const handleOpenArmorOptions = () => {
+        const equippedItem = getArmorEquippedItem();
+        if (equippedArmor && equippedItem) {
+            setSelectedArmorItem(equippedItem);
+            setShowArmorOptionsModal(true);
+        }
+    };
+
+    const handleSaveArmorOptions = (updatedItem: EquippedItem) => {
+        const updatedEquipment = character.equipment.map(item =>
+            item.id === updatedItem.id ? updatedItem : item
+        );
+        onCharacterUpdate({
+            ...character,
+            equipment: updatedEquipment
+        });
+        setShowArmorOptionsModal(false);
+    };
+
+    const handleOpenShieldOptions = () => {
+        const equippedItem = getShieldEquippedItem();
+        if (equippedShield && equippedItem) {
+            setSelectedShieldItem(equippedItem);
+            setShowShieldOptionsModal(true);
+        }
+    };
+
+    const handleSaveShieldOptions = (updatedItem: EquippedItem) => {
+        const updatedEquipment = character.equipment.map(item =>
+            item.id === updatedItem.id ? updatedItem : item
+        );
+        onCharacterUpdate({
+            ...character,
+            equipment: updatedEquipment
+        });
+        setShowShieldOptionsModal(false);
+    };
+
     // Toggle Raise Shield action (+2 AC)
     const handleToggleRaiseShield = () => {
         if (!character.shieldState) return;
@@ -121,6 +180,44 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     const isShieldBroken = shieldCurrentHp <= shieldBrokenThreshold && shieldMaxHp > 0;
     const isShieldDestroyed = shieldCurrentHp <= 0 && shieldMaxHp > 0;
     const isShieldRaised = character.shieldState?.raised ?? false;
+
+    // Handlers for resistances and immunities
+    const handleAddResistance = (type: string, value: number) => {
+        const newResistance: Resistance = {
+            id: crypto.randomUUID(),
+            type,
+            value,
+        };
+        onCharacterUpdate({
+            ...character,
+            resistances: [...character.resistances, newResistance],
+        });
+    };
+
+    const handleRemoveResistance = (id: string) => {
+        onCharacterUpdate({
+            ...character,
+            resistances: character.resistances.filter(r => r.id !== id),
+        });
+    };
+
+    const handleAddImmunity = (type: string) => {
+        const newImmunity: Immunity = {
+            id: crypto.randomUUID(),
+            type,
+        };
+        onCharacterUpdate({
+            ...character,
+            immunities: [...character.immunities, newImmunity],
+        });
+    };
+
+    const handleRemoveImmunity = (id: string) => {
+        onCharacterUpdate({
+            ...character,
+            immunities: character.immunities.filter(i => i.id !== id),
+        });
+    };
 
     const openBrowser = (tab: 'armor' | 'shield') => {
         setBrowserTab(tab);
@@ -240,6 +337,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                         <span className="item-name">{equippedArmor.name}</span>
                                         <span className="item-details">{equippedArmor.category} • Dex Cap: {equippedArmor.dexCap === 99 ? '-' : equippedArmor.dexCap}</span>
                                     </div>
+                                    <button
+                                        className="options-btn"
+                                        onClick={handleOpenArmorOptions}
+                                        title={t('armor.options') || 'Armor Options'}
+                                    >
+                                        ⚙️
+                                    </button>
                                     <button className="unequip-btn" onClick={handleUnequipArmor} title={t('actions.unequip') || 'Unequip'}>
                                         ×
                                     </button>
@@ -274,6 +378,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                                 {isShieldDestroyed && <span className="status-badge destroyed">Destroyed</span>}
                                             </span>
                                         </div>
+                                        <button
+                                            className="options-btn"
+                                            onClick={handleOpenShieldOptions}
+                                            title={t('shield.options') || 'Shield Options'}
+                                        >
+                                            ⚙️
+                                        </button>
                                         <button className="unequip-btn" onClick={handleUnequipShield} title={t('actions.unequip') || 'Unequip'}>
                                             ×
                                         </button>
@@ -371,13 +482,129 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                 </div>
             </div>
 
-            {/* Resistances & Immunities (placeholder) */}
+            {/* Resistances & Immunities */}
             <div className="defense-section">
-                <h4>{t('stats.resistances') || 'Resistances & Immunities'}</h4>
-                <div className="empty-resistances">
-                    <span className="text-muted">{t('builder.noResistances') || 'None'}</span>
+                <div className="section-header">
+                    <h4>{t('defense.resistances') || 'Resistances & Immunities'}</h4>
+                    <button
+                        className="header-btn"
+                        onClick={() => setShowResistancesModal(true)}
+                    >
+                        + {t('actions.add') || 'Add'}
+                    </button>
                 </div>
+
+                {character.resistances.length === 0 && character.immunities.length === 0 ? (
+                    <div className="empty-resistances">
+                        <span className="text-muted">{t('defense.noResistances') || 'None'}</span>
+                    </div>
+                ) : (
+                    <div className="resistances-list">
+                        {/* Resistances */}
+                        {character.resistances.map(resistance => (
+                            <div key={resistance.id} className="resistance-item">
+                                <span className="resistance-type">{resistance.type}</span>
+                                <span className="resistance-value">{resistance.value}</span>
+                                <button
+                                    className="remove-btn"
+                                    onClick={() => handleRemoveResistance(resistance.id)}
+                                    title={t('actions.remove') || 'Remove'}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+
+                        {/* Immunities */}
+                        {character.immunities.map(immunity => (
+                            <div key={immunity.id} className="immunity-item">
+                                <span className="immunity-icon">🛡️</span>
+                                <span className="immunity-type">{immunity.type}</span>
+                                <button
+                                    className="remove-btn"
+                                    onClick={() => handleRemoveImmunity(immunity.id)}
+                                    title={t('actions.remove') || 'Remove'}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* Resistances Modal */}
+            {showResistancesModal && (
+                <div className="modal-overlay" onClick={() => setShowResistancesModal(false)}>
+                    <div className="resistances-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>{t('defense.addResistance') || 'Add Resistance/Immunity'}</h3>
+                            <button className="modal-close" onClick={() => setShowResistancesModal(false)}>×</button>
+                        </div>
+
+                        <div className="modal-content">
+                            {/* Resistance Type */}
+                            <div className="form-group">
+                                <label>{t('defense.type') || 'Type'}</label>
+                                <select id="resistance-type">
+                                    <option value="">{t('defense.selectType') || 'Select type...'}</option>
+                                    <option value="Fire">Fire</option>
+                                    <option value="Cold">Cold</option>
+                                    <option value="Electricity">Electricity</option>
+                                    <option value="Acid">Acid</option>
+                                    <option value="Poison">Poison</option>
+                                    <option value="Mental">Mental</option>
+                                    <option value="Physical">Physical</option>
+                                    <option value="Slashing">Slashing</option>
+                                    <option value="Piercing">Piercing</option>
+                                    <option value="Bludgeoning">Bludgeoning</option>
+                                    <option value="All">All (except mental)</option>
+                                </select>
+                            </div>
+
+                            {/* Resistance Value */}
+                            <div className="form-group">
+                                <label>{t('defense.value') || 'Value'}</label>
+                                <input
+                                    type="number"
+                                    id="resistance-value"
+                                    min="1"
+                                    max="20"
+                                    defaultValue="5"
+                                />
+                            </div>
+
+                            <div className="modal-actions">
+                                <button
+                                    className="btn-secondary"
+                                    onClick={() => {
+                                        const typeSelect = document.getElementById('resistance-type') as HTMLSelectElement;
+                                        const valueInput = document.getElementById('resistance-value') as HTMLInputElement;
+                                        if (typeSelect.value && valueInput.value) {
+                                            handleAddResistance(typeSelect.value, parseInt(valueInput.value));
+                                            setShowResistancesModal(false);
+                                        }
+                                    }}
+                                >
+                                    {t('defense.addResistance') || 'Add Resistance'}
+                                </button>
+                                <button
+                                    className="btn-secondary"
+                                    onClick={() => {
+                                        const typeSelect = document.getElementById('resistance-type') as HTMLSelectElement;
+                                        if (typeSelect.value) {
+                                            handleAddImmunity(typeSelect.value);
+                                            setShowResistancesModal(false);
+                                        }
+                                    }}
+                                >
+                                    {t('defense.addImmunity') || 'Add Immunity'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
             {
@@ -391,6 +618,28 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     />
                 )
             }
+
+            {/* Armor Options Modal */}
+            {showArmorOptionsModal && selectedArmorItem && equippedArmor && (
+                <ArmorOptionsModal
+                    character={character}
+                    armor={equippedArmor}
+                    equippedArmor={selectedArmorItem}
+                    onClose={() => setShowArmorOptionsModal(false)}
+                    onSave={handleSaveArmorOptions}
+                />
+            )}
+
+            {/* Shield Options Modal */}
+            {showShieldOptionsModal && selectedShieldItem && equippedShield && (
+                <ShieldOptionsModal
+                    character={character}
+                    shield={equippedShield}
+                    equippedShield={selectedShieldItem}
+                    onClose={() => setShowShieldOptionsModal(false)}
+                    onSave={handleSaveShieldOptions}
+                />
+            )}
         </div >
     );
 };
