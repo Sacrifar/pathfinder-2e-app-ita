@@ -2,13 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
 import { getTactics, type LoadedTactic } from '../../data/tactics';
-
-// Import action icons
-import actionSingle from '../../data/Azioni/action_single.png';
-import actionDouble from '../../data/Azioni/action_double.png';
-import actionTriple from '../../data/Azioni/action_triple.png';
-import actionFree from '../../data/Azioni/action_free.png';
-import actionReaction from '../../data/Azioni/action_reaction.png';
+import { ActionIcon } from '../../utils/actionIcons';
 
 interface TacticsPanelProps {
     character: Character;
@@ -48,24 +42,6 @@ export const TacticsPanel: React.FC<TacticsPanelProps> = ({
                 return knownTactics;
         }
     }, [filter, knownTactics, preparedTactics]);
-
-    const getActionIcon = (cost: LoadedTactic['cost']): string => {
-        if (cost === 'free') return actionFree;
-        if (cost === 'reaction') return actionReaction;
-        if (cost === '1') return actionSingle;
-        if (cost === '2') return actionDouble;
-        if (cost === '3') return actionTriple;
-        return actionFree;
-    };
-
-    const getActionSymbol = (cost: LoadedTactic['cost']): string => {
-        if (cost === 'free') return '◇';
-        if (cost === 'reaction') return '↺';
-        if (cost === '1') return '◆';
-        if (cost === '2') return '◆◆';
-        if (cost === '3') return '◆◆◆';
-        return '◆';
-    };
 
     const getTierColor = (tier: LoadedTactic['tacticTier']): string => {
         switch (tier) {
@@ -132,11 +108,7 @@ export const TacticsPanel: React.FC<TacticsPanelProps> = ({
                             >
                                 <div className="tactic-header">
                                     <div className="tactic-actions">
-                                        <img
-                                            src={getActionIcon(tactic.cost)}
-                                            alt={getActionSymbol(tactic.cost)}
-                                            className="action-icon"
-                                        />
+                                        <ActionIcon cost={tactic.cost} />
                                     </div>
                                     <h4 className="tactic-name">{tactic.name}</h4>
                                     {onTogglePreparedTactic && (
@@ -214,7 +186,7 @@ export const TacticsPanel: React.FC<TacticsPanelProps> = ({
                                 <div className="tag-group">
                                     <span className="tag-label">{t('commander.cost') || 'Cost'}:</span>
                                     <span className="action-cost">
-                                        {getActionSymbol(selectedTactic.cost)}
+                                        <ActionIcon cost={selectedTactic.cost} />
                                     </span>
                                 </div>
                             </div>

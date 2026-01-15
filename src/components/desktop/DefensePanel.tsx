@@ -5,6 +5,7 @@ import { EquipmentBrowser } from './EquipmentBrowser';
 import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
 import { ArmorOptionsModal } from './ArmorOptionsModal';
 import { ShieldOptionsModal } from './ShieldOptionsModal';
+import { EquipmentIcon } from '../../utils/actionIcons';
 
 interface DefensePanelProps {
     character: Character;
@@ -346,7 +347,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     {/* Armor Slot */}
                     <div className="equipment-slot">
                         <div className="slot-header">
-                            <span className="slot-label"><span style={{ marginRight: 6 }}>👕</span> {t('equipment.armor') || 'Armor'}</span>
+                            <span className="slot-label"><EquipmentIcon type="armor" /> <span style={{ marginLeft: '4px' }}>{t('equipment.armor') || 'Armor'}</span></span>
                             {equippedArmor && <span className="slot-stats">+{equippedArmor.acBonus} AC</span>}
                         </div>
                         <div className="slot-content">
@@ -378,10 +379,10 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     {/* Shield Slot */}
                     <div className={`equipment-slot ${isShieldRaised ? 'shield-raised' : ''} ${isShieldBroken ? 'shield-broken' : ''} ${isShieldDestroyed ? 'shield-destroyed' : ''}`}>
                         <div className="slot-header">
-                            <span className="slot-label"><span style={{ marginRight: 6 }}>🛡️</span> {t('equipment.shield') || 'Shield'}</span>
+                            <span className="slot-label"><EquipmentIcon type="shield" /> <span style={{ marginLeft: '4px' }}>{t('equipment.shield') || 'Shield'}</span></span>
                             {equippedShield && (
                                 <span className="slot-stats">
-                                    Hardness {equippedShield.hardness}
+                                    <EquipmentIcon type="shieldHardness" /> {equippedShield.hardness}
                                     {isShieldRaised && <span className="raised-badge">+2 AC</span>}
                                 </span>
                             )}
@@ -412,7 +413,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                     {/* Shield HP Bar */}
                                     <div className="shield-hp-section">
                                         <div className="shield-hp-header">
-                                            <span>HP: {shieldCurrentHp}/{shieldMaxHp}</span>
+                                            <span><EquipmentIcon type="shieldHealth" /> HP: {shieldCurrentHp}/{shieldMaxHp}</span>
                                             <span className="broken-threshold">BT {shieldBrokenThreshold}</span>
                                         </div>
                                         <div className="shield-hp-bar">
@@ -464,7 +465,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                         disabled={isShieldBroken || isShieldDestroyed}
                                         title={isShieldRaised ? 'Lower Shield' : 'Raise Shield (+2 AC)'}
                                     >
-                                        {isShieldRaised ? '🛡️ Shield Raised (+2 AC)' : '⬆️ Raise Shield'}
+                                        {isShieldRaised ? (
+                                            <>
+                                                <EquipmentIcon type="shield" /> Shield Raised (+2 AC)
+                                            </>
+                                        ) : (
+                                            '⬆️ Raise Shield'
+                                        )}
                                     </button>
                                 </div>
                             ) : (
@@ -539,7 +546,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         {/* Immunities */}
                         {(character.immunities || []).map(immunity => (
                             <div key={immunity.id} className="immunity-item">
-                                <span className="immunity-icon">🛡️</span>
+                                <span className="immunity-icon"><EquipmentIcon type="shield" /></span>
                                 <span className="immunity-type">{immunity.type}</span>
                                 <button
                                     className="remove-btn"

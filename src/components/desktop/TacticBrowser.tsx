@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { getTactics, type LoadedTactic } from '../../data/tactics';
+import { ActionIcon } from '../../utils/actionIcons';
 
 type TacticTier = 'all' | 'basic' | 'expert' | 'master' | 'legendary';
 type TacticCategory = 'all' | 'mobility' | 'offensive';
@@ -93,14 +94,6 @@ export const TacticBrowser: React.FC<TacticBrowserProps> = ({
         }
     };
 
-    const getActionSymbol = (cost: LoadedTactic['cost']): string => {
-        if (cost === 'free') return '◇';
-        if (cost === 'reaction') return '↺';
-        if (cost === '1') return '◆';
-        if (cost === '2') return '◆◆';
-        if (cost === '3') return '◆◆◆';
-        return '◆';
-    };
 
     const getTierColor = (tier: LoadedTactic['tacticTier']): string => {
         switch (tier) {
@@ -208,7 +201,7 @@ export const TacticBrowser: React.FC<TacticBrowserProps> = ({
                                                 {tactic.name}
                                             </span>
                                             <span className="item-action">
-                                                {getActionSymbol(tactic.cost)}
+                                                <ActionIcon cost={tactic.cost} />
                                             </span>
                                         </div>
                                         <div className="item-meta">
@@ -236,7 +229,7 @@ export const TacticBrowser: React.FC<TacticBrowserProps> = ({
                             <div className="detail-header">
                                 <h3>{selectedTactic.name}</h3>
                                 <span className="detail-action">
-                                    {getActionSymbol(selectedTactic.cost)}
+                                    <ActionIcon cost={selectedTactic.cost} />
                                 </span>
                             </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { ActionIcon } from '../../utils/actionIcons';
 
 interface DetailModalProps {
     isOpen: boolean;
@@ -56,7 +57,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 // Action Detail Content
 interface ActionDetailProps {
     name: string;
-    cost: string;
+    cost: '1' | '2' | '3' | 'free' | 'reaction';
     description: string;
     traits: string[];
     skill?: string;
@@ -73,7 +74,7 @@ export const ActionDetailContent: React.FC<ActionDetailProps> = ({
     return (
         <div className="action-detail-content">
             <div className="action-cost-display">
-                <span className="cost-icon">{cost}</span>
+                <span className="cost-icon"><ActionIcon cost={cost} /></span>
             </div>
             <p className="action-full-description">{description}</p>
             {skill && (

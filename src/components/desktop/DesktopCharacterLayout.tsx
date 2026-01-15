@@ -1120,7 +1120,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     {selectedAction && (
                         <ActionDetailContent
                             name={selectedAction.name}
-                            cost={selectedAction.cost === '1' ? '◆' : selectedAction.cost === '2' ? '◆◆' : selectedAction.cost === '3' ? '◆◆◆' : selectedAction.cost === 'reaction' ? '⟲' : '◇'}
+                            cost={selectedAction.cost}
                             description={selectedAction.description}
                             traits={selectedAction.traits}
                             skill={selectedAction.skill}

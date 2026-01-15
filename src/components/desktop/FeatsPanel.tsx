@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CharacterFeat } from '../../types';
 import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
+import { FeatActionIcon } from '../../utils/actionIcons';
 
 interface FeatsPanelProps {
     character: Character;
@@ -113,16 +114,6 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
             case 'mythic': return 'var(--desktop-accent-gold, #f1c40f)';
             default: return 'var(--desktop-accent-green)';
         }
-    };
-
-    const getActionIcon = (actionType: LoadedFeat['actionType'], actionCost: number | null): string => {
-        if (actionType === 'passive') return '◈';
-        if (actionType === 'free') return '◇';
-        if (actionType === 'reaction') return '↺';
-        if (actionCost === 1) return '◆';
-        if (actionCost === 2) return '◆◆';
-        if (actionCost === 3) return '◆◆◆';
-        return '◆';
     };
 
     const handleAddFeat = (feat: LoadedFeat) => {
@@ -265,7 +256,7 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
                                                     className="feat-item-action"
                                                     title={feat.actionType}
                                                 >
-                                                    {getActionIcon(feat.actionType, feat.actionCost)}
+                                                    <FeatActionIcon actionType={feat.actionType} actionCost={feat.actionCost} />
                                                 </span>
                                             </div>
                                             <div className="feat-item-meta">
@@ -292,7 +283,7 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
                                     <div className="feat-detail-header">
                                         <h4>{selectedFeat.name}</h4>
                                         <span className="feat-detail-action">
-                                            {getActionIcon(selectedFeat.actionType, selectedFeat.actionCost)}
+                                            <FeatActionIcon actionType={selectedFeat.actionType} actionCost={selectedFeat.actionCost} />
                                         </span>
                                     </div>
 

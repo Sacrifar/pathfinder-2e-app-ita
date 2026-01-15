@@ -4,7 +4,8 @@ import { Character, EquippedItem } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 import { calculateWeaponDamage } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
-import { getTactics, type LoadedTactic } from '../../data/tactics';
+import { getTactics } from '../../data/tactics';
+import { ActionIcon } from '../../utils/actionIcons';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -218,16 +219,6 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         });
     };
 
-    // Get action symbol for tactics
-    const getActionSymbol = (cost: LoadedTactic['cost']): string => {
-        if (cost === 'free') return '◇';
-        if (cost === 'reaction') return '↺';
-        if (cost === '1') return '◆';
-        if (cost === '2') return '◆◆';
-        if (cost === '3') return '◆◆◆';
-        return '◆';
-    };
-
     return (
         <div className="weapons-panel">
             <div className="panel-header">
@@ -265,7 +256,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         <div className="tactic-slot-header">
                                             <span className="tactic-slot-name">{tactic.name}</span>
                                             <span className="tactic-slot-action">
-                                                {getActionSymbol(tactic.cost)}
+                                                <ActionIcon cost={tactic.cost} />
                                             </span>
                                         </div>
                                         <div className="tactic-slot-tier">

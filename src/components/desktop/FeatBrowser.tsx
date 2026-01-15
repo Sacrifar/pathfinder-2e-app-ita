@@ -4,6 +4,7 @@ import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
 import { CharacterFeat, Character } from '../../types';
 import { checkPrerequisites, extractSkillFromPrerequisites } from '../../utils/prereqValidator';
 import { skills as allSkills, getAncestryById, getClassById } from '../../data';
+import { FeatActionIcon } from '../../utils/actionIcons';
 
 type FeatCategory = 'all' | 'ancestry' | 'class' | 'skill' | 'general' | 'archetype';
 
@@ -161,16 +162,6 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
         return feats.slice(0, 100);
     }, [allFeats, categoryFilter, levelFilter, searchQuery, characterLevel, ancestryId, classId, selectedSkillFilter, hideUnavailable, ownedFeatIds]);
 
-    const getActionIcon = (actionType: LoadedFeat['actionType'], actionCost: number | null): string => {
-        if (actionType === 'passive') return '◈';
-        if (actionType === 'free') return '◇';
-        if (actionType === 'reaction') return '↺';
-        if (actionCost === 1) return '◆';
-        if (actionCost === 2) return '◆◆';
-        if (actionCost === 3) return '◆◆◆';
-        return '◆';
-    };
-
     const getCategoryColor = (category: string): string => {
         switch (category) {
             case 'ancestry': return 'var(--desktop-accent-orange)';
@@ -301,7 +292,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                                                 {feat.name}
                                             </span>
                                             <span className="item-action">
-                                                {getActionIcon(feat.actionType, feat.actionCost)}
+                                                <FeatActionIcon actionType={feat.actionType} actionCost={feat.actionCost} />
                                             </span>
                                         </div>
                                         <div className="item-meta">
@@ -336,7 +327,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                             <div className="detail-header">
                                 <h3>{selectedFeat.name}</h3>
                                 <span className="detail-action">
-                                    {getActionIcon(selectedFeat.actionType, selectedFeat.actionCost)}
+                                    <FeatActionIcon actionType={selectedFeat.actionType} actionCost={selectedFeat.actionCost} />
                                 </span>
                             </div>
 
