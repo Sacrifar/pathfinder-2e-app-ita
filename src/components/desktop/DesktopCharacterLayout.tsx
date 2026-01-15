@@ -99,6 +99,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const { t } = useLanguage();
     const getName = useLocalizedName();
     const [activeTab, setActiveTab] = useState<TabId>('weapons');
+    const [activeDetailsTab, setActiveDetailsTab] = useState<'biography' | 'notes'>('biography');
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
     const [showConditionBrowser, setShowConditionBrowser] = useState(false);
@@ -1037,24 +1038,52 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             )}
 
                             {activeTab === 'details' && (
-                                <div className="details-panel">
-                                    <div className="panel-header">
-                                        <h3>{t('tabs.details') || 'Details'}</h3>
+                                <div className="details-container">
+                                    {/* Internal tabs for Biography and Notes */}
+                                    <div className="details-tabs">
+                                        <button
+                                            className={`details-tab ${activeDetailsTab === 'biography' ? 'active' : ''}`}
+                                            onClick={() => setActiveDetailsTab('biography')}
+                                        >
+                                            {t('details.biography') || 'Biography'}
+                                        </button>
+                                        <button
+                                            className={`details-tab ${activeDetailsTab === 'notes' ? 'active' : ''}`}
+                                            onClick={() => setActiveDetailsTab('notes')}
+                                        >
+                                            {t('tabs.notes') || 'Notes'}
+                                        </button>
                                     </div>
-                                    <div className="details-content">
-                                        <div className="detail-field">
-                                            <label>{t('character.name') || 'Name'}</label>
-                                            <span>{character.name || t('character.unnamed')}</span>
+
+                                    {/* Biography Tab Content */}
+                                    {activeDetailsTab === 'biography' && (
+                                        <Suspense fallback={<LoadingFallback />}>
+                                            <BiographyPanel
+                                                character={character}
+                                                onBiographyUpdate={(biography) => {
+                                                    onCharacterUpdate({ ...character, biography });
+                                                }}
+                                                onDeitySelect={() => setShowDeityBrowser(true)}
+                                            />
+                                        </Suspense>
+                                    )}
+
+                                    {/* Notes Tab Content */}
+                                    {activeDetailsTab === 'notes' && (
+                                        <div className="notes-content-wrapper">
+                                            <RichTextEditor
+                                                value={character.notes || ''}
+                                                onChange={(notes) => {
+                                                    onCharacterUpdate({
+                                                        ...character,
+                                                        notes,
+                                                    });
+                                                }}
+                                                placeholder={t('notes.startTyping') || 'Start typing...'}
+                                                maxLength={10000}
+                                            />
                                         </div>
-                                        <div className="detail-field">
-                                            <label>{t('character.player') || 'Player'}</label>
-                                            <span>{character.player || '-'}</span>
-                                        </div>
-                                        <div className="detail-field">
-                                            <label>{t('character.notes') || 'Notes'}</label>
-                                            <p className="notes-text">{character.notes || t('builder.noNotes') || 'No notes yet.'}</p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 

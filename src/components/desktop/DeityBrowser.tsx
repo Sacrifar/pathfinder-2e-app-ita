@@ -44,7 +44,7 @@ export const DeityBrowser: React.FC<DeityBrowserProps> = ({
         }
 
         return deities;
-    }, [allDeities, alignmentFilter, fontFilter, searchQuery]);
+    }, [allDeities, fontFilter, searchQuery]);
 
     const getDeityName = (deity: Deity) => {
         return language === 'it' && deity.nameIt ? deity.nameIt : deity.name;

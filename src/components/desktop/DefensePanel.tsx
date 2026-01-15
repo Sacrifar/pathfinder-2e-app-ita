@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Proficiency, Resistance, Immunity, EquippedItem } from '../../types';
+import { Character, Resistance, Immunity, EquippedItem } from '../../types';
 import { EquipmentBrowser } from './EquipmentBrowser';
 import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
 import { ArmorOptionsModal } from './ArmorOptionsModal';
@@ -31,22 +31,34 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     // Resolve equipped items
     const equippedArmor = useMemo(() => {
         if (!character.equippedArmor) return null;
-        return getArmor().find(a => a.id === character.equippedArmor);
+        try {
+            const armorList = getArmor();
+            return armorList.find(a => a.id === character.equippedArmor) || null;
+        } catch (error) {
+            console.error('Error loading armor:', error);
+            return null;
+        }
     }, [character.equippedArmor]);
 
     const equippedShield = useMemo(() => {
         if (!character.equippedShield) return null;
-        return getShields().find(s => s.id === character.equippedShield);
+        try {
+            const shieldList = getShields();
+            return shieldList.find(s => s.id === character.equippedShield) || null;
+        } catch (error) {
+            console.error('Error loading shields:', error);
+            return null;
+        }
     }, [character.equippedShield]);
 
     // Get EquippedItem with runes for armor/shield from equipment array
     const getArmorEquippedItem = (): EquippedItem | null => {
-        if (!character.equippedArmor) return null;
+        if (!character.equippedArmor || !character.equipment) return null;
         return character.equipment.find(item => item.id === character.equippedArmor) || null;
     };
 
     const getShieldEquippedItem = (): EquippedItem | null => {
-        if (!character.equippedShield) return null;
+        if (!character.equippedShield || !character.equipment) return null;
         return character.equipment.find(item => item.id === character.equippedShield) || null;
     };
 
@@ -190,14 +202,14 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         };
         onCharacterUpdate({
             ...character,
-            resistances: [...character.resistances, newResistance],
+            resistances: [...(character.resistances || []), newResistance],
         });
     };
 
     const handleRemoveResistance = (id: string) => {
         onCharacterUpdate({
             ...character,
-            resistances: character.resistances.filter(r => r.id !== id),
+            resistances: (character.resistances || []).filter(r => r.id !== id),
         });
     };
 
@@ -208,14 +220,14 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         };
         onCharacterUpdate({
             ...character,
-            immunities: [...character.immunities, newImmunity],
+            immunities: [...(character.immunities || []), newImmunity],
         });
     };
 
     const handleRemoveImmunity = (id: string) => {
         onCharacterUpdate({
             ...character,
-            immunities: character.immunities.filter(i => i.id !== id),
+            immunities: (character.immunities || []).filter(i => i.id !== id),
         });
     };
 
@@ -225,6 +237,8 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     };
 
     // Get proficiency bonus
+    // Helper functions (currently unused but kept for potential future use)
+    /*
     const getProficiencyBonus = (prof: Proficiency, level: number) => {
         switch (prof) {
             case 'trained': return 2 + level;
@@ -259,9 +273,9 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     const getSaveMod = (save: 'fortitude' | 'reflex' | 'will') => {
         const abilityMap = { fortitude: 'con', reflex: 'dex', will: 'wis' } as const;
         const ability = abilityMap[save];
-        const abilityScore = character.abilityScores[ability];
+        const abilityScore = character.abilityScores?.[ability] ?? 10;
         const abilityMod = Math.floor((abilityScore - 10) / 2);
-        const profBonus = getProficiencyBonus(character.saves[save], character.level || 1);
+        const profBonus = getProficiencyBonus(character.saves?.[save] || 'untrained', character.level || 1);
         return abilityMod + profBonus;
     };
 
@@ -270,17 +284,18 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     };
 
     // AC breakdown
-    const dexMod = Math.floor((character.abilityScores.dex - 10) / 2);
-    const dexCap = character.armorClass.dexCap ?? 99;
+    const dexMod = Math.floor(((character.abilityScores?.dex ?? 10) - 10) / 2);
+    const dexCap = character.armorClass?.dexCap ?? 99;
     const effectiveDex = Math.min(dexMod, dexCap);
-    const armorProfBonus = getProficiencyBonus(character.armorClass.proficiency, character.level || 1);
-    const itemBonus = character.armorClass.itemBonus || 0;
+    const armorProfBonus = getProficiencyBonus(character.armorClass?.proficiency || 'untrained', character.level || 1);
+    const itemBonus = character.armorClass?.itemBonus || 0;
 
     const saves = [
-        { id: 'fortitude', label: t('saves.fortitude') || 'Fortitude', mod: getSaveMod('fortitude'), prof: character.saves.fortitude, ability: 'CON' },
-        { id: 'reflex', label: t('saves.reflex') || 'Reflex', mod: getSaveMod('reflex'), prof: character.saves.reflex, ability: 'DEX' },
-        { id: 'will', label: t('saves.will') || 'Will', mod: getSaveMod('will'), prof: character.saves.will, ability: 'WIS' },
+        { id: 'fortitude', label: t('saves.fortitude') || 'Fortitude', mod: getSaveMod('fortitude'), prof: character.saves?.fortitude || 'untrained', ability: 'CON' },
+        { id: 'reflex', label: t('saves.reflex') || 'Reflex', mod: getSaveMod('reflex'), prof: character.saves?.reflex || 'untrained', ability: 'DEX' },
+        { id: 'will', label: t('saves.will') || 'Will', mod: getSaveMod('will'), prof: character.saves?.will || 'untrained', ability: 'WIS' },
     ];
+    */
 
     return (
         <div className="defense-panel">
@@ -288,7 +303,8 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                 <h3>{t('tabs.defense') || 'Defense'}</h3>
             </div>
 
-            {/* AC Section */}
+            {/* AC Section - Hidden (already displayed in header) */}
+            {/*
             <div className="defense-section">
                 <h4>{t('stats.armorClass') || 'Armor Class'}</h4>
                 <div className="ac-display">
@@ -310,8 +326,8 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         </div>
                         <div className="breakdown-item">
                             <span className="breakdown-label">{t('stats.proficiency') || 'Prof'}</span>
-                            <span className="breakdown-value" style={{ color: getProficiencyColor(character.armorClass.proficiency) }}>
-                                {formatModifier(armorProfBonus)} ({getProficiencyLabel(character.armorClass.proficiency)})
+                            <span className="breakdown-value" style={{ color: getProficiencyColor(character.armorClass?.proficiency || 'untrained') }}>
+                                {formatModifier(armorProfBonus)} ({getProficiencyLabel(character.armorClass?.proficiency || 'untrained')})
                             </span>
                         </div>
                         {itemBonus > 0 && (
@@ -322,7 +338,10 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         )}
                     </div>
                 </div>
+            */}
 
+            {/* Equipment Slots */}
+            <div className="defense-section">
                 <div className="equipment-slots">
                     {/* Armor Slot */}
                     <div className="equipment-slot">
@@ -458,7 +477,8 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                 </div>
             </div>
 
-            {/* Saving Throws */}
+            {/* Saving Throws - Hidden (already displayed in header) */}
+            {/*
             <div className="defense-section">
                 <h4>{t('stats.savingThrows') || 'Saving Throws'}</h4>
                 <div className="saves-grid">
@@ -481,6 +501,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     ))}
                 </div>
             </div>
+            */}
 
             {/* Resistances & Immunities */}
             <div className="defense-section">
@@ -494,14 +515,14 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     </button>
                 </div>
 
-                {character.resistances.length === 0 && character.immunities.length === 0 ? (
+                {(character.resistances?.length ?? 0) === 0 && (character.immunities?.length ?? 0) === 0 ? (
                     <div className="empty-resistances">
                         <span className="text-muted">{t('defense.noResistances') || 'None'}</span>
                     </div>
                 ) : (
                     <div className="resistances-list">
                         {/* Resistances */}
-                        {character.resistances.map(resistance => (
+                        {(character.resistances || []).map(resistance => (
                             <div key={resistance.id} className="resistance-item">
                                 <span className="resistance-type">{resistance.type}</span>
                                 <span className="resistance-value">{resistance.value}</span>
@@ -516,7 +537,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         ))}
 
                         {/* Immunities */}
-                        {character.immunities.map(immunity => (
+                        {(character.immunities || []).map(immunity => (
                             <div key={immunity.id} className="immunity-item">
                                 <span className="immunity-icon">🛡️</span>
                                 <span className="immunity-type">{immunity.type}</span>

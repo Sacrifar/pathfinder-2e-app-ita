@@ -595,6 +595,24 @@ const translations: Record<Language, Record<string, string>> = {
         'commander.dailyTactics': 'Daily Tactics',
         'commander.noKnownTactics': 'No tactics selected yet. Go to level selection to choose your tactics.',
 
+        // Resources
+        'resources.title': 'Resources',
+        'resources.add': 'Add',
+        'resources.addResource': 'Add Custom Resource',
+        'resources.name': 'Name',
+        'resources.namePlaceholder': 'e.g., Channel Energy, Rage, etc.',
+        'resources.maxUses': 'Max Uses',
+        'resources.frequency': 'Frequency',
+        'resources.daily': 'Daily',
+        'resources.perEncounter': 'Per Encounter',
+        'resources.resetDaily': 'Reset all daily resources',
+        'resources.resetDailyShort': 'Reset Daily',
+        'resources.resetEncounter': 'Reset all encounter resources',
+        'resources.resetEncounterShort': 'Reset Encounter',
+        'resources.empty': 'No custom resources yet. Add abilities or items with limited uses.',
+        'resources.loadClassResources': 'Load automatic class resources',
+        'resources.loadClassResourcesShort': 'Load Class Resources',
+
         // Notes
         'notes.edit': 'Edit',
         'notes.preview': 'Preview',
@@ -1186,6 +1204,24 @@ const translations: Record<Language, Record<string, string>> = {
         'commander.tacticsLegendary': 'Tattiche Leggendarie',
         'commander.dailyTactics': 'Tattiche Giornaliere',
         'commander.noKnownTactics': 'Nessuna tattica selezionata. Vai alla selezione livello per scegliere le tue tattiche.',
+
+        // Resources
+        'resources.title': 'Risorse',
+        'resources.add': 'Aggiungi',
+        'resources.addResource': 'Aggiungi Risorsa Personalizzata',
+        'resources.name': 'Nome',
+        'resources.namePlaceholder': 'es. Canale Energetico, Furia, ecc.',
+        'resources.maxUses': 'Utilizzi Massimi',
+        'resources.frequency': 'Frequenza',
+        'resources.daily': 'Giornaliero',
+        'resources.perEncounter': 'Per Incontro',
+        'resources.resetDaily': 'Resetta tutte le risorse giornaliere',
+        'resources.resetDailyShort': 'Reset Giornaliero',
+        'resources.resetEncounter': 'Resetta tutte le risorse per incontro',
+        'resources.resetEncounterShort': 'Reset Incontro',
+        'resources.empty': 'Nessuna risorsa personalizzata. Aggiungi abilità o oggetti con utilizzi limitati.',
+        'resources.loadClassResources': 'Carica risorse automatiche della classe',
+        'resources.loadClassResourcesShort': 'Carica Risorse Classe',
 
         // Notes
         'notes.edit': 'Modifica',

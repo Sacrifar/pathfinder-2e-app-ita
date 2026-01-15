@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CustomResource } from '../../types';
+import { getAvailableResources, type ClassResourceTemplate } from '../../data/classResourceTemplates';
 
 interface ResourcesPanelProps {
     character: Character;
@@ -11,7 +12,7 @@ export const ResourcesPanel: React.FC<ResourcesPanelProps> = ({
     character,
     onCharacterUpdate,
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [showAddModal, setShowAddModal] = useState(false);
     const [newResourceName, setNewResourceName] = useState('');
     const [newResourceMax, setNewResourceMax] = useState(1);
@@ -19,6 +20,37 @@ export const ResourcesPanel: React.FC<ResourcesPanelProps> = ({
     // const [editingResource, setEditingResource] = useState<string | null>(null);  // Reserved for inline edit
 
     const resources = character.customResources || [];
+
+    // Get available class resource templates for this character
+    const availableTemplates = getAvailableResources(character.classId, character.level);
+    const hasClassResources = availableTemplates.length > 0;
+
+    const handleLoadClassResources = () => {
+        const newResources: CustomResource[] = availableTemplates.map(template => {
+            // Calculate max uses (can be number or function)
+            const maxUses = typeof template.maxUses === 'function'
+                ? template.maxUses(character.level)
+                : template.maxUses;
+
+            // Use localized name based on current language
+            const resourceName = language === 'it' && template.nameIt
+                ? template.nameIt
+                : template.name;
+
+            return {
+                id: crypto.randomUUID(),
+                name: resourceName,
+                max: maxUses,
+                current: maxUses,
+                frequency: template.frequency,
+            };
+        });
+
+        onCharacterUpdate({
+            ...character,
+            customResources: [...resources, ...newResources],
+        });
+    };
 
     const handleDecrement = (resourceId: string) => {
         const updatedResources = resources.map(r =>
@@ -99,6 +131,15 @@ export const ResourcesPanel: React.FC<ResourcesPanelProps> = ({
             <div className="panel-header">
                 <h3>{t('resources.title') || 'Resources'}</h3>
                 <div className="panel-header-actions">
+                    {hasClassResources && (
+                        <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={handleLoadClassResources}
+                            title={t('resources.loadClassResources') || 'Load automatic class resources'}
+                        >
+                            {t('resources.loadClassResourcesShort') || 'Load Class Resources'}
+                        </button>
+                    )}
                     <button
                         className="btn btn-sm"
                         onClick={handleResetAllDaily}
