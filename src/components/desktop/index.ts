@@ -39,6 +39,8 @@ export { BackgroundBrowser } from './BackgroundBrowser';
 export { BackgroundBoostModal } from './BackgroundBoostModal';
 export { ClassBrowser } from './ClassBrowser';
 export { ClassSpecializationBrowser } from './ClassSpecializationBrowser';
+export { KineticistImpulseBrowser } from './KineticistImpulseBrowser';
+export { KineticistJunctionBrowser } from './KineticistJunctionBrowser';
 export { AbilityBoostModal } from './AbilityBoostModal';
 export { FeatBrowser } from './FeatBrowser';
 export { SkillTrainingModal } from './SkillTrainingModal';

@@ -7,18 +7,20 @@ import {
     BackgroundBrowser,
     ClassBrowser,
     ClassSpecializationBrowser,
+    KineticistImpulseBrowser,
     AbilityBoostModal,
     FeatBrowser,
     SkillTrainingModal,
     LevelUpBoostModal,
     SkillIncreaseModal,
     TacticBrowser,
+    KineticistJunctionBrowser,
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
 import { LoadedFeat } from '../data/pf2e-loader';
-import { getDefaultSpecializationForClass, classHasSpecializations } from '../data/classSpecializations';
+import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | 'kineticistImpulse' | 'kineticistJunction' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -79,7 +81,7 @@ const CharacterSheetPage: React.FC = () => {
     };
 
     const handleOpenSelection = (type: string, targetLevel?: number) => {
-        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease', 'tactics'];
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease', 'tactics', 'kineticistImpulse', 'kineticistJunction'];
         if (validTypes.includes(type)) {
             setSelectionType(type as SelectionType);
             setSelectionLevel(targetLevel ?? null);
@@ -137,12 +139,30 @@ const CharacterSheetPage: React.FC = () => {
         setSelectionType(null);
     };
 
-    const handleSelectClassSpecialization = (specializationId: string) => {
+    const handleSelectClassSpecialization = (specializationId: string | string[]) => {
         if (character) {
-            handleCharacterUpdate({
+            const className = getClassNameById(character.classId);
+            const updateData: any = {
                 ...character,
                 classSpecializationId: specializationId,
-            });
+            };
+
+            // For Kineticist Single Gate ONLY, add automatic base junction
+            // Dual Gate does NOT get automatic base junctions
+            if (className === 'Kineticist' && !Array.isArray(specializationId)) {
+                const element = getKineticistElementFromGateId(specializationId);
+                if (element) {
+                    const baseJunction = getBaseJunctionForElement(element);
+                    if (baseJunction) {
+                        updateData.kineticistJunctions = {
+                            ...character.kineticistJunctions,
+                            baseJunctions: [baseJunction],
+                        };
+                    }
+                }
+            }
+
+            handleCharacterUpdate(updateData);
         }
         setSelectionType(null);
     };
@@ -195,16 +215,24 @@ const CharacterSheetPage: React.FC = () => {
             };
 
             // Replace existing feat of same source, level, and slotType, or add new
-            const existingIndex = character.feats.findIndex(
+            // Note: Kineticist level 1 impulses are handled by the dedicated KineticistImpulseBrowser
+            const matchingFeats = character.feats.filter(
                 f => f.source === source && f.level === targetLevel && f.slotType === slotType
             );
 
             let updatedFeats: CharacterFeat[];
-            if (existingIndex >= 0) {
+
+            // Normal behavior: replace existing feat of same source, level, and slotType
+            if (matchingFeats.length === 0) {
+                // No matching feats - add new
+                updatedFeats = [...character.feats, newFeat];
+            } else {
+                // Replace first matching feat
+                const existingIndex = character.feats.findIndex(
+                    f => f.source === source && f.level === targetLevel && f.slotType === slotType
+                );
                 updatedFeats = [...character.feats];
                 updatedFeats[existingIndex] = newFeat;
-            } else {
-                updatedFeats = [...character.feats, newFeat];
             }
 
             handleCharacterUpdate({
@@ -304,6 +332,51 @@ const CharacterSheetPage: React.FC = () => {
         setSelectionLevel(null);
     };
 
+    const handleSelectKineticistImpulse = (feats: CharacterFeat[]) => {
+        if (character) {
+            handleCharacterUpdate({
+                ...character,
+                feats: [...character.feats, ...feats],
+            });
+        }
+        setSelectionType(null);
+    };
+
+    const handleSelectKineticistJunction = (junctionData: {
+        choice: 'expand_the_portal' | 'fork_the_path';
+        junctionIds?: string[];
+        newElementGateId?: string;
+        newElementImpulseId?: string;
+    }) => {
+        if (character && selectionLevel) {
+            const level = selectionLevel;
+            const updatedJunctions = {
+                ...(character.kineticistJunctions || {}),
+                [level]: junctionData,
+            };
+
+            // If Fork the Path, also add the new impulse feat
+            let updatedFeats = character.feats;
+            if (junctionData.choice === 'fork_the_path' && junctionData.newElementImpulseId) {
+                const newFeat: CharacterFeat = {
+                    featId: junctionData.newElementImpulseId,
+                    level: level,
+                    source: 'class',
+                    slotType: 'class',
+                };
+                updatedFeats = [...character.feats, newFeat];
+            }
+
+            handleCharacterUpdate({
+                ...character,
+                kineticistJunctions: updatedJunctions,
+                feats: updatedFeats,
+            });
+        }
+        setSelectionType(null);
+        setSelectionLevel(null);
+    };
+
     if (!character) {
         return (
             <div className="desktop-layout" style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -360,6 +433,7 @@ const CharacterSheetPage: React.FC = () => {
                     currentSpecializationId={character.classSpecializationId}
                     onClose={handleCloseSelection}
                     onSelect={handleSelectClassSpecialization}
+                    characterLevel={character.level || 1}
                 />
             )}
 
@@ -678,6 +752,33 @@ const CharacterSheetPage: React.FC = () => {
                     />
                 );
             })()}
+
+            {selectionType === 'kineticistImpulse' && character && (
+                <KineticistImpulseBrowser
+                    character={character}
+                    onClose={handleCloseSelection}
+                    onConfirm={(feats) => {
+                        // Remove any existing impulse feats (to avoid duplicates)
+                        const filteredFeats = character.feats.filter(
+                            f => !(f.level === 1 && f.source === 'class' && f.slotType === 'impulse')
+                        );
+                        handleCharacterUpdate({
+                            ...character,
+                            feats: [...filteredFeats, ...feats],
+                        });
+                        handleCloseSelection();
+                    }}
+                />
+            )}
+
+            {selectionType === 'kineticistJunction' && character && selectionLevel && (
+                <KineticistJunctionBrowser
+                    character={character}
+                    level={selectionLevel}
+                    onClose={handleCloseSelection}
+                    onConfirm={handleSelectKineticistJunction}
+                />
+            )}
         </>
     );
 };

@@ -48,7 +48,7 @@ import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff, AbilityName } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
-import { getSpecializationById, classHasSpecializations, getSpecializationsForClass } from '../../data/classSpecializations';
+import { getSpecializationById, classHasSpecializations, getSpecializationsForClass, type ClassSpecialization } from '../../data/classSpecializations';
 import {
     calculateConditionPenalties,
     getSkillPenalty,
@@ -225,6 +225,24 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         })(),
                         value: (() => {
                             if (character.classSpecializationId) {
+                                // Handle array of specializations (e.g., Kineticist Dual Gate)
+                                if (Array.isArray(character.classSpecializationId)) {
+                                    const specs = character.classSpecializationId
+                                        .map(id => getSpecializationById(id))
+                                        .filter((s): s is ClassSpecialization => s !== null);
+
+                                    if (specs.length > 0) {
+                                        const names = specs.map(spec =>
+                                            spec.nameIt && t('specialization.title') === 'Specializzazione di Classe'
+                                                ? spec.nameIt
+                                                : spec.name
+                                        );
+                                        return names.join(' + ');
+                                    }
+                                    return '';
+                                }
+
+                                // Handle single specialization
                                 const spec = getSpecializationById(character.classSpecializationId);
                                 if (spec) {
                                     // Return localized name if available
@@ -359,11 +377,17 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         break;
                 }
 
+                // For Kineticist level 1 class feats, show all selected feats
+                let featValue = getFeatName(featId);
+                if (slot.type === 'class' && level === 1 && character.classId === 'RggQN3bX5SEcsffR' && featsOfSlotTypeAtLevel.length > 1) {
+                    featValue = featsOfSlotTypeAtLevel.map(f => getFeatName(f.featId)).join(', ');
+                }
+
                 choices.push({
                     id: `${slot.type}Feat${level}${idx > 0 ? idx : ''}`,
                     type: `${slot.type}Feat`,  // e.g., 'ancestryFeat', 'classFeat', 'generalFeat', 'skillFeat'
                     label: labelKey,
-                    value: getFeatName(featId),
+                    value: featValue,
                     required: true,
                     onClick: () => onOpenSelection(slot.type === 'archetype' ? 'archetypeFeat' : `${slot.type}Feat`, level),
                 });
@@ -397,6 +421,43 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         onClick: () => onOpenSelection('tactics', level),
                     });
                 }
+            }
+
+            // Add Kineticist Gate's Threshold at levels 5, 9, 13, 17
+            // Show ONLY Gate's Threshold option (hide Single Gate and Dual Gate choices)
+            const GATES_THRESHOLD_LEVELS = [5, 9, 13, 17];
+            if (character.classId === 'RggQN3bX5SEcsffR' && GATES_THRESHOLD_LEVELS.includes(level)) {
+                const junctionData = character.kineticistJunctions?.[level];
+                const hasJunction = !!junctionData;
+
+                choices.push({
+                    id: `gatesThreshold${level}`,
+                    type: 'secondaryClass',
+                    label: 'kineticist.gatesThreshold',
+                    value: hasJunction ? (junctionData.choice === 'expand_the_portal' ? 'Expand' : 'Fork') : '',
+                    required: true,
+                    onClick: () => onOpenSelection('kineticistJunction', level),
+                });
+            }
+
+            // Add Kineticist impulse selection at level 1
+            // Kineticist gains impulse feats at level 1 (2 for Single Gate, 1 for each element for Dual Gate)
+            // This is IN ADDITION to the normal class feat slot
+            if (character.classId === 'RggQN3bX5SEcsffR' && level === 1) {
+                const impulseFeats = feats.filter(f => {
+                    if (f.level !== 1) return false;
+                    const featData = getFeats().find(feat => feat.id === f.featId);
+                    return featData && featData.traits.includes('impulse');
+                });
+
+                choices.push({
+                    id: `kineticistImpulse${level}`,
+                    type: 'kineticistImpulse',
+                    label: 'kineticist.impulseFeats',
+                    value: impulseFeats.length > 0 ? `${impulseFeats.length} impulse${impulseFeats.length > 1 ? 's' : ''}` : '',
+                    required: true,
+                    onClick: () => onOpenSelection('kineticistImpulse', level),
+                });
             }
 
             sections.push({

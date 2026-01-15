@@ -48,6 +48,8 @@ const getIconForType = (type: string): string => {
         'skillFeat': 'skill',
         'generalFeat': 'general',
         'tactics': 'general', // Commander tactics use general icon
+        'kineticistJunction': 'class', // Kineticist Gate's Threshold uses class icon
+        'kineticistImpulse': 'class', // Kineticist Impulse uses class icon
     };
     return iconMap[type] || 'cog';
 };

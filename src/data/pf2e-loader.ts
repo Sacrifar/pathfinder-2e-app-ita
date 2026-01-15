@@ -1006,6 +1006,19 @@ export function searchFeats(query: string): LoadedFeat[] {
     );
 }
 
+/**
+ * Get level 1 impulse feats for a specific element trait
+ * Used for Kineticist starting feat assignment
+ */
+export function getLevel1ImpulseFeatsForElement(elementTrait: string): LoadedFeat[] {
+    return getFeats().filter(f =>
+        f.level === 1 &&
+        f.category === 'class' &&
+        f.traits.includes('impulse') &&
+        f.traits.includes(elementTrait)
+    );
+}
+
 // ============ Condition API ============
 
 export function getConditions(): LoadedCondition[] {

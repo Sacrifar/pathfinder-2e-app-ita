@@ -5,6 +5,7 @@ import { CharacterFeat, Character } from '../../types';
 import { checkPrerequisites, extractSkillFromPrerequisites } from '../../utils/prereqValidator';
 import { skills as allSkills, getAncestryById, getClassById } from '../../data';
 import { FeatActionIcon } from '../../utils/actionIcons';
+import { getKineticistElementFromGateId, getClassNameById } from '../../data/classSpecializations';
 
 type FeatCategory = 'all' | 'ancestry' | 'class' | 'skill' | 'general' | 'archetype';
 
@@ -114,6 +115,42 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                     // Check if feat has the selected class as a trait
                     return f.traits.some(t => t.toLowerCase() === className);
                 });
+
+                // For Kineticist, additionally filter by impulse element
+                if (cls.name === 'Kineticist' && character?.classSpecializationId) {
+                    const gateIds = Array.isArray(character.classSpecializationId)
+                        ? character.classSpecializationId
+                        : [character.classSpecializationId];
+
+                    const elements = gateIds
+                        .map(gateId => getKineticistElementFromGateId(gateId))
+                        .filter((e): e is string => e !== null);
+
+                    // Also include elements from Fork the Path choices
+                    if (character.kineticistJunctions) {
+                        Object.values(character.kineticistJunctions).forEach((junctionData: any) => {
+                            if (junctionData.choice === 'fork_the_path' && junctionData.newElementGateId) {
+                                const element = getKineticistElementFromGateId(junctionData.newElementGateId);
+                                if (element && !elements.includes(element)) {
+                                    elements.push(element);
+                                }
+                            }
+                        });
+                    }
+
+                    // Filter impulse feats to only show those matching the character's elements
+                    if (elements.length > 0) {
+                        feats = feats.filter(f => {
+                            const hasImpulse = f.traits.some(t => t.toLowerCase() === 'impulse');
+                            // If it's an impulse feat, it must have one of the character's elements as a trait
+                            if (hasImpulse) {
+                                return f.traits.some(t => elements.includes(t));
+                            }
+                            // Non-impulse class feats are still shown
+                            return true;
+                        });
+                    }
+                }
             }
         }
 

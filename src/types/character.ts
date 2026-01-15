@@ -190,7 +190,7 @@ export interface CharacterFeat {
     featId: string;
     level: number;
     source: 'ancestry' | 'class' | 'general' | 'skill' | 'bonus';
-    slotType?: 'ancestry' | 'class' | 'general' | 'skill' | 'archetype'; // The type of slot this feat occupies (for distinguishing archetypes from class feats)
+    slotType?: 'ancestry' | 'class' | 'general' | 'skill' | 'archetype' | 'impulse'; // The type of slot this feat occupies (for distinguishing archetypes from class feats, and kineticist impulses)
     choices?: string[];
 }
 
@@ -357,7 +357,16 @@ export interface Character {
     heritageId?: string;
     backgroundId: string;
     classId: string;
-    classSpecializationId?: string; // Class specialization (Muse, Doctrine, Instinct, etc.)
+    classSpecializationId?: string | string[]; // Class specialization (Muse, Doctrine, Instinct, etc.) - can be array for dual-selection classes like Kineticist
+    kineticistJunctions?: {
+        baseJunctions?: string[]; // Automatic base junctions for Single Gate (one per element)
+        [level: number]: { // Level 5, 9, 13, 17
+            choice: 'expand_the_portal' | 'fork_the_path';
+            junctionIds?: string[]; // For expand_the_portal - selected junction IDs
+            newElementGateId?: string; // For fork_the_path - new element gate ID
+            newElementImpulseId?: string; // For fork_the_path - selected impulse feat from new element
+        };
+    };
     secondaryClassId?: string; // For Dual Class variant rule
     level: number;
     xp?: number; // Experience points
@@ -547,6 +556,7 @@ export function createEmptyCharacter(): Character {
         immunities: [],
         customResources: [],
         pets: [],
+        kineticistJunctions: {},
         variantRules: { ...DEFAULT_VARIANT_RULES },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

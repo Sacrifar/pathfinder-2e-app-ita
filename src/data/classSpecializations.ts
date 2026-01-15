@@ -115,6 +115,7 @@ export interface ClassSpecializationType {
     className: string; // Use class name to match with LoadedClass
     tag: string;
     options: ClassSpecialization[];
+    maxSelections?: number; // For classes that allow multiple selections (e.g., Kineticist Dual Gate = 2)
 }
 
 // Cache for class ID mappings
@@ -628,8 +629,8 @@ const PSYCHIC_CONSCIOUS_MINDS: ClassSpecialization[] = [
     convertFoundryFeatToSpecialization(unboundStepData, 'Psychic', 'Dark Archive'),
 ];
 
-// Kineticist Gates - loaded from Foundry VTT data (Single Gate only for now)
-const KINETICIST_GATES: ClassSpecialization[] = [
+// Kineticist Gates - loaded from Foundry VTT data
+const KINETICIST_SINGLE_GATES: ClassSpecialization[] = [
     convertFoundryFeatToSpecialization(airGateData, 'Kineticist', 'Rage of Elements'),
     convertFoundryFeatToSpecialization(earthGateData, 'Kineticist', 'Rage of Elements'),
     convertFoundryFeatToSpecialization(fireGateData, 'Kineticist', 'Rage of Elements'),
@@ -637,6 +638,306 @@ const KINETICIST_GATES: ClassSpecialization[] = [
     convertFoundryFeatToSpecialization(waterGateData, 'Kineticist', 'Rage of Elements'),
     convertFoundryFeatToSpecialization(woodGateData, 'Kineticist', 'Rage of Elements'),
 ];
+
+// Dual Gate uses same options as single gate
+const KINETICIST_DUAL_GATES: ClassSpecialization[] = KINETICIST_SINGLE_GATES;
+
+// Kineticist Gate's Threshold Options
+const KINETICIST_GATES_THRESHOLD: ClassSpecialization[] = [
+    {
+        id: 'expand_the_portal',
+        name: 'Expand the Portal',
+        nameIt: 'Espandi il Portale',
+        className: 'Kineticist',
+        description: 'Choose a junction from your current element(s).',
+        source: 'Rage of Elements',
+    },
+    {
+        id: 'fork_the_path',
+        name: 'Fork the Path',
+        nameIt: 'Dividi il Sentiero',
+        className: 'Kineticist',
+        description: 'Choose a new element and gain 1 impulse feat from that element.',
+        source: 'Rage of Elements',
+    },
+];
+
+// Kineticist Junctions - these are chosen with "Expand the Portal" option
+const KINETICIST_JUNCTIONS: Record<string, ClassSpecialization[]> = {
+    'air': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'air_impulse_junction',
+            name: 'Air Impulse Junction',
+            nameIt: 'Air Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'air_gate_aura_junction',
+            name: 'Air Gate Junction: Aura Junction',
+            nameIt: 'Air Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'air_gate_critical_blast',
+            name: 'Air Gate Junction: Critical Blast',
+            nameIt: 'Air Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'air_gate_elemental_resistance',
+            name: 'Air Gate Junction: Elemental Resistance',
+            nameIt: 'Air Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'air_gate_skill_junction',
+            name: 'Air Gate Junction: Skill Junction',
+            nameIt: 'Air Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+    'earth': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'earth_impulse_junction',
+            name: 'Earth Impulse Junction',
+            nameIt: 'Earth Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'earth_gate_aura_junction',
+            name: 'Earth Gate Junction: Aura Junction',
+            nameIt: 'Earth Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'earth_gate_critical_blast',
+            name: 'Earth Gate Junction: Critical Blast',
+            nameIt: 'Earth Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'earth_gate_elemental_resistance',
+            name: 'Earth Gate Junction: Elemental Resistance',
+            nameIt: 'Earth Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'earth_gate_skill_junction',
+            name: 'Earth Gate Junction: Skill Junction',
+            nameIt: 'Earth Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+    'fire': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'fire_impulse_junction',
+            name: 'Fire Impulse Junction',
+            nameIt: 'Fire Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'fire_gate_aura_junction',
+            name: 'Fire Gate Junction: Aura Junction',
+            nameIt: 'Fire Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'fire_gate_critical_blast',
+            name: 'Fire Gate Junction: Critical Blast',
+            nameIt: 'Fire Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'fire_gate_elemental_resistance',
+            name: 'Fire Gate Junction: Elemental Resistance',
+            nameIt: 'Fire Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'fire_gate_skill_junction',
+            name: 'Fire Gate Junction: Skill Junction',
+            nameIt: 'Fire Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+    'metal': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'metal_impulse_junction',
+            name: 'Metal Impulse Junction',
+            nameIt: 'Metal Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'metal_gate_aura_junction',
+            name: 'Metal Gate Junction: Aura Junction',
+            nameIt: 'Metal Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'metal_gate_critical_blast',
+            name: 'Metal Gate Junction: Critical Blast',
+            nameIt: 'Metal Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'metal_gate_elemental_resistance',
+            name: 'Metal Gate Junction: Elemental Resistance',
+            nameIt: 'Metal Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'metal_gate_skill_junction',
+            name: 'Metal Gate Junction: Skill Junction',
+            nameIt: 'Metal Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+    'water': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'water_impulse_junction',
+            name: 'Water Impulse Junction',
+            nameIt: 'Water Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'water_gate_aura_junction',
+            name: 'Water Gate Junction: Aura Junction',
+            nameIt: 'Water Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'water_gate_critical_blast',
+            name: 'Water Gate Junction: Critical Blast',
+            nameIt: 'Water Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'water_gate_elemental_resistance',
+            name: 'Water Gate Junction: Elemental Resistance',
+            nameIt: 'Water Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'water_gate_skill_junction',
+            name: 'Water Gate Junction: Skill Junction',
+            nameIt: 'Water Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+    'wood': [
+        // Base junction (automatically gained with Single Gate)
+        {
+            id: 'wood_impulse_junction',
+            name: 'Wood Impulse Junction',
+            nameIt: 'Wood Impulse Junction',
+            className: 'Kineticist',
+            description: 'Base junction gained with Single Gate. Unlocks your elemental impulses.',
+            source: 'Rage of Elements',
+        },
+        // Gate's Threshold junctions (levels 5, 9, 13, 17)
+        {
+            id: 'wood_gate_aura_junction',
+            name: 'Wood Gate Junction: Aura Junction',
+            nameIt: 'Wood Gate Junction: Aura Junction',
+            className: 'Kineticist',
+            description: 'Impulses that create persistent auras or emanations.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'wood_gate_critical_blast',
+            name: 'Wood Gate Junction: Critical Blast',
+            nameIt: 'Wood Gate Junction: Critical Blast',
+            className: 'Kineticist',
+            description: 'Impulses that modify your blast on a critical hit.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'wood_gate_elemental_resistance',
+            name: 'Wood Gate Junction: Elemental Resistance',
+            nameIt: 'Wood Gate Junction: Elemental Resistance',
+            className: 'Kineticist',
+            description: 'Impulses that provide resistance to your element.',
+            source: 'Rage of Elements',
+        },
+        {
+            id: 'wood_gate_skill_junction',
+            name: 'Wood Gate Junction: Skill Junction',
+            nameIt: 'Wood Gate Junction: Skill Junction',
+            className: 'Kineticist',
+            description: 'Impulses that enhance skills or skill checks.',
+            source: 'Rage of Elements',
+        },
+    ],
+};
+
+// Get the base junction for an element (automatically gained with Single Gate)
+export function getBaseJunctionForElement(element: string): string | null {
+    const junctions = KINETICIST_JUNCTIONS[element];
+    if (junctions && junctions.length > 0) {
+        return junctions[0].id; // First junction is the base one (Element Impulse Junction)
+    }
+    return null;
+}
 
 // Inventor Innovations - loaded from Foundry VTT data
 const INVENTOR_INNOVATIONS: ClassSpecialization[] = [
@@ -873,12 +1174,31 @@ export const CLASS_SPECIALIZATIONS_BY_NAME: Record<string, ClassSpecializationTy
     ],
     'Kineticist': [
         {
-            id: 'kineticist_gates',
-            name: 'Kinetic Gate',
-            nameIt: 'Cancello Cinetico',
+            id: 'kineticist_single_gate',
+            name: 'Single Gate',
+            nameIt: 'Cancello Singolo',
             className: 'Kineticist',
-            tag: 'kineticist-gate',
-            options: KINETICIST_GATES,
+            tag: 'kineticist-single-gate',
+            options: KINETICIST_SINGLE_GATES,
+            maxSelections: 1,
+        },
+        {
+            id: 'kineticist_dual_gate',
+            name: 'Dual Gate',
+            nameIt: 'Doppio Cancello',
+            className: 'Kineticist',
+            tag: 'kineticist-dual-gate',
+            options: KINETICIST_DUAL_GATES,
+            maxSelections: 2,
+        },
+        {
+            id: 'kineticist_gates_threshold',
+            name: "Gate's Threshold",
+            nameIt: "Soglia del Cancello",
+            className: 'Kineticist',
+            tag: 'kineticist-gates-threshold',
+            options: KINETICIST_GATES_THRESHOLD,
+            maxSelections: 1,
         },
     ],
     'Inventor': [
@@ -993,4 +1313,55 @@ export function getDefaultSpecializationForClass(classId: string): string | null
     }
     // Return the first specialization option (usually the most common/basic one)
     return specializations[0].options[0].id;
+}
+
+/**
+ * Map Kineticist gate IDs to their element traits
+ */
+export function getKineticistElementFromGateId(gateId: string): string | null {
+    // First, try to get the specialization and use its name
+    const spec = getSpecializationById(gateId);
+    if (spec) {
+        const elementMap: Record<string, string> = {
+            'air': 'air',
+            'earth': 'earth',
+            'fire': 'fire',
+            'metal': 'metal',
+            'water': 'water',
+            'wood': 'wood',
+        };
+
+        const lowerName = spec.name.toLowerCase();
+        for (const [element, trait] of Object.entries(elementMap)) {
+            if (lowerName.includes(element)) {
+                return trait;
+            }
+        }
+    }
+
+    // Fallback: try to match by element name in the ID
+    const elementMap: Record<string, string> = {
+        'air': 'air',
+        'earth': 'earth',
+        'fire': 'fire',
+        'metal': 'metal',
+        'water': 'water',
+        'wood': 'wood',
+    };
+
+    const lowerId = gateId.toLowerCase();
+    for (const [element, trait] of Object.entries(elementMap)) {
+        if (lowerId.includes(element)) {
+            return trait;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Get junctions for a specific Kineticist element
+ */
+export function getKineticistJunctionsForElement(element: string): ClassSpecialization[] {
+    return KINETICIST_JUNCTIONS[element] || [];
 }

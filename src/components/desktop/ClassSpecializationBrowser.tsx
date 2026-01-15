@@ -10,9 +10,10 @@ import '../../styles/desktop.css';
 
 interface ClassSpecializationBrowserProps {
     classId: string;
-    currentSpecializationId?: string;
+    currentSpecializationId?: string | string[]; // Support both single and multiple selections
     onClose: () => void;
-    onSelect: (specializationId: string) => void;
+    onSelect: (specializationId: string | string[]) => void;
+    characterLevel?: number; // For Kineticist - to determine which options to show
 }
 
 export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProps> = ({
@@ -20,16 +21,43 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
     currentSpecializationId,
     onClose,
     onSelect,
+    characterLevel = 1,
 }) => {
     const { t, language } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSpecialization, setSelectedSpecialization] = useState<ClassSpecialization | null>(null);
+    const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]); // For multi-select
     const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
 
     // Get specializations for this class
     const specializationTypes = useMemo(() => {
-        return getSpecializationsForClass(classId);
-    }, [classId]);
+        const allTypes = getSpecializationsForClass(classId);
+
+        // For Kineticist, filter options based on level
+        if (classId === 'RggQN3bX5SEcsffR') {
+            const GATES_THRESHOLD_LEVELS = [5, 9, 13, 17];
+
+            return allTypes.map(type => {
+                // If this is the gates threshold type, only show at specific levels
+                if (type.id === 'kineticist_gates_threshold') {
+                    if (!GATES_THRESHOLD_LEVELS.includes(characterLevel)) {
+                        // Hide this type by returning empty options
+                        return { ...type, options: [] };
+                    }
+                }
+                // If this is single/dual gate type, hide at gates threshold levels
+                else if (type.id === 'kineticist_single_gate' || type.id === 'kineticist_dual_gate') {
+                    if (GATES_THRESHOLD_LEVELS.includes(characterLevel)) {
+                        return { ...type, options: [] };
+                    }
+                }
+
+                return type;
+            }).filter(type => type.options.length > 0); // Remove types with no options
+        }
+
+        return allTypes;
+    }, [classId, characterLevel]);
 
     // Get the current type
     const currentType = specializationTypes[selectedTypeIndex];
@@ -50,27 +78,75 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
         });
     }, [searchQuery, currentSpecializations]);
 
-    // Set initial selected specialization if provided
+    // Check if current type supports multiple selections
+    const supportsMultiSelect = currentType?.maxSelections && currentType.maxSelections > 1;
+    const maxSelections = currentType?.maxSelections || 1;
+
+    // Set initial selected specialization(s) if provided
     React.useEffect(() => {
-        if (currentSpecializationId && !selectedSpecialization) {
-            // Search in all types for the current specialization
-            for (const specType of specializationTypes) {
-                const found = specType.options.find(s => s.id === currentSpecializationId);
-                if (found) {
-                    setSelectedSpecialization(found);
-                    // Also set the correct type index
-                    const typeIndex = specializationTypes.indexOf(specType);
-                    if (typeIndex >= 0) setSelectedTypeIndex(typeIndex);
-                    break;
+        if (currentSpecializationId) {
+            // Handle multiple selections
+            if (Array.isArray(currentSpecializationId)) {
+                setSelectedSpecializations(currentSpecializationId);
+            } else if (!selectedSpecialization) {
+                // Search in all types for the current specialization
+                for (const specType of specializationTypes) {
+                    const found = specType.options.find(s => s.id === currentSpecializationId);
+                    if (found) {
+                        setSelectedSpecialization(found);
+                        // Also set the correct type index
+                        const typeIndex = specializationTypes.indexOf(specType);
+                        if (typeIndex >= 0) setSelectedTypeIndex(typeIndex);
+                        break;
+                    }
                 }
             }
         }
     }, [currentSpecializationId, specializationTypes]);
 
+    // Reset multi-select when type changes
+    React.useEffect(() => {
+        if (!supportsMultiSelect) {
+            setSelectedSpecializations([]);
+        } else if (currentSpecializationId && Array.isArray(currentSpecializationId)) {
+            setSelectedSpecializations(currentSpecializationId);
+        }
+    }, [selectedTypeIndex, supportsMultiSelect, currentSpecializationId]);
+
     const handleSelect = () => {
-        if (selectedSpecialization) {
+        if (supportsMultiSelect) {
+            // Return array of selected specializations
+            onSelect(selectedSpecializations);
+        } else if (selectedSpecialization) {
+            // Return single specialization
             onSelect(selectedSpecialization.id);
         }
+    };
+
+    const handleToggleSpecialization = (specId: string) => {
+        if (!supportsMultiSelect) {
+            // Single select mode - just select this one
+            const spec = currentSpecializations.find(s => s.id === specId);
+            setSelectedSpecialization(spec || null);
+            return;
+        }
+
+        // Multi-select mode
+        if (selectedSpecializations.includes(specId)) {
+            // Remove if already selected
+            setSelectedSpecializations(prev => prev.filter(id => id !== specId));
+        } else if (selectedSpecializations.length < maxSelections) {
+            // Add if under limit
+            setSelectedSpecializations(prev => [...prev, specId]);
+        }
+        // If at max, don't add (could show feedback)
+    };
+
+    const isSpecializationSelected = (specId: string): boolean => {
+        if (supportsMultiSelect) {
+            return selectedSpecializations.includes(specId);
+        }
+        return selectedSpecialization?.id === specId;
     };
 
     const getTypeName = (type: ClassSpecializationType): string => {
@@ -138,51 +214,96 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
                         </div>
 
                         <div className="selection-list">
-                            {filteredSpecializations.map(spec => (
-                                <div
-                                    key={spec.id}
-                                    className={`selection-list-item ${selectedSpecialization?.id === spec.id ? 'selected' : ''}`}
-                                    onClick={() => setSelectedSpecialization(spec)}
-                                >
-                                    <div className="item-name">{getSpecName(spec)}</div>
-                                    <div className="item-badges">
-                                        <span className="badge source">{spec.source}</span>
-                                    </div>
+                            {supportsMultiSelect && (
+                                <div className="selection-info">
+                                    {selectedSpecializations.length} / {maxSelections} {t('specialization.selected') || 'selected'}
                                 </div>
-                            ))}
+                            )}
+                            {filteredSpecializations.map(spec => {
+                                const isSelected = isSpecializationSelected(spec.id);
+                                const canSelect = !supportsMultiSelect || selectedSpecializations.length < maxSelections || isSelected;
+
+                                return (
+                                    <div
+                                        key={spec.id}
+                                        className={`selection-list-item ${isSelected ? 'selected' : ''} ${!canSelect ? 'disabled' : ''}`}
+                                        onClick={() => canSelect && handleToggleSpecialization(spec.id)}
+                                    >
+                                        <div className="item-name">
+                                            {isSelected && <span className="owned-indicator">✓</span>}
+                                            {getSpecName(spec)}
+                                        </div>
+                                        <div className="item-badges">
+                                            <span className="badge source">{spec.source}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
                     <div className="browser-detail">
-                        {selectedSpecialization ? (
+                        {(selectedSpecialization || selectedSpecializations.length > 0) ? (
                             <div className="detail-content">
                                 <div className="detail-header">
-                                    <h3>{getSpecName(selectedSpecialization)}</h3>
+                                    <h3>
+                                        {supportsMultiSelect
+                                            ? (selectedSpecializations.length > 0
+                                                ? `${selectedSpecializations.length} ${t('specialization.selected') || 'selected'}`
+                                                : getTypeName(currentType!)
+                                              )
+                                            : getSpecName(selectedSpecialization!)
+                                        }
+                                    </h3>
                                 </div>
 
-                                <div className="stats-row">
-                                    <div className="stat-item">
-                                        <span className="stat-label">Source</span>
-                                        <span className="stat-value">{selectedSpecialization.source}</span>
+                                {!supportsMultiSelect && selectedSpecialization && (
+                                    <>
+                                        <div className="stats-row">
+                                            <div className="stat-item">
+                                                <span className="stat-label">Source</span>
+                                                <span className="stat-value">{selectedSpecialization.source}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="detail-description">
+                                            <p>{selectedSpecialization.description}</p>
+                                        </div>
+                                    </>
+                                )}
+
+                                {supportsMultiSelect && (
+                                    <div className="detail-description">
+                                        <p>
+                                            {selectedSpecializations.length > 0
+                                                ? `${selectedSpecializations.map(id => {
+                                                    const spec = currentSpecializations.find(s => s.id === id);
+                                                    return spec ? getSpecName(spec) : id;
+                                                }).join(', ')}`
+                                                : t('specialization.multiSelectPrompt') || `Select up to ${maxSelections} options.`
+                                            }
+                                        </p>
                                     </div>
-                                </div>
-
-                                <div className="detail-description">
-                                    <p>{selectedSpecialization.description}</p>
-                                </div>
+                                )}
 
                                 <div className="detail-actions">
                                     <button
                                         className="select-btn"
                                         onClick={handleSelect}
+                                        disabled={supportsMultiSelect && selectedSpecializations.length === 0}
                                     >
-                                        {t('actions.select') || 'Select'}
+                                        {t('actions.confirm') || 'Confirm'}
                                     </button>
                                 </div>
                             </div>
                         ) : (
                             <div className="detail-content empty-state">
-                                <p>{t('specialization.selectPrompt') || 'Select a specialization from the list to view details.'}</p>
+                                <p>
+                                    {supportsMultiSelect
+                                        ? `${t('specialization.multiSelectPrompt') || `Select up to ${maxSelections} options.`}`
+                                        : (t('specialization.selectPrompt') || 'Select a specialization from the list to view details.')
+                                    }
+                                </p>
                             </div>
                         )}
                     </div>
