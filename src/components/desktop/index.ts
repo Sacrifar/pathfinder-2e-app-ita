@@ -7,6 +7,9 @@ export { CharacterTabs } from './CharacterTabs';
 export type { TabId } from './CharacterTabs';
 export { SkillsPanel } from './SkillsPanel';
 export { DesktopCharacterLayout } from './DesktopCharacterLayout';
+export { ActiveConditions } from './ActiveConditions';
+export { SurvivalHeader } from './SurvivalHeader';
+export { CombatColumn } from './CombatColumn';
 
 // Tab Panels
 export { WeaponsPanel } from './WeaponsPanel';
@@ -16,10 +19,18 @@ export { ResourcesPanel } from './ResourcesPanel';
 export { SpellsPanel } from './SpellsPanel';
 export { FeatsPanel } from './FeatsPanel';
 export { ActionsPanel } from './ActionsPanel';
+export { BiographyPanel } from './BiographyPanel';
+export { PetsPanel } from './PetsPanel';
+export { TacticsPanel } from './TacticsPanel';
+export { TacticBrowser } from './TacticBrowser';
 
 // Modals
 export { DetailModal, ActionDetailContent, WeaponDetailContent, SkillDetailContent } from './DetailModal';
 export { RestModal } from './RestModal';
+export { ConditionBrowser } from './ConditionBrowser';
+export { EquipmentBrowser } from './EquipmentBrowser';
+export { DeityBrowser } from './DeityBrowser';
+export { VariantRulesPanel } from './VariantRulesPanel';
 
 // Selection Browsers
 export { AncestryBrowser } from './AncestryBrowser';

@@ -475,6 +475,13 @@ export interface Character {
         }>;
     };
 
+    // Commander Tactics
+    tactics?: {
+        known: string[];  // IDs of known tactics (available for selection)
+        prepared: string[];  // IDs of prepared tactics (3 daily tactics)
+    };
+    commanderBanner?: string;  // Selected banner type (optional)
+
     // Metadata
     notes?: string;
     biography?: CharacterBiography;  // Detailed character biography and appearance
@@ -639,6 +646,16 @@ export function migrateCharacter(data: any): Character {
             }
             return item;
         });
+    }
+
+    // Migrate Commander tactics (added for Commander class support)
+    if (!character.tactics) {
+        character.tactics = { known: [], prepared: [] };
+    }
+
+    // Migrate commanderBanner (added for Commander class support)
+    if (character.commanderBanner === undefined) {
+        character.commanderBanner = undefined;
     }
 
     return character;

@@ -4,6 +4,7 @@ import { Character, EquippedItem } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 import { calculateWeaponDamage } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
+import { getTactics, type LoadedTactic } from '../../data/tactics';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -164,6 +165,69 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             .filter((item): item is NonNullable<typeof item> => item !== null);
     }, [character.equipment, allWeapons, twoHandedWeapons]);
 
+    // ===== COMMANDER TACTICS SELECTION =====
+    const isCommander = character.classId === 'Oyee5Ds9uwYLEkD0'; // Commander class ID
+
+    // Calculate max prepared tactics based on level
+    const maxPreparedTactics = useMemo(() => {
+        if (!isCommander) return 0;
+        const level = character.level;
+        if (level >= 19) return 6;
+        if (level >= 15) return 5;
+        if (level >= 7) return 4;
+        return 3; // Level 1-6
+    }, [isCommander, character.level]);
+
+    // Get all known tactics for Commander
+    const knownTactics = useMemo(() => {
+        if (!isCommander) return [];
+        const knownIds = character.tactics?.known || [];
+        const allTactics = getTactics();
+        return allTactics.filter(t => knownIds.includes(t.id));
+    }, [isCommander, character.tactics?.known]);
+
+    // Get currently prepared tactics
+    const preparedTactics = useMemo(() => {
+        if (!isCommander) return [];
+        const preparedIds = character.tactics?.prepared || [];
+        return knownTactics.filter(t => preparedIds.includes(t.id));
+    }, [isCommander, knownTactics, character.tactics?.prepared]);
+
+    // Toggle tactic preparation
+    const handleToggleTactic = (tacticId: string) => {
+        const currentPrepared = character.tactics?.prepared || [];
+        const isPrepared = currentPrepared.includes(tacticId);
+
+        let newPrepared: string[];
+        if (isPrepared) {
+            // Remove from prepared
+            newPrepared = currentPrepared.filter(id => id !== tacticId);
+        } else {
+            // Add to prepared if we have room
+            if (currentPrepared.length >= maxPreparedTactics) return;
+            newPrepared = [...currentPrepared, tacticId];
+        }
+
+        onCharacterUpdate({
+            ...character,
+            tactics: {
+                ...character.tactics,
+                known: character.tactics?.known || [],
+                prepared: newPrepared,
+            },
+        });
+    };
+
+    // Get action symbol for tactics
+    const getActionSymbol = (cost: LoadedTactic['cost']): string => {
+        if (cost === 'free') return '◇';
+        if (cost === 'reaction') return '↺';
+        if (cost === '1') return '◆';
+        if (cost === '2') return '◆◆';
+        if (cost === '3') return '◆◆◆';
+        return '◆';
+    };
+
     return (
         <div className="weapons-panel">
             <div className="panel-header">
@@ -172,6 +236,51 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                     + {t('actions.addWeapon') || 'Add Weapon'}
                 </button>
             </div>
+
+            {/* ===== COMMANDER DAILY TACTICS ===== */}
+            {isCommander && (
+                <div className="commander-tactics-section">
+                    <div className="section-header">
+                        <h4>{t('commander.dailyTactics') || 'Daily Tactics'}</h4>
+                        <span className="tactics-count">
+                            {(character.tactics?.prepared || []).length} / {maxPreparedTactics}
+                        </span>
+                    </div>
+
+                    {knownTactics.length === 0 ? (
+                        <div className="empty-state-small">
+                            <p>{t('commander.noKnownTactics') || 'No tactics selected yet. Go to level selection to choose your tactics.'}</p>
+                        </div>
+                    ) : (
+                        <div className="tactics-slots">
+                            {knownTactics.map(tactic => {
+                                const isPrepared = (character.tactics?.prepared || []).includes(tactic.id);
+                                return (
+                                    <div
+                                        key={tactic.id}
+                                        className={`tactic-slot ${isPrepared ? 'prepared' : ''}`}
+                                        onClick={() => handleToggleTactic(tactic.id)}
+                                        title={tactic.name}
+                                    >
+                                        <div className="tactic-slot-header">
+                                            <span className="tactic-slot-name">{tactic.name}</span>
+                                            <span className="tactic-slot-action">
+                                                {getActionSymbol(tactic.cost)}
+                                            </span>
+                                        </div>
+                                        <div className="tactic-slot-tier">
+                                            {t(`commander.${tactic.tacticTier}`) || tactic.tacticTier}
+                                        </div>
+                                        <div className="tactic-slot-status">
+                                            {isPrepared ? '✓' : '○'}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {equippedWeapons.length === 0 ? (
                 <div className="empty-state">

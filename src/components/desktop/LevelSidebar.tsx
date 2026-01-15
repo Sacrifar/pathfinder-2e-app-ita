@@ -47,6 +47,7 @@ const getIconForType = (type: string): string => {
         'archetypeFeat': 'class',
         'skillFeat': 'skill',
         'generalFeat': 'general',
+        'tactics': 'general', // Commander tactics use general icon
     };
     return iconMap[type] || 'cog';
 };

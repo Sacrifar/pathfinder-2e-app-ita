@@ -11,13 +11,14 @@ import {
     FeatBrowser,
     SkillTrainingModal,
     LevelUpBoostModal,
-    SkillIncreaseModal
+    SkillIncreaseModal,
+    TacticBrowser,
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
 import { LoadedFeat } from '../data/pf2e-loader';
 import { getDefaultSpecializationForClass, classHasSpecializations } from '../data/classSpecializations';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -78,7 +79,7 @@ const CharacterSheetPage: React.FC = () => {
     };
 
     const handleOpenSelection = (type: string, targetLevel?: number) => {
-        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease'];
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease', 'tactics'];
         if (validTypes.includes(type)) {
             setSelectionType(type as SelectionType);
             setSelectionLevel(targetLevel ?? null);
@@ -619,6 +620,64 @@ const CharacterSheetPage: React.FC = () => {
                     onApply={handleApplySkillIncrease}
                 />
             )}
+
+            {selectionType === 'tactics' && character.classId === 'Oyee5Ds9uwYLEkD0' && (() => {
+                // Determine max selections based on level
+                const level = selectionLevel ?? character.level;
+                let maxSelections = 1;
+                if (level === 1) maxSelections = 5;
+                else if (level === 7) maxSelections = 2;
+                else if (level === 15) maxSelections = 2;
+                else if (level === 19) maxSelections = 2;
+
+                return (
+                    <TacticBrowser
+                        characterLevel={level}
+                        knownTactics={character.tactics?.known || []}
+                        maxSelections={maxSelections}
+                        onSelect={(tactic) => {
+                            if (character) {
+                                const currentTactics = character.tactics || { known: [], prepared: [] };
+                                const newKnown = [...currentTactics.known, tactic.id];
+
+                                // Auto-add to prepared if we have room
+                                let newPrepared = [...currentTactics.prepared];
+                                const maxPrepared = 3;
+                                if (newPrepared.length < maxPrepared && !newPrepared.includes(tactic.id)) {
+                                    newPrepared.push(tactic.id);
+                                }
+
+                                handleCharacterUpdate({
+                                    ...character,
+                                    tactics: {
+                                        ...currentTactics,
+                                        known: newKnown,
+                                        prepared: newPrepared,
+                                    },
+                                });
+                            }
+                            // Don't close the browser - let user continue selecting
+                        }}
+                        onRemove={(tacticId) => {
+                            if (character) {
+                                const currentTactics = character.tactics || { known: [], prepared: [] };
+                                const newKnown = currentTactics.known.filter(id => id !== tacticId);
+                                const newPrepared = currentTactics.prepared.filter(id => id !== tacticId);
+
+                                handleCharacterUpdate({
+                                    ...character,
+                                    tactics: {
+                                        ...currentTactics,
+                                        known: newKnown,
+                                        prepared: newPrepared,
+                                    },
+                                });
+                            }
+                        }}
+                        onClose={handleCloseSelection}
+                    />
+                );
+            })()}
         </>
     );
 };

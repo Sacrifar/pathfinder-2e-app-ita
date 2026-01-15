@@ -1587,6 +1587,16 @@
     background: var(--desktop-card);
 }
 
+.modal-btn-danger {
+    background: #d32f2f;
+    color: white;
+    border-color: #d32f2f;
+}
+
+.modal-btn-danger:hover {
+    background: #b71c1c;
+}
+
 /* ===== Detail Modal ===== */
 .detail-modal {
     background: var(--desktop-bg-secondary);
@@ -1945,6 +1955,103 @@
 /* ===== Weapons Panel ===== */
 .weapons-panel {
     padding: 16px;
+}
+
+/* Commander Tactics Section in Weapons Panel */
+.commander-tactics-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.03));
+    border-radius: 8px;
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+}
+
+.commander-tactics-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.commander-tactics-section .section-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-text, #fff);
+}
+
+.commander-tactics-section .tactics-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-accent-blue, #3b82f6);
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.05));
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.commander-tactics-section .tactics-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.commander-tactics-section .tactic-slot {
+    padding: 10px 12px;
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.05));
+    border: 2px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.commander-tactics-section .tactic-slot:hover {
+    background: var(--desktop-bg-elevated, rgba(255, 255, 255, 0.08));
+    border-color: var(--desktop-accent-blue, #3b82f6);
+}
+
+.commander-tactics-section .tactic-slot.prepared {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--desktop-accent-blue, #3b82f6);
+}
+
+.commander-tactics-section .tactic-slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.commander-tactics-section .tactic-slot-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-text, #fff);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.commander-tactics-section .tactic-slot-action {
+    font-size: 14px;
+    color: var(--desktop-text-muted, #888);
+    margin-left: 8px;
+}
+
+.commander-tactics-section .tactic-slot-tier {
+    font-size: 10px;
+    color: var(--desktop-text-muted, #888);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.commander-tactics-section .tactic-slot-status {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 16px;
+    color: var(--desktop-accent-blue, #3b82f6);
+    font-weight: bold;
 }
 
 .weapons-list {

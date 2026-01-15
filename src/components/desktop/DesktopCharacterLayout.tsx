@@ -24,6 +24,8 @@ const BuffBrowser = lazy(() => import('./BuffBrowser').then(m => ({ default: m.B
 const EquipmentBrowser = lazy(() => import('./EquipmentBrowser').then(m => ({ default: m.EquipmentBrowser })));
 const DeityBrowser = lazy(() => import('./DeityBrowser').then(m => ({ default: m.DeityBrowser })));
 const VariantRulesPanel = lazy(() => import('./VariantRulesPanel').then(m => ({ default: m.VariantRulesPanel })));
+const TacticBrowser = lazy(() => import('./TacticBrowser').then(m => ({ default: m.TacticBrowser })));
+const TacticsPanel = lazy(() => import('./TacticsPanel').then(m => ({ default: m.TacticsPanel })));
 
 // ActiveConditions e CharacterTabs devono rimanere non-lazy per performance
 import { ActiveConditions } from './ActiveConditions';
@@ -105,6 +107,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [showRestModal, setShowRestModal] = useState(false);
     const [showVariantRules, setShowVariantRules] = useState(false);
     const [showDeityBrowser, setShowDeityBrowser] = useState(false);
+    const [showTacticBrowser, setShowTacticBrowser] = useState(false);
+    const [tacticsLevel, setTacticsLevel] = useState(1);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -364,6 +368,36 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 });
             });
 
+            // Add Commander tactics selection
+            // Commander gains new tactics at levels 1, 7, 15, 19
+            if (character.classId === 'Oyee5Ds9uwYLEkD0') { // Commander class ID
+                const tacticsLevels: { level: number; tier: string; count: number }[] = [
+                    { level: 1, tier: 'basic', count: 5 },
+                    { level: 7, tier: 'expert', count: 2 },
+                    { level: 15, tier: 'master', count: 2 },
+                    { level: 19, tier: 'legendary', count: 2 },
+                ];
+
+                const tacticsInfo = tacticsLevels.find(t => t.level === level);
+                if (tacticsInfo) {
+                    const knownTactics = character.tactics?.known || [];
+                    const tierTactics = knownTactics.filter(id => {
+                        // This would require loading tactic data to check tier
+                        // For now, we'll just count total known tactics
+                        return true;
+                    });
+
+                    choices.push({
+                        id: `tactics${level}`,
+                        type: 'tactics',
+                        label: `commander.tactics${tacticsInfo.tier.charAt(0).toUpperCase() + tacticsInfo.tier.slice(1)}`,
+                        value: `${knownTactics.length} tactics`,
+                        required: true,
+                        onClick: () => onOpenSelection('tactics', level),
+                    });
+                }
+            }
+
             sections.push({
                 level,
                 choices,
@@ -447,6 +481,53 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             deityId: deity.id,
         });
         setShowDeityBrowser(false);
+    };
+
+    // Tactics handlers
+    const handleAddTactic = (tactic: any) => {
+        const currentTactics = character.tactics || { known: [], prepared: [] };
+        const newKnown = [...currentTactics.known, tactic.id];
+
+        // Auto-add to prepared if we have room
+        let newPrepared = [...currentTactics.prepared];
+        if (newPrepared.length < 3 && !newPrepared.includes(tactic.id)) {
+            newPrepared.push(tactic.id);
+        }
+
+        onCharacterUpdate({
+            ...character,
+            tactics: {
+                ...currentTactics,
+                known: newKnown,
+                prepared: newPrepared,
+            },
+        });
+    };
+
+    const handleTogglePreparedTactic = (tacticId: string) => {
+        const currentTactics = character.tactics || { known: [], prepared: [] };
+        const isPrepared = currentTactics.prepared.includes(tacticId);
+
+        let newPrepared: string[];
+        if (isPrepared) {
+            // Remove from prepared
+            newPrepared = currentTactics.prepared.filter(id => id !== tacticId);
+        } else {
+            // Add to prepared if we have room
+            if (currentTactics.prepared.length >= 3) {
+                // Already at max, don't add
+                return;
+            }
+            newPrepared = [...currentTactics.prepared, tacticId];
+        }
+
+        onCharacterUpdate({
+            ...character,
+            tactics: {
+                ...currentTactics,
+                prepared: newPrepared,
+            },
+        });
     };
 
     // Advance Round: decrement durations, handle frightened value decrease, remove expired effects
@@ -985,6 +1066,16 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                     />
                                 </Suspense>
                             )}
+
+                            {/* Commander Tactics Panel - only show for Commander class */}
+                            {character.classId === 'Oyee5Ds9uwYLEkD0' && activeTab === 'actions' && (
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <TacticsPanel
+                                        character={character}
+                                        onTogglePreparedTactic={handleTogglePreparedTactic}
+                                    />
+                                </Suspense>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1081,6 +1172,21 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         <DeityBrowser
                             onSelectDeity={handleSelectDeity}
                             onClose={() => setShowDeityBrowser(false)}
+                        />
+                    </Suspense>
+                )
+            }
+
+            {/* Tactics Browser Modal */}
+            {
+                showTacticBrowser && (
+                    <Suspense fallback={<LoadingFallback />}>
+                        <TacticBrowser
+                            characterLevel={character.level}
+                            knownTactics={character.tactics?.known || []}
+                            maxSelections={3}
+                            onAdd={handleAddTactic}
+                            onClose={() => setShowTacticBrowser(false)}
                         />
                     </Suspense>
                 )

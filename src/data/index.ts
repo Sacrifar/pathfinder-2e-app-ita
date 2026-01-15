@@ -44,6 +44,9 @@ export * from './skills';
 // Export pets (includes getFamiliarAbilities and getEidolonEvolutions)
 export * from './pets';
 
+// Export tactics
+export * from './tactics';
+
 // ============ Compatibility wrappers ============
 // These provide nameIt/descriptionIt for components that expect them
 
