@@ -99,6 +99,49 @@ interface SinglePrereqResult {
  * Parse a single prerequisite string and check it against character
  */
 function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereqResult {
+    // Pattern: "X and Y" - compound prerequisites with "and"
+    // Must check FIRST before other patterns
+    if (prereq.includes(' and ')) {
+        const parts = prereq.split(' and ').map(p => p.trim());
+        const results = parts.map(part => parseAndCheckPrereq(part, character));
+
+        const allMet = results.every(r => r.met);
+        const reasons = results.map(r => r.reason).filter((r): r is string => !!r);
+
+        if (allMet) {
+            return { met: true };
+        }
+
+        return {
+            met: false,
+            reason: reasons.join(' and ')
+        };
+    }
+
+    // Pattern: "trained/expert/master in [save]" - Check saving throw proficiencies
+    // Must check BEFORE skill proficiencies since "expert in Reflex saves" would match the skill pattern
+    const saveProfMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+(\w+)\s+saves/i);
+    if (saveProfMatch) {
+        const requiredProf = saveProfMatch[1].toLowerCase() as Proficiency;
+        const saveName = saveProfMatch[2].toLowerCase();
+
+        return checkSaveProficiency(saveName, requiredProf, character);
+    }
+
+    // Pattern: "trained/expert in at least one skill" - Check if character has any skill at that proficiency
+    const atLeastOneMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+at\s+least\s+one\s+skill/i);
+    if (atLeastOneMatch) {
+        const requiredProf = atLeastOneMatch[1].toLowerCase() as Proficiency;
+        return checkAtLeastOneSkillProficiency(requiredProf, character);
+    }
+
+    // Pattern: "trained in a skill with the Recall Knowledge action" - Check Recall Knowledge skills
+    const recallKnowledgeMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+a\s+skill\s+with\s+the\s+recall\s+knowledge\s+action/i);
+    if (recallKnowledgeMatch) {
+        const requiredProf = recallKnowledgeMatch[1].toLowerCase() as Proficiency;
+        return checkRecallKnowledgeSkillProficiency(requiredProf, character);
+    }
+
     // Pattern: "trained in [skill]" / "expert in [skill]" / etc.
     const skillProfMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+(\w+)/i);
     if (skillProfMatch) {
@@ -157,9 +200,26 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
 
     for (const [feature, classes] of Object.entries(classFeatures)) {
         if (prereq.includes(feature)) {
+            // Check if character's base class matches
             if (classes.includes(character.classId?.toLowerCase() || '')) {
                 return { met: true };
             }
+
+            // Also check if character has an archetype dedication for any of these classes
+            // This allows archetype characters to access class feats that require class features
+            const hasArchetypeDedication = character.feats?.some(feat => {
+                const featNameLower = feat.featId.toLowerCase();
+                // Check if this is a dedication feat for one of the classes that have this feature
+                return classes.some(className =>
+                    featNameLower.includes(`${className}-dedication`) ||
+                    featNameLower.includes(`${className} dedication`)
+                );
+            });
+
+            if (hasArchetypeDedication) {
+                return { met: true };
+            }
+
             return {
                 met: false,
                 reason: `Requires ${feature}`
@@ -217,6 +277,44 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
         }
     }
 
+    // Archetype dedication feat checks
+    // Pattern: "[Archetype] Dedication" or "[Archetype] Dedication feat"
+    const dedicationPattern = /(\w+)\s+dedication/i;
+    const dedicationMatch = prereq.match(dedicationPattern);
+
+    if (dedicationMatch) {
+        const archetypeName = dedicationMatch[1].toLowerCase();
+
+        // Check if character has the dedication feat
+        const hasDedication = character.feats?.some(feat => {
+            const featNameLower = feat.featId.toLowerCase();
+            return featNameLower.includes(archetypeName) && featNameLower.includes('dedication');
+        });
+
+        if (hasDedication) {
+            return { met: true };
+        }
+
+        return {
+            met: false,
+            reason: `Requires ${dedicationMatch[0]}`
+        };
+    }
+
+    // Check for specific archetype feats as prerequisites
+    // Pattern: "feat: [feat name]" or direct feat name matching
+    if (prereq.includes('feat') || prereq.includes('archetype')) {
+        // Check if character has this feat
+        const hasFeat = character.feats?.some(feat =>
+            feat.featId.toLowerCase().includes(prereq.replace('feat:', '').trim().toLowerCase()) ||
+            prereq.toLowerCase().includes(feat.featId.toLowerCase().replace(/-/g, ' '))
+        );
+
+        if (hasFeat) {
+            return { met: true };
+        }
+    }
+
     // If we can't parse it, assume it's met (to avoid false negatives)
     return { met: true };
 }
@@ -245,6 +343,106 @@ function checkSkillProficiency(
     return {
         met: false,
         reason: `Requires ${requiredProf} in ${skillName}`,
+    };
+}
+
+/**
+ * Check if character has required saving throw proficiency
+ */
+function checkSaveProficiency(
+    saveName: string,
+    requiredProf: Proficiency,
+    character: Character
+): SinglePrereqResult {
+    // Map save names to character.saves properties
+    const saveMap: Record<string, keyof typeof character.saves> = {
+        'fortitude': 'fortitude',
+        'fort': 'fortitude',
+        'reflex': 'reflex',
+        'ref': 'reflex',
+        'will': 'will',
+    };
+
+    const saveKey = saveMap[saveName.toLowerCase()];
+    if (!saveKey) {
+        // If we can't map it, assume it's met to avoid false negatives
+        return { met: true };
+    }
+
+    const currentProf = character.saves?.[saveKey] || 'untrained';
+    const currentIdx = PROFICIENCY_ORDER.indexOf(currentProf);
+    const requiredIdx = PROFICIENCY_ORDER.indexOf(requiredProf);
+
+    if (currentIdx >= requiredIdx) {
+        return { met: true };
+    }
+
+    return {
+        met: false,
+        reason: `Requires ${requiredProf} in ${saveName} saves`,
+    };
+}
+
+/**
+ * Check if character has at least one skill at required proficiency level
+ */
+function checkAtLeastOneSkillProficiency(
+    requiredProf: Proficiency,
+    character: Character
+): SinglePrereqResult {
+    const requiredIdx = PROFICIENCY_ORDER.indexOf(requiredProf);
+
+    // Check if any skill meets the required proficiency
+    const hasOneSkill = character.skills?.some(skill => {
+        const currentIdx = PROFICIENCY_ORDER.indexOf(skill.proficiency);
+        return currentIdx >= requiredIdx;
+    });
+
+    if (hasOneSkill) {
+        return { met: true };
+    }
+
+    return {
+        met: false,
+        reason: `Requires at least one skill ${requiredProf}`,
+    };
+}
+
+/**
+ * Check if character has required proficiency in any Recall Knowledge skill
+ * Recall Knowledge skills: Arcana, Crafting, Lore, Medicine, Nature, Occultism, Religion, Society
+ */
+function checkRecallKnowledgeSkillProficiency(
+    requiredProf: Proficiency,
+    character: Character
+): SinglePrereqResult {
+    // Skills that can use Recall Knowledge action
+    const recallKnowledgeSkills = [
+        'arcana', 'crafting', 'medicine', 'nature', 'occultism', 'religion', 'society',
+        'lore' // Covers all Lore skills
+    ];
+
+    const requiredIdx = PROFICIENCY_ORDER.indexOf(requiredProf);
+
+    // Check if any Recall Knowledge skill meets the required proficiency
+    const hasRecallKnowledgeSkill = character.skills?.some(skill => {
+        const skillNameLower = skill.name.toLowerCase();
+        const isRecallKnowledgeSkill = recallKnowledgeSkills.some(rkSkill =>
+            skillNameLower === rkSkill || skillNameLower.includes(rkSkill)
+        );
+        if (!isRecallKnowledgeSkill) return false;
+
+        const currentIdx = PROFICIENCY_ORDER.indexOf(skill.proficiency);
+        return currentIdx >= requiredIdx;
+    });
+
+    if (hasRecallKnowledgeSkill) {
+        return { met: true };
+    }
+
+    return {
+        met: false,
+        reason: `Requires ${requiredProf} in a skill with the Recall Knowledge action`,
     };
 }
 

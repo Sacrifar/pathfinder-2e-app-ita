@@ -7,6 +7,7 @@ import '../../styles/desktop.css';
 
 interface KineticistImpulseBrowserProps {
     character: Character;
+    level?: number; // Level for the impulse selection (1 for starting, 5/9/13/17 for gate's threshold)
     onClose: () => void;
     onConfirm: (feats: CharacterFeat[]) => void;
 }
@@ -20,6 +21,7 @@ interface ImpulseSelection {
 
 export const KineticistImpulseBrowser: React.FC<KineticistImpulseBrowserProps> = ({
     character,
+    level = 1,
     onClose,
     onConfirm,
 }) => {
@@ -42,7 +44,11 @@ export const KineticistImpulseBrowser: React.FC<KineticistImpulseBrowserProps> =
 
     // Determine required feat count per gate
     const isDualGate = Array.isArray(character.classSpecializationId);
-    const requiredCountPerGate = isDualGate ? 1 : 2;
+    const isGateThreshold = [5, 9, 13, 17].includes(level);
+
+    // For gate's threshold (levels 5, 9, 13, 17): select 1 impulse total
+    // For level 1: select 2 impulses for single gate, 1 for dual gate
+    const requiredCountPerGate = isGateThreshold ? 1 : (isDualGate ? 1 : 2);
 
     // Initialize selections
     React.useEffect(() => {
@@ -58,15 +64,70 @@ export const KineticistImpulseBrowser: React.FC<KineticistImpulseBrowserProps> =
     // Load all feats once
     const allFeats = useMemo(() => getFeats(), []);
 
+    // Get all elements the character has access to
+    const characterElements = useMemo(() => {
+        return gateSelections.map(g => g.element).filter(e => e);
+    }, [gateSelections]);
+
+    // Get IDs of impulse feats the character already has at this level
+    const existingImpulseIds = useMemo(() => {
+        return character.feats
+            .filter(f => {
+                // For the current selection level, get all impulses
+                // For other levels, also include them to prevent duplicates
+                if (f.source !== 'class') return false;
+
+                // Check if this feat is an impulse by looking at the feat data
+                const featData = allFeats.find(feat => feat.id === f.featId);
+                return featData && featData.traits.includes('impulse');
+            })
+            .map(f => f.featId);
+    }, [character.feats, allFeats]);
+
     // Get available impulse feats for each element
     const getAvailableImpulses = (element: string): LoadedFeat[] => {
         if (!element) return [];
-        return allFeats.filter(f =>
-            f.level === 1 &&
-            f.category === 'class' &&
-            f.traits.includes('impulse') &&
-            f.traits.includes(element)
-        );
+
+        // Define impulse traits for all elements
+        const impulseTraits = ['air', 'earth', 'fire', 'water', 'wood', 'metal', 'aether', 'void'];
+
+        // Maximum impulse level is the character's level (or feat selection level)
+        const maxImpulseLevel = level;
+
+        return allFeats.filter(f => {
+            // Must be a class impulse
+            if (f.category !== 'class' || !f.traits.includes('impulse')) {
+                return false;
+            }
+
+            // Must not exceed character's level
+            if (f.level > maxImpulseLevel) {
+                return false;
+            }
+
+            // Must have the gate's element
+            if (!f.traits.includes(element)) {
+                return false;
+            }
+
+            // Exclude already selected impulses
+            if (existingImpulseIds.includes(f.id)) {
+                return false;
+            }
+
+            // Check if this is a composite impulse (has multiple element traits)
+            const impulseElementTraits = f.traits.filter(t => impulseTraits.includes(t));
+
+            if (impulseElementTraits.length > 1) {
+                // This is a composite impulse - check if character has access to ALL required elements
+                // For single gate, only show single-element impulses
+                // For dual gate, show composites that use BOTH gate elements
+                return impulseElementTraits.every(elem => characterElements.includes(elem));
+            }
+
+            // Single-element impulse - always show
+            return true;
+        });
     };
 
     // Get gate name
@@ -114,7 +175,7 @@ export const KineticistImpulseBrowser: React.FC<KineticistImpulseBrowserProps> =
             selection.selectedFeats.forEach(featId => {
                 newFeats.push({
                     featId,
-                    level: 1,
+                    level: level, // Use the actual selection level
                     source: 'class',
                     slotType: 'impulse', // Use dedicated slotType for impulse feats
                 });

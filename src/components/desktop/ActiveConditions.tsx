@@ -35,6 +35,7 @@ export const ActiveConditions: React.FC<ActiveConditionsProps> = ({
     const allConditions = getConditions();
 
     // Combine conditions and buffs into a single display list
+    // Filter out feat-derived buffs (they are automatic and shouldn't be shown in UI)
     const activeEffects: ActiveEffect[] = [
         ...character.conditions.map(c => {
             const data = allConditions.find(ac => ac.id === c.id);
@@ -48,17 +49,19 @@ export const ActiveConditions: React.FC<ActiveConditionsProps> = ({
                 duration: c.duration,
             };
         }),
-        ...character.buffs.map(b => ({
-            id: b.id,
-            type: 'buff' as const,
-            name: b.name,
-            description: b.source,
-            bonus: b.bonus,
-            bonusType: b.type,
-            duration: b.duration,
-            source: b.source,
-            isValued: false,
-        }))
+        ...character.buffs
+            .filter(b => !b.source?.startsWith('feat:')) // Hide feat-derived buffs
+            .map(b => ({
+                id: b.id,
+                type: 'buff' as const,
+                name: b.name,
+                description: b.source,
+                bonus: b.bonus,
+                bonusType: b.type,
+                duration: b.duration,
+                source: b.source,
+                isValued: false,
+            }))
     ];
 
     if (activeEffects.length === 0) {

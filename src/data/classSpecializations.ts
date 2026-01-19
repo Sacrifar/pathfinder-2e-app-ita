@@ -1331,9 +1331,10 @@ export function getKineticistElementFromGateId(gateId: string): string | null {
             'wood': 'wood',
         };
 
-        const lowerName = spec.name.toLowerCase();
+        // Check both name and nameIt for element keywords
+        const nameToCheck = (spec.nameIt || spec.name).toLowerCase();
         for (const [element, trait] of Object.entries(elementMap)) {
-            if (lowerName.includes(element)) {
+            if (nameToCheck.includes(element)) {
                 return trait;
             }
         }

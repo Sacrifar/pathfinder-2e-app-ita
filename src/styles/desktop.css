@@ -1,44 +1,6 @@
 /* Desktop Character Builder Styles */
 /* Based on Pathbuilder2e.com design */
-
-/* ===== Color Variables ===== */
-:root {
-    /* Desktop Dark Theme */
-    --desktop-bg: #0d0d0d;
-    --desktop-bg-secondary: #1a1a1a;
-    --desktop-bg-tertiary: #252525;
-    --desktop-card: #2d2d2d;
-    --desktop-card-hover: #353535;
-
-    /* Borders */
-    --desktop-border: #333333;
-    --desktop-border-light: #444444;
-
-    /* Text */
-    --desktop-text: #ffffff;
-    --desktop-text-secondary: #aaaaaa;
-    --desktop-text-muted: #666666;
-
-    /* Accents */
-    --desktop-accent-red: #c42b2b;
-    --desktop-accent-red-hover: #d63636;
-    --desktop-accent-orange: #ff8c00;
-    --desktop-accent-blue: #4a9eff;
-    --desktop-accent-green: #4caf50;
-
-    /* Rarity Colors */
-    --rarity-common: #ffffff;
-    --rarity-uncommon: #ff8c00;
-    --rarity-rare: #4a9eff;
-    --rarity-unique: #9b30ff;
-
-    /* Proficiency */
-    --prof-untrained: #666666;
-    --prof-trained: #ffffff;
-    --prof-expert: #4a9eff;
-    --prof-master: #ff8c00;
-    --prof-legendary: #9b30ff;
-}
+/* Color variables now in design-tokens.css for consistency */
 
 /* ===== Desktop Layout ===== */
 .desktop-layout {
@@ -4821,7 +4783,16 @@
     border-left: 3px solid var(--desktop-text-secondary);
 }
 
+.browser-item.level-too-high {
+    opacity: 0.5;
+    border-left: 3px solid var(--desktop-accent-purple, #9b59b6);
+}
+
 .prereq-warning {
+    margin-right: 4px;
+}
+
+.level-warning {
     margin-right: 4px;
 }
 
@@ -4832,6 +4803,15 @@
     background: var(--desktop-text-secondary);
     color: var(--desktop-bg);
     margin-left: auto;
+}
+
+.item-level-warning {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--desktop-accent-purple, #9b59b6);
+    color: var(--desktop-bg);
+    margin-left: 4px;
 }
 
 .item-owned.repeatable {
@@ -5833,4 +5813,168 @@
     padding: 16px;
     flex: 1;
     overflow-y: auto;
+}
+
+/* ===== Skill Overlap Bonus Modal ===== */
+.skill-overlap-modal {
+    max-width: 700px;
+}
+
+.overlap-description {
+    padding: 16px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    padding: 10px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.skill-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.skill-option:hover {
+    background: var(--desktop-card-hover);
+    border-color: var(--desktop-border-light);
+}
+
+.skill-option.selected {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: var(--desktop-accent-blue);
+}
+
+.skill-name {
+    font-weight: 500;
+}
+
+.skill-ability {
+    font-size: 0.85em;
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Searchable Feat Choice ===== */
+.searchable-feat-choice {
+    position: relative;
+}
+
+.selected-feat-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 38px;
+}
+
+.selected-feat-display:hover {
+    background: var(--desktop-card-hover);
+    border-color: var(--desktop-border-light);
+}
+
+.selected-feat-name {
+    font-weight: 500;
+}
+
+.selected-feat-placeholder {
+    color: var(--desktop-text-muted);
+}
+
+.expand-arrow {
+    color: var(--desktop-text-secondary);
+    font-size: 0.8em;
+}
+
+.feat-choice-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border-light);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.feat-choice-search {
+    padding: 10px 12px;
+    background: var(--desktop-bg-tertiary);
+    border: none;
+    border-bottom: 1px solid var(--desktop-border);
+    border-radius: 6px 6px 0 0;
+    color: var(--desktop-text);
+    font-size: 14px;
+    outline: none;
+}
+
+.feat-choice-search::placeholder {
+    color: var(--desktop-text-muted);
+}
+
+.feat-choice-options {
+    overflow-y: auto;
+    max-height: 340px;
+    padding: 4px;
+}
+
+.feat-choice-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.feat-choice-option:hover {
+    background: var(--desktop-card-hover);
+}
+
+.feat-choice-option.selected {
+    background: rgba(74, 158, 255, 0.2);
+    border: 1px solid var(--desktop-accent-blue);
+}
+
+.feat-option-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.feat-option-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.feat-option-level {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 3px;
 }

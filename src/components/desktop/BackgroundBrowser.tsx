@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { backgrounds } from '../../data';
 import { Background } from '../../types';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../../hooks/useLanguage';
+import { getFeats } from '../../data/pf2e-loader';
 import '../../styles/desktop.css';
 
 interface BackgroundBrowserProps {
@@ -22,6 +23,15 @@ export const BackgroundBrowser: React.FC<BackgroundBrowserProps> = ({
     const [selectedBackground, setSelectedBackground] = useState<Background | null>(
         currentBackgroundId ? backgrounds.find(b => b.id === currentBackgroundId) || null : null
     );
+
+    // Load all feats for lookup
+    const allFeats = useMemo(() => getFeats(), []);
+
+    // Helper to get feat name by ID
+    const getFeatName = (featId: string): string => {
+        const feat = allFeats.find(f => f.id === featId);
+        return feat?.name || featId;
+    };
 
     const filteredBackgrounds = useMemo(() => {
         const q = searchQuery.toLowerCase();
@@ -69,6 +79,9 @@ export const BackgroundBrowser: React.FC<BackgroundBrowserProps> = ({
                                         {bg.trainedSkills.slice(0, 2).map((skill, i) => (
                                             <span key={i} className="badge skill">{skill}</span>
                                         ))}
+                                        {bg.featId && (
+                                            <span className="badge feat">{getFeatName(bg.featId)}</span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -117,10 +130,12 @@ export const BackgroundBrowser: React.FC<BackgroundBrowserProps> = ({
                                     <p>{getDescription(selectedBackground)}</p>
                                 </div>
 
-                                {(selectedBackground as Background & { feat?: string }).feat && (
+                                {selectedBackground.featId && (
                                     <div className="feat-section">
-                                        <span className="section-label">Skill Feat:</span>
-                                        <span className="feat-name">{(selectedBackground as Background & { feat?: string }).feat}</span>
+                                        <span className="section-label">{t('builder.freeFeat') || 'Free Feat'}:</span>
+                                        <div className="feat-value">
+                                            <span className="feat-name">{getFeatName(selectedBackground.featId)}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>

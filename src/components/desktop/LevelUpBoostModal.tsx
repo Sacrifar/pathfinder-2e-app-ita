@@ -28,33 +28,46 @@ export const LevelUpBoostModal: React.FC<LevelUpBoostModalProps> = ({
     const { t, language } = useLanguage();
 
     // Determine number of boosts based on variant rules
-    // Gradual Ability Boosts: 1 boost per level
     // Standard: 4 boosts at levels 5, 10, 15, 20
+    // Gradual: 1 boost at levels 2,3,4,5, 7,8,9,10, 12,13,14,15, 17,18,19,20 (pause at 6,11,16)
     const gradualBoosts = character.variantRules?.gradualAbilityBoosts || false;
     const requiredBoosts = gradualBoosts ? 1 : 4;
 
-    // For gradual boosts, track which abilities were recently selected
-    // Rule: An ability cannot be selected again until 3 OTHER abilities have been boosted
-    const recentGradualBoosts = useMemo(() => {
+    /**
+     * Get the current block for a given level (gradual boosts only)
+     * Block 1: Levels 2-5
+     * Block 2: Levels 7-10
+     * Block 3: Levels 12-15
+     * Block 4: Levels 17-20
+     */
+    const getBlockForLevel = (lvl: number): number => {
+        if (lvl <= 5) return 1;
+        if (lvl <= 10) return 2;
+        if (lvl <= 15) return 3;
+        return 4;
+    };
+
+    /**
+     * Get abilities already used in the current block
+     * Rule: You cannot boost the same ability more than once per block
+     */
+    const usedAbilitiesInBlock = useMemo(() => {
         if (!gradualBoosts) return [];
 
-        // Get all gradual boosts from previous levels (excluding current level)
-        const allPreviousBoosts: AbilityName[] = [];
-        for (let l = 2; l < level; l++) {
+        const currentBlock = getBlockForLevel(level);
+        const blockStartLevel = currentBlock === 1 ? 2 : (currentBlock === 2 ? 7 : (currentBlock === 3 ? 12 : 17));
+
+        const usedInBlock: AbilityName[] = [];
+
+        // Get all boosts from previous levels in the same block
+        for (let l = blockStartLevel; l < level; l++) {
+            // Skip pause levels (6, 11, 16) - levels where l % 5 == 1
+            if (l % 5 === 1) continue;
             const boostsAtLevel = character.abilityBoosts?.levelUp?.[l] || [];
-            allPreviousBoosts.push(...boostsAtLevel);
+            usedInBlock.push(...boostsAtLevel);
         }
 
-        // Return in reverse order (most recent first), up to last 3 unique abilities
-        const recent: AbilityName[] = [];
-        for (let i = allPreviousBoosts.length - 1; i >= 0 && recent.length < 3; i--) {
-            const boost = allPreviousBoosts[i];
-            if (!recent.includes(boost)) {
-                recent.push(boost);
-            }
-        }
-
-        return recent;
+        return usedInBlock;
     }, [gradualBoosts, level, character.abilityBoosts?.levelUp]);
 
     // Initialize with existing selections for this level
@@ -169,11 +182,11 @@ export const LevelUpBoostModal: React.FC<LevelUpBoostModalProps> = ({
                                     : `Select 4 abilities to boost. Each ability below 18 gains +2, those at 18 or above gain +1.`)
                             }
                         </p>
-                        {gradualBoosts && recentGradualBoosts.length > 0 && (
+                        {gradualBoosts && usedAbilitiesInBlock.length > 0 && (
                             <p className="boost-rule-hint">
                                 {language === 'it'
-                                    ? `Regola Gradual: Non puoi riselezionare ${recentGradualBoosts.map(a => getAbilityName(a)).join(', ')} finché non hai selezionato altre 3 caratteristiche.`
-                                    : `Gradual Rule: You cannot select ${recentGradualBoosts.map(a => getAbilityName(a)).join(', ')} again until you've chosen 3 other abilities.`
+                                    ? `Regola Gradual: In questo blocco hai già usato: ${usedAbilitiesInBlock.map(a => getAbilityName(a)).join(', ')}. Non puoi selezionare la stessa caratteristica più di una volta per blocco.`
+                                    : `Gradual Rule: You already used: ${usedAbilitiesInBlock.map(a => getAbilityName(a)).join(', ')} in this block. You cannot select the same ability more than once per block.`
                                 }
                             </p>
                         )}
@@ -188,19 +201,19 @@ export const LevelUpBoostModal: React.FC<LevelUpBoostModalProps> = ({
                             <div className="boost-options level-up-options">
                                 {ABILITIES.map(ability => {
                                     const isSelected = selectedBoosts.includes(ability.key);
-                                    const isRecentlyUsed = gradualBoosts && recentGradualBoosts.includes(ability.key);
-                                    const canSelect = (selectedBoosts.length < requiredBoosts || isSelected) && !isRecentlyUsed;
+                                    const isUsedInBlock = gradualBoosts && usedAbilitiesInBlock.includes(ability.key);
+                                    const canSelect = (selectedBoosts.length < requiredBoosts || isSelected) && !isUsedInBlock;
 
                                     return (
                                         <button
                                             key={ability.key}
-                                            className={`boost-option level-up-boost ${isSelected ? 'selected' : ''} ${isRecentlyUsed ? 'recently-used' : ''}`}
+                                            className={`boost-option level-up-boost ${isSelected ? 'selected' : ''} ${isUsedInBlock ? 'recently-used' : ''}`}
                                             onClick={() => toggleBoost(ability.key)}
                                             disabled={!canSelect && !isSelected}
-                                            title={isRecentlyUsed
+                                            title={isUsedInBlock
                                                 ? (language === 'it'
-                                                    ? `Già selezionato di recente. Seleziona altre 3 caratteristiche prima di poterlo riselezionare.`
-                                                    : `Recently selected. Select 3 other abilities before choosing this one again.`)
+                                                    ? `Già selezionato in questo blocco. Non puoi selezionare la stessa caratteristica più di una volta per blocco.`
+                                                    : `Already used in this block. You cannot select the same ability more than once per block.`)
                                                 : undefined
                                             }
                                         >
@@ -217,11 +230,11 @@ export const LevelUpBoostModal: React.FC<LevelUpBoostModalProps> = ({
                                                         : currentScores[ability.key] + 2
                                                 }
                                             </span>
-                                            {isRecentlyUsed && (
+                                            {isUsedInBlock && (
                                                 <span className="recent-indicator" title={
                                                     language === 'it'
-                                                        ? 'Già selezionato di recente'
-                                                        : 'Recently selected'
+                                                        ? 'Già usato in questo blocco'
+                                                        : 'Already used in this block'
                                                 }>⏳</span>
                                             )}
                                         </button>

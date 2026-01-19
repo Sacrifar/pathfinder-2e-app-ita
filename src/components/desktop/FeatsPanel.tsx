@@ -80,7 +80,10 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
         };
 
         character.feats.forEach(feat => {
-            groups[feat.source].push(feat);
+            // Only show feats at or below current character level
+            if (feat.level <= character.level) {
+                groups[feat.source].push(feat);
+            }
         });
 
         return [
@@ -93,7 +96,7 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
     };
 
     const featGroups = groupFeats();
-    const totalFeats = character.feats.length;
+    const totalFeats = featGroups.reduce((sum, group) => sum + group.feats.length, 0);
 
     const getSourceColor = (source: CharacterFeat['source']): string => {
         switch (source) {

@@ -15,18 +15,29 @@ import {
     SkillIncreaseModal,
     TacticBrowser,
     KineticistJunctionBrowser,
+    SkillOverlapBonusModal,
+    IntBonusSkillModal,
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
-import { LoadedFeat } from '../data/pf2e-loader';
+import { LoadedFeat, getClasses, getFeats } from '../data/pf2e-loader';
 import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
+import { backgrounds, skills as skillsData } from '../data';
+import { recalculateCharacter } from '../utils/characterRecalculator';
+import { getAllKineticistJunctionGrantedFeats } from '../data/classFeatures';
+import { updateDedicationTrackingOnAdd, updateDedicationTrackingOnRemove, recalculateDedicationTracking, removeDedicationAndArchetypeFeats, isArchetypeDedication, migrateFeatIds } from '../utils/archetypeDedication';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | 'kineticistImpulse' | 'kineticistJunction' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | 'kineticistImpulse' | 'kineticistJunction' | 'intBonusSkills' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [character, setCharacter] = useState<Character | null>(null);
     const [selectionType, setSelectionType] = useState<SelectionType>(null);
     const [selectionLevel, setSelectionLevel] = useState<number | null>(null);
+
+    // State for skill overlap bonus modal
+    const [pendingBackgroundId, setPendingBackgroundId] = useState<string | null>(null);
+    const [pendingClassId, setPendingClassId] = useState<string | null>(null);
+    const [overlappingSkill, setOverlappingSkill] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -36,20 +47,59 @@ const CharacterSheetPage: React.FC = () => {
                 const characters: Character[] = JSON.parse(saved);
                 const found = characters.find((c) => c.id === id);
                 if (found) {
-                    const migrated = migrateCharacter(found);
+                    let migrated = migrateCharacter(found);
+
+                    // Migrate old UUID-based feat IDs to new name-based IDs
+                    // This ensures feats display with proper names instead of UUIDs
+                    const beforeMigration = JSON.stringify(migrated.feats);
+                    migrated = migrateFeatIds(migrated);
+                    const afterMigration = JSON.stringify(migrated.feats);
+
+                    // Save if migration occurred
+                    const needsSave = beforeMigration !== afterMigration;
 
                     // Auto-assign default specialization for existing characters that don't have one
                     if (!migrated.classSpecializationId && migrated.classId && classHasSpecializations(migrated.classId)) {
                         const defaultSpec = getDefaultSpecializationForClass(migrated.classId);
                         if (defaultSpec) {
                             migrated.classSpecializationId = defaultSpec;
-                            // Save the migrated character with default specialization
-                            const updatedCharacters = characters.map(c =>
-                                c.id === migrated.id ? migrated : c
-                            );
-                            localStorage.setItem('pf2e-characters', JSON.stringify(updatedCharacters));
                         }
                     }
+
+                    // Recalculate archetype dedication tracking for existing characters
+                    // This ensures the dedication constraint works for characters created before this feature
+                    if (!migrated.archetypeDedications || Object.keys(migrated.archetypeDedications).length === 0) {
+                        migrated = recalculateDedicationTracking(migrated);
+                        // Save the migrated character with dedication tracking
+                        const updatedCharacters = characters.map(c =>
+                            c.id === migrated.id ? migrated : c
+                        );
+                        localStorage.setItem('pf2e-characters', JSON.stringify(updatedCharacters));
+                    } else if (needsSave) {
+                        // Save the migrated character with updated feat IDs
+                        const updatedCharacters = characters.map(c =>
+                            c.id === migrated.id ? migrated : c
+                        );
+                        localStorage.setItem('pf2e-characters', JSON.stringify(updatedCharacters));
+                    }
+
+                    // ALWAYS recalculate character on load to ensure saves, perception, and HP are correct
+                    // This handles cases where the character was saved before the recalculation system was implemented
+                    // Reset saves/perception to force recalculation from current class/feats
+                    migrated.saves = {
+                        fortitude: 'trained',
+                        reflex: 'trained',
+                        will: 'trained'
+                    };
+                    migrated.perception = 'trained';
+
+                    migrated = recalculateCharacter(migrated);
+
+                    // Save the recalculated character back to localStorage
+                    const updatedCharacters = characters.map(c =>
+                        c.id === migrated.id ? migrated : c
+                    );
+                    localStorage.setItem('pf2e-characters', JSON.stringify(updatedCharacters));
 
                     setCharacter(migrated);
                     return;
@@ -64,24 +114,28 @@ const CharacterSheetPage: React.FC = () => {
     }, [id]);
 
     const handleCharacterUpdate = (updated: Character) => {
-        setCharacter(updated);
+        // ALWAYS recalculate character on any update to ensure saves, perception, and HP are correct
+        // This handles level ups, feat additions, and any other changes
+        const recalculated = recalculateCharacter(updated);
+
+        setCharacter(recalculated);
 
         // Save to localStorage
         const saved = localStorage.getItem('pf2e-characters');
         const characters: Character[] = saved ? JSON.parse(saved) : [];
-        const index = characters.findIndex((c) => c.id === updated.id);
+        const index = characters.findIndex((c) => c.id === recalculated.id);
 
         if (index >= 0) {
-            characters[index] = updated;
+            characters[index] = recalculated;
         } else {
-            characters.push(updated);
+            characters.push(recalculated);
         }
 
         localStorage.setItem('pf2e-characters', JSON.stringify(characters));
     };
 
     const handleOpenSelection = (type: string, targetLevel?: number) => {
-        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease', 'tactics', 'kineticistImpulse', 'kineticistJunction'];
+        const validTypes = ['ancestry', 'heritage', 'background', 'class', 'classSpecialization', 'secondaryClass', 'boost', 'ancestryFeat', 'classFeat', 'archetypeFeat', 'skillTraining', 'boost2', 'boost3', 'boost4', 'boost5', 'boost6', 'boost7', 'boost8', 'boost9', 'boost10', 'boost11', 'boost12', 'boost13', 'boost14', 'boost15', 'boost16', 'boost17', 'boost18', 'boost19', 'boost20', 'skillFeat', 'generalFeat', 'skillIncrease', 'tactics', 'kineticistImpulse', 'kineticistJunction', 'intBonusSkills'];
         if (validTypes.includes(type)) {
             setSelectionType(type as SelectionType);
             setSelectionLevel(targetLevel ?? null);
@@ -95,46 +149,254 @@ const CharacterSheetPage: React.FC = () => {
 
     const handleSelectAncestry = (ancestryId: string) => {
         if (character) {
-            handleCharacterUpdate({
+            const updated = recalculateCharacter({
                 ...character,
                 ancestryId,
                 heritageId: '', // Reset heritage when ancestry changes
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
     const handleSelectHeritage = (heritageId: string) => {
         if (character) {
-            handleCharacterUpdate({
+            const updated = recalculateCharacter({
                 ...character,
                 heritageId,
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
     const handleSelectBackground = (backgroundId: string) => {
         if (character) {
-            handleCharacterUpdate({
-                ...character,
-                backgroundId,
-                // Clear existing background boosts when changing background
-                abilityBoosts: {
-                    ...character.abilityBoosts,
-                    background: [],
-                },
-            });
+            // Check for skill overlaps with class
+            const newBackground = backgrounds.find(b => b.id === backgroundId);
+            if (!newBackground) {
+                applyBackgroundSelection(backgroundId);
+                return;
+            }
+
+            const classesList = getClasses();
+            const classData = character.classId ? classesList.find((c: any) => c.id === character.classId) : null;
+
+            // Check if there's overlap with class skills
+            if (classData && classData.trainedSkills && classData.trainedSkills.length > 0 && newBackground.trainedSkills) {
+                for (const bgSkill of newBackground.trainedSkills) {
+                    const bgSkillLower = bgSkill.toLowerCase();
+                    const hasOverlap = classData.trainedSkills.some(
+                        (classSkill: string) => classSkill.toLowerCase() === bgSkillLower
+                    );
+
+                    if (hasOverlap) {
+                        // Check if bonus skill already matches the overlapping skill
+                        const currentBonusSkill = character.skillIncreases?.[0]?.toLowerCase();
+
+                        // Only show modal if the bonus skill doesn't match the overlap
+                        if (currentBonusSkill && currentBonusSkill === bgSkillLower) {
+                            // Bonus skill already matches - no need to show modal
+                            // Just apply the background
+                            applyBackgroundSelection(backgroundId);
+                            return;
+                        }
+
+                        // Show modal to select a different bonus skill
+                        setPendingBackgroundId(backgroundId);
+                        setOverlappingSkill(bgSkill);
+                        return;
+                    }
+                }
+            }
+
+            // No overlap - proceed with normal background selection
+            applyBackgroundSelection(backgroundId);
         }
+    };
+
+    const applyBackgroundSelection = (backgroundId: string, bonusSkill?: string) => {
+        if (!character) return;
+
+        const newBackground = backgrounds.find(b => b.id === backgroundId);
+        if (!newBackground) return;
+
+        // Remove old background feat (if any old background exists)
+        const oldBackground = character.backgroundId ? backgrounds.find(b => b.id === character.backgroundId) : null;
+        let currentFeats = [...(character.feats || [])];
+
+        if (oldBackground && oldBackground.featId) {
+            // Remove the old background's feat
+            currentFeats = currentFeats.filter(f => f.featId !== oldBackground.featId);
+        }
+
+        // Add the new background's free feat if it exists and isn't already owned
+        if (newBackground.featId) {
+            const hasFeat = currentFeats.some(f => f.featId === newBackground.featId);
+            if (!hasFeat) {
+                const newFeat: CharacterFeat = {
+                    featId: newBackground.featId,
+                    level: 1,
+                    source: 'bonus', // Background feats are bonus feats
+                };
+                currentFeats.push(newFeat);
+            }
+        }
+
+        // Build updated character with all changes - recalculation will handle skills
+        let updatedCharacter: Character = {
+            ...character,
+            backgroundId,
+            // Clear existing background boosts when changing background
+            abilityBoosts: {
+                ...character.abilityBoosts,
+                background: [],
+            },
+            // Update feats
+            feats: currentFeats,
+            // Update skillIncreases if bonus was selected
+            skillIncreases: bonusSkill ? { ...character.skillIncreases, 0: bonusSkill } : character.skillIncreases,
+        };
+
+        // Clean up stale bonus skill if no longer valid
+        const currentBonusSkill = character.skillIncreases?.[0];
+        const classesList = getClasses();
+        const classData = character.classId ? classesList.find((c: any) => c.id === character.classId) : null;
+
+        // Check if there's currently an overlap
+        let hasOverlap = false;
+        if (classData && classData.trainedSkills && newBackground.trainedSkills) {
+            hasOverlap = newBackground.trainedSkills.some((bgSkill: string) =>
+                classData.trainedSkills.some((classSkill: string) =>
+                    classSkill.toLowerCase() === bgSkill.toLowerCase()
+                )
+            );
+        }
+
+        // If no bonus skill provided and there's no overlap, clean up stale bonus
+        if (!bonusSkill && currentBonusSkill && !hasOverlap) {
+            // Check if the bonus skill is still valid
+            const isStillValid = classData?.trainedSkills?.some(
+                (classSkill: string) => classSkill.toLowerCase() === currentBonusSkill.toLowerCase()
+            ) && newBackground.trainedSkills?.some(
+                (bgSkill: string) => bgSkill.toLowerCase() === currentBonusSkill.toLowerCase()
+            );
+
+            if (!isStillValid) {
+                // Remove the bonus skill registration - recalculation will handle skill proficiency
+                const { 0: removed, ...remainingSkillIncreases } = character.skillIncreases || {};
+                updatedCharacter.skillIncreases = remainingSkillIncreases;
+            }
+        }
+
+        // Recalculate everything
+        const updated = recalculateCharacter(updatedCharacter);
+        handleCharacterUpdate(updated);
         setSelectionType(null);
+    };
+
+    const handleSkillOverlapBonusSelect = (skillName: string) => {
+        if (pendingBackgroundId) {
+            applyBackgroundSelection(pendingBackgroundId, skillName);
+            setPendingBackgroundId(null);
+            setOverlappingSkill(null);
+        } else if (pendingClassId) {
+            // Apply class selection with bonus skill - recalculation will handle skills
+            if (character) {
+                const updated = recalculateCharacter({
+                    ...character,
+                    classId: pendingClassId,
+                    skillIncreases: { ...character.skillIncreases, 0: skillName },
+                });
+                handleCharacterUpdate(updated);
+            }
+            setPendingClassId(null);
+            setOverlappingSkill(null);
+            // Close the class browser
+            setSelectionType(null);
+        }
+    };
+
+    const handleCloseSkillOverlapModal = () => {
+        setPendingBackgroundId(null);
+        setPendingClassId(null);
+        setOverlappingSkill(null);
     };
 
     const handleSelectClass = (classId: string) => {
         if (character) {
-            handleCharacterUpdate({
-                ...character,
-                classId,
-            });
+            // Check for skill overlaps with background
+            const classes = getClasses();
+            const classData = classes.find(c => c.id === classId);
+
+            if (classData && classData.trainedSkills && classData.trainedSkills.length > 0 && character.backgroundId) {
+                const backgroundData = backgrounds.find((b: any) => b.id === character.backgroundId);
+
+                if (backgroundData) {
+                    // Check if any background skill overlaps with class skills
+                    for (const bgSkill of backgroundData.trainedSkills) {
+                        const bgSkillLower = bgSkill.toLowerCase();
+                        const hasOverlap = classData.trainedSkills.some(
+                            (classSkill: string) => classSkill.toLowerCase() === bgSkillLower
+                        );
+
+                        if (hasOverlap) {
+                            // Check if bonus skill already matches the overlapping skill
+                            const currentBonusSkill = character.skillIncreases?.[0]?.toLowerCase();
+
+                            // Only show modal if the bonus skill doesn't match the overlap
+                            // This prevents showing the modal unnecessarily when changing classes
+                            if (currentBonusSkill && currentBonusSkill === bgSkillLower) {
+                                // Bonus skill already matches - no need to show modal
+                                // Just update the class
+                                const updated = recalculateCharacter({
+                                    ...character,
+                                    classId,
+                                });
+                                handleCharacterUpdate(updated);
+                                setSelectionType(null);
+                                return;
+                            }
+
+                            // Show modal to select a different bonus skill
+                            setPendingClassId(classId);
+                            setOverlappingSkill(bgSkill);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // No overlap - check if we have a stale bonus skill to remove
+            // Remove bonus skill registration if no longer valid
+            const currentBonusSkill = character.skillIncreases?.[0];
+            let updatedCharacter = { ...character, classId };
+
+            if (currentBonusSkill) {
+                const isStillValid = classData?.trainedSkills?.some(
+                    (classSkill: string) => classSkill.toLowerCase() === currentBonusSkill.toLowerCase()
+                );
+
+                if (!isStillValid) {
+                    // Remove the bonus skill registration - recalculation will handle skill proficiency
+                    const { 0: removed, ...remainingSkillIncreases } = character.skillIncreases || {};
+                    updatedCharacter.skillIncreases = remainingSkillIncreases;
+                }
+            }
+
+            // Automatically set class boost if class has only one key ability option
+            if (classData?.keyAbility) {
+                const keyAbility = Array.isArray(classData.keyAbility) ? classData.keyAbility : [classData.keyAbility];
+                if (keyAbility.length === 1 && keyAbility[0] !== 'free') {
+                    updatedCharacter.abilityBoosts = {
+                        ...updatedCharacter.abilityBoosts,
+                        class: keyAbility[0] as any,
+                    };
+                }
+            }
+
+            const updated = recalculateCharacter(updatedCharacter);
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
@@ -162,33 +424,104 @@ const CharacterSheetPage: React.FC = () => {
                 }
             }
 
-            handleCharacterUpdate(updateData);
+            const updated = recalculateCharacter(updateData);
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
     const handleSelectSecondaryClass = (classId: string) => {
         if (character) {
-            handleCharacterUpdate({
+            const updated = recalculateCharacter({
                 ...character,
                 secondaryClassId: classId,
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
     const handleApplyBoosts = (scores: Character['abilityScores'], boosts: Character['abilityBoosts']) => {
         if (character) {
-            handleCharacterUpdate({
+            // For initial level 1 boosts, use the calculated scores directly without recalculation
+            // This ensures the modal's calculation (which follows the correct boost rules) is preserved
+            let updated = {
                 ...character,
                 abilityScores: scores,
                 abilityBoosts: boosts,
-            });
+            };
+
+            // Validate INT bonus skills: remove skills for levels that no longer have INT boosts
+            if (character.intBonusSkills && Object.keys(character.intBonusSkills).length > 0) {
+                const validatedIntBonusSkills: { [level: number]: string[] } = {};
+                const removedSkillNames = new Set<string>();
+
+                for (const [lvl, skills] of Object.entries(character.intBonusSkills)) {
+                    const level = parseInt(lvl);
+                    const levelBoosts = boosts?.levelUp?.[level] || [];
+                    const intBoostsAtLevel = levelBoosts.filter(b => b === 'int').length;
+
+                    if (intBoostsAtLevel > 0 && skills.length > 0) {
+                        // Keep skills for this level (truncate if needed)
+                        validatedIntBonusSkills[level] = skills.slice(0, intBoostsAtLevel);
+                    } else {
+                        // Mark these skills for removal
+                        skills.forEach(skill => removedSkillNames.add(skill));
+                    }
+                }
+
+                // Update skills array: downgrade removed skills to untrained
+                if (removedSkillNames.size > 0) {
+                    const updatedSkills = [...character.skills];
+                    const classesList = getClasses();
+                    const classData = classesList.find((c: any) => c.id === character.classId);
+                    const autoTrainedSkills = classData?.trainedSkills || [];
+
+                    let backgroundSkills: string[] = [];
+                    if (character.backgroundId) {
+                        const bgData = backgrounds.find((b: any) => b.id === character.backgroundId);
+                        if (bgData?.trainedSkills) {
+                            backgroundSkills = bgData.trainedSkills;
+                        }
+                    }
+
+                    for (const skillName of removedSkillNames) {
+                        const existingSkill = updatedSkills.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+                        if (existingSkill && existingSkill.proficiency === 'trained') {
+                            const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                                                backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                                                skillName.toLowerCase() === 'perception';
+
+                            if (!isAutoTrained) {
+                                existingSkill.proficiency = 'untrained';
+                            }
+                        }
+                    }
+
+                    updated.skills = updatedSkills;
+                }
+
+                updated.intBonusSkills = validatedIntBonusSkills;
+            }
+
+            // Only recalculate if NOT initial boosts (level 1)
+            // Level-up boosts need recalculation for HP, skills, etc.
+            if (selectionLevel && selectionLevel > 1) {
+                const recalculated = recalculateCharacter(updated);
+                handleCharacterUpdate(recalculated);
+            } else {
+                handleCharacterUpdate(updated);
+            }
         }
         setSelectionType(null);
     };
 
-    const handleSelectFeat = (feat: LoadedFeat, source: CharacterFeat['source']) => {
+    const handleSelectFeat = (
+        feat: LoadedFeat,
+        source: CharacterFeat['source'],
+        choices?: Record<string, string>,
+        grantedItems?: Array<{ uuid: string; type: string }>
+    ) => {
         if (character) {
             // Use selectionLevel if set, otherwise fall back to character.level
             const targetLevel = selectionLevel ?? character.level;
@@ -212,7 +545,20 @@ const CharacterSheetPage: React.FC = () => {
                 level: targetLevel,
                 source: source,
                 slotType: slotType,
+                choices: choices ? Object.values(choices) : undefined,
+                choiceMap: choices, // Store the full choice map for resolving dynamic references
             };
+
+            console.log('[handleSelectFeat] Creating new feat:', {
+                name: feat.name,
+                id: feat.id,
+                level: targetLevel,
+                source: source,
+                slotType: slotType,
+                choices: choices,
+                choiceKeys: choices ? Object.keys(choices) : [],
+                choiceValues: newFeat.choices,
+            });
 
             // Replace existing feat of same source, level, and slotType, or add new
             // Note: Kineticist level 1 impulses are handled by the dedicated KineticistImpulseBrowser
@@ -221,6 +567,7 @@ const CharacterSheetPage: React.FC = () => {
             );
 
             let updatedFeats: CharacterFeat[];
+            let replacedFeatId: string | undefined;
 
             // Normal behavior: replace existing feat of same source, level, and slotType
             if (matchingFeats.length === 0) {
@@ -231,102 +578,240 @@ const CharacterSheetPage: React.FC = () => {
                 const existingIndex = character.feats.findIndex(
                     f => f.source === source && f.level === targetLevel && f.slotType === slotType
                 );
+                replacedFeatId = character.feats[existingIndex].featId;
                 updatedFeats = [...character.feats];
                 updatedFeats[existingIndex] = newFeat;
             }
 
-            handleCharacterUpdate({
+            // Handle granted items (feats, spells, etc.)
+            if (grantedItems && grantedItems.length > 0) {
+                for (const granted of grantedItems) {
+                    if (granted.type === 'feat') {
+                        let grantedUuid = granted.uuid;
+
+                        // Check if this is a dynamic reference that needs to be resolved
+                        // Format: "{item|flags.pf2e.rulesSelections.flagName}"
+                        if (grantedUuid.includes('{item|flags.pf2e.rulesSelections.')) {
+                            // Extract the flag name from the reference
+                            const flagMatch = grantedUuid.match(/\{item\|flags\.pf2e\.rulesSelections\.([^}]+)\}/);
+                            if (flagMatch && choices) {
+                                const flagName = flagMatch[1];
+                                // Find the choice value for this flag
+                                // choices object has keys like "{featId}_{flag}_{index}"
+                                const choiceKey = Object.keys(choices).find(k => k.includes(`_${flagName}_`));
+                                if (choiceKey) {
+                                    grantedUuid = choices[choiceKey];
+                                    console.log(`[handleSelectFeat] Resolved dynamic UUID reference for flag "${flagName}": "${granted.uuid}" -> "${grantedUuid}"`);
+                                } else {
+                                    console.log(`[handleSelectFeat] Could not find choice key for flag "${flagName}" in choices:`, Object.keys(choices));
+                                }
+                            }
+                        }
+
+                        // Extract feat ID from UUID
+                        // UUID can be:
+                        // 1. Foundry format: "Compendium.pf2e.feats-srd.Item.Powerful Leap" -> "powerful-leap"
+                        // 2. Direct feat ID: "unusual-treatment" (already the feat ID)
+                        // 3. ID with hyphens: "unusual-treatment" (already correct)
+                        let featId = grantedUuid;
+
+                        // Handle Foundry-style compendium references
+                        if (grantedUuid.includes('.')) {
+                            const parts = grantedUuid.split('.');
+                            const lastPart = parts[parts.length - 1]; // Get last part after final dot
+                            // Remove "Item." prefix if present
+                            featId = lastPart.replace('Item.', '').replace(/\s+/g, '-').toLowerCase();
+                        }
+
+                        console.log(`[handleSelectFeat] Processing granted item: original uuid="${granted.uuid}", resolvedUuid="${grantedUuid}", featId="${featId}"`);
+
+                        if (featId) {
+                            // Check if the granted feat already exists
+                            const hasGrantedFeat = updatedFeats.some(f => f.featId === featId);
+                            if (!hasGrantedFeat) {
+                                // Add the granted feat as a bonus feat at same level
+                                // Track which feat granted this (for cleanup when source feat is removed)
+                                updatedFeats.push({
+                                    featId: featId,
+                                    level: targetLevel,
+                                    source: 'bonus',
+                                    slotType: slotType,
+                                    grantedBy: feat.id, // Track the source feat
+                                });
+                                console.log(`[handleSelectFeat] Added granted feat "${featId}" from "${feat.name}"`);
+                            } else {
+                                console.log(`[handleSelectFeat] Granted feat "${featId}" already exists, skipping`);
+                            }
+                        }
+                    }
+                    // TODO: Handle granted spells and other item types
+                }
+            }
+
+            // Remove bonus feats that were granted by the replaced feat
+            if (replacedFeatId) {
+                updatedFeats = updatedFeats.filter(f =>
+                    !(f.source === 'bonus' && f.grantedBy === replacedFeatId)
+                );
+            }
+
+            // Update archetype dedication tracking
+            let updatedCharacter: Character = {
                 ...character,
                 feats: updatedFeats,
-            });
+            };
+
+            // Handle removal of replaced feat
+            if (replacedFeatId) {
+                updatedCharacter = updateDedicationTrackingOnRemove(updatedCharacter, replacedFeatId);
+            }
+
+            // Handle addition of new feat
+            updatedCharacter = updateDedicationTrackingOnAdd(updatedCharacter, feat, targetLevel);
+
+            // Recalculate ALL character data to ensure clean state
+            // This properly handles feat replacement by only applying effects from active feats
+            updatedCharacter = recalculateCharacter(updatedCharacter);
+
+            // Handle spell choices (like Arcane Tattoos)
+            // Spells from feat choices need to be added to knownSpells
+            let updatedKnownSpells = character.spellcasting?.knownSpells || [];
+            let hasSpellChoices = false;
+
+            if (choices && Object.keys(choices).length > 0) {
+                // Check if any of the choices are spells (slug format)
+                const spellChoices = Object.values(choices).filter(v => v.includes('-'));
+                if (spellChoices.length > 0) {
+                    hasSpellChoices = true;
+                    // Add spell slugs to knownSpells if not already present
+                    for (const spellSlug of spellChoices) {
+                        if (!updatedKnownSpells.includes(spellSlug)) {
+                            updatedKnownSpells.push(spellSlug);
+                        }
+                    }
+                }
+            }
+
+            // Initialize spellcasting if needed (for innate spells from feats like Arcane Tattoos)
+            if (hasSpellChoices && !updatedCharacter.spellcasting) {
+                updatedCharacter.spellcasting = {
+                    tradition: 'arcane', // Default for Arcane Tattoos
+                    spellcastingType: 'spontaneous',
+                    keyAbility: 'int',
+                    proficiency: 'untrained',
+                    spellSlots: {},
+                    knownSpells: updatedKnownSpells,
+                };
+            } else if (updatedCharacter.spellcasting) {
+                updatedCharacter.spellcasting.knownSpells = updatedKnownSpells;
+            }
+
+            handleCharacterUpdate(updatedCharacter);
         }
         setSelectionType(null);
         setSelectionLevel(null);
     };
 
-    const handleApplySkillTraining = (trainedSkills: SkillProficiency[]) => {
+    const handleApplySkillTraining = (trainedSkills: SkillProficiency[], manualSkillTraining: string[]) => {
         if (character) {
-            handleCharacterUpdate({
+            const updated = recalculateCharacter({
                 ...character,
                 skills: trainedSkills,
+                manualSkillTraining: manualSkillTraining, // Save the original skill names for later recalculation
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
     const handleApplyLevelUpBoosts = (level: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20, boosts: AbilityName[]) => {
         if (character) {
-            // Calculate new ability scores
-            const newScores = { ...character.abilityScores };
-            const oldBoosts = character.abilityBoosts?.levelUp?.[level] || [];
-
-            // Remove old boosts from this level
-            for (const ability of oldBoosts) {
-                if (newScores[ability] >= 19) {
-                    newScores[ability] -= 1;
-                } else {
-                    newScores[ability] -= 2;
-                }
-            }
-
-            // Apply new boosts
-            for (const ability of boosts) {
-                if (newScores[ability] >= 18) {
-                    newScores[ability] += 1;
-                } else {
-                    newScores[ability] += 2;
-                }
-            }
-
-            handleCharacterUpdate({
-                ...character,
-                abilityScores: newScores,
-                abilityBoosts: {
-                    ...character.abilityBoosts,
-                    levelUp: {
-                        ...character.abilityBoosts.levelUp,
-                        [level]: boosts,
-                    },
+            // Build updated abilityBoosts
+            const updatedAbilityBoosts = {
+                ...character.abilityBoosts,
+                levelUp: {
+                    ...character.abilityBoosts.levelUp,
+                    [level]: boosts,
                 },
+            };
+
+            // Check if INT boosts were removed at this level
+            const oldIntBoosts = character.abilityBoosts?.levelUp?.[level]?.filter(b => b === 'int').length || 0;
+            const newIntBoosts = boosts.filter(b => b === 'int').length;
+
+            let updatedSkills = character.skills;
+            let updatedIntBonusSkills = character.intBonusSkills || {};
+
+            // If INT boosts were reduced, remove excess skills
+            if (newIntBoosts < oldIntBoosts && character.intBonusSkills?.[level]) {
+                const skillsAtLevel = character.intBonusSkills[level];
+                const skillsToRemove = skillsAtLevel.slice(newIntBoosts); // Remove excess skills
+
+                // Update intBonusSkills
+                if (newIntBoosts === 0) {
+                    // No INT boosts at this level anymore, remove all skills for this level
+                    delete updatedIntBonusSkills[level];
+                } else {
+                    // Keep only the first newIntBoosts skills
+                    updatedIntBonusSkills = {
+                        ...updatedIntBonusSkills,
+                        [level]: skillsAtLevel.slice(0, newIntBoosts)
+                    };
+                }
+
+                // Downgrade removed skills to untrained
+                const classesList = getClasses();
+                const classData = classesList.find((c: any) => c.id === character.classId);
+                const autoTrainedSkills = classData?.trainedSkills || [];
+
+                let backgroundSkills: string[] = [];
+                if (character.backgroundId) {
+                    const bgData = backgrounds.find((b: any) => b.id === character.backgroundId);
+                    if (bgData?.trainedSkills) {
+                        backgroundSkills = bgData.trainedSkills;
+                    }
+                }
+
+                updatedSkills = character.skills.map(skill => {
+                    if (skillsToRemove.some(s => s.toLowerCase() === skill.name.toLowerCase()) && skill.proficiency === 'trained') {
+                        const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skill.name.toLowerCase()) ||
+                                            backgroundSkills.some((s: string) => s.toLowerCase() === skill.name.toLowerCase()) ||
+                                            skill.name.toLowerCase() === 'perception';
+
+                        if (!isAutoTrained) {
+                            return { ...skill, proficiency: 'untrained' as const };
+                        }
+                    }
+                    return skill;
+                });
+            }
+
+            const updated = recalculateCharacter({
+                ...character,
+                abilityBoosts: updatedAbilityBoosts,
+                skills: updatedSkills,
+                intBonusSkills: updatedIntBonusSkills,
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
 
-    const handleApplySkillIncrease = (skillName: string, newProficiency: Proficiency) => {
+    const handleApplySkillIncrease = (skillName: string) => {
+        console.log('[SkillIncrease] Called with skillName:', skillName, 'selectionLevel:', selectionLevel);
         if (character && selectionLevel) {
-            // Update the skillIncreases record
-            const updatedSkillIncreases = {
+            console.log('[SkillIncrease] Current skillIncreases:', character.skillIncreases);
+            const newSkillIncreases = {
                 ...character.skillIncreases,
                 [selectionLevel]: skillName,
             };
-
-            // Update the skill proficiency in the skills array
-            const updatedSkills = character.skills.map(s => {
-                if (s.name.toLowerCase() === skillName.toLowerCase()) {
-                    return { ...s, proficiency: newProficiency };
-                }
-                return s;
-            });
-
-            // If the skill doesn't exist in the array, we may need to add it
-            // (though it should already be there from skill training)
-            const skillExists = character.skills.some(s => s.name.toLowerCase() === skillName.toLowerCase());
-            if (!skillExists) {
-                // This shouldn't happen if skill training was done first,
-                // but handle it just in case
-                updatedSkills.push({
-                    name: skillName,
-                    ability: 'int' as AbilityName, // Default, should be fetched from skills data
-                    proficiency: newProficiency,
-                });
-            }
-
-            handleCharacterUpdate({
+            console.log('[SkillIncrease] New skillIncreases:', newSkillIncreases);
+            const updated = recalculateCharacter({
                 ...character,
-                skills: updatedSkills,
-                skillIncreases: updatedSkillIncreases,
+                skillIncreases: newSkillIncreases,
             });
+            console.log('[SkillIncrease] Updated character skillIncreases:', updated.skillIncreases);
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
         setSelectionLevel(null);
@@ -334,10 +819,11 @@ const CharacterSheetPage: React.FC = () => {
 
     const handleSelectKineticistImpulse = (feats: CharacterFeat[]) => {
         if (character) {
-            handleCharacterUpdate({
+            const updated = recalculateCharacter({
                 ...character,
                 feats: [...character.feats, ...feats],
             });
+            handleCharacterUpdate(updated);
         }
         setSelectionType(null);
     };
@@ -348,33 +834,289 @@ const CharacterSheetPage: React.FC = () => {
         newElementGateId?: string;
         newElementImpulseId?: string;
     }) => {
+        console.log('[CharacterSheetPage] handleSelectKineticistJunction called');
+        console.log('[CharacterSheetPage] junctionData received:', junctionData);
+        console.log('[CharacterSheetPage] character:', character);
+        console.log('[CharacterSheetPage] selectionLevel:', selectionLevel);
+
         if (character && selectionLevel) {
             const level = selectionLevel;
+
+            // Debug log
+            console.log('[Kineticist Junction] Saving junction data at level', level, ':', junctionData);
+            console.log('[Kineticist Junction] Current character.kineticistJunctions:', character.kineticistJunctions);
+
+            // Check if there was a previous selection at this level
+            const previousJunction = character.kineticistJunctions?.[level];
+            const wasForkThePath = previousJunction?.choice === 'fork_the_path';
+            const wasExpandThePortal = previousJunction?.choice === 'expand_the_portal';
+            console.log('[Kineticist Junction] previousJunction:', previousJunction);
+            console.log('[Kineticist Junction] wasForkThePath:', wasForkThePath, 'wasExpandThePortal:', wasExpandThePortal);
+
+            // Remove impulses from this level if changing choice
+            let updatedFeats = character.feats;
+            if ((wasForkThePath && junctionData.choice === 'expand_the_portal') ||
+                (wasExpandThePortal && junctionData.choice === 'fork_the_path')) {
+
+                console.log('[Kineticist Junction] Choice changed, removing old impulses...');
+                // Get all feats to check which ones are impulses
+                const allFeats = getFeats();
+
+                // Remove all impulse feats at this level by checking the feat data
+                updatedFeats = character.feats.filter(f => {
+                    if (f.level !== level || f.source !== 'class') {
+                        return true; // Keep feats not at this level
+                    }
+
+                    // Check if this feat is an impulse by looking at the feat data
+                    const featData = allFeats.find(feat => feat.id === f.featId);
+                    if (featData && featData.traits.includes('impulse')) {
+                        console.log('[Kineticist Junction] Removing impulse:', featData.name);
+                        return false; // Remove this impulse
+                    }
+
+                    return true; // Keep non-impulse feats
+                });
+
+                console.log('[Kineticist Junction] Removed old impulses from level', level);
+            }
+
+            // Add gateId to junctionData for Expand the Portal
+            // Extract from junctionIds (e.g., "air_gate_skill_junction" -> "air-gate")
+            let junctionDataWithGateId = { ...junctionData };
+            if (junctionData.choice === 'expand_the_portal' && junctionData.junctionIds && junctionData.junctionIds.length > 0) {
+                const firstJunctionId = junctionData.junctionIds[0];
+                // Extract element from junctionId (e.g., "air_gate_skill_junction" -> "air")
+                const element = firstJunctionId.split('_')[0];
+                // Map element to gate ID
+                const gateIdMap: Record<string, string> = {
+                    'air': 'X11Y3T1IzmtNqGMV', // Air Gate
+                    'earth': 'dEm00L1XFXFCH2wS', // Earth Gate
+                    'fire': 'PfeDtJBJdUun0THS', // Fire Gate
+                    'metal': '21JjdNW0RQ2LfaH3', // Metal Gate
+                    'water': 'MvunDFH8Karxee0t', // Water Gate
+                    'wood': '8X8db58vKx21L0Dr', // Wood Gate
+                };
+                junctionDataWithGateId.gateId = gateIdMap[element] || null;
+                console.log('[Kineticist Junction] Deduced gateId from junction:', element, '->', junctionDataWithGateId.gateId);
+            }
+
             const updatedJunctions = {
                 ...(character.kineticistJunctions || {}),
-                [level]: junctionData,
+                [level]: junctionDataWithGateId,
             };
 
-            // If Fork the Path, also add the new impulse feat
-            let updatedFeats = character.feats;
+            console.log('[Kineticist Junction] Updated junctions object:', updatedJunctions);
+
+            // If Fork the Path, also add the new impulse feat automatically
+            // If Expand the Portal, impulse will be selected in the feats section
             if (junctionData.choice === 'fork_the_path' && junctionData.newElementImpulseId) {
+                console.log('[Kineticist Junction] Fork the Path selected, adding impulse feat:', junctionData.newElementImpulseId);
                 const newFeat: CharacterFeat = {
                     featId: junctionData.newElementImpulseId,
                     level: level,
                     source: 'class',
-                    slotType: 'class',
+                    slotType: 'impulse',
                 };
-                updatedFeats = [...character.feats, newFeat];
+                updatedFeats = [...updatedFeats, newFeat];
             }
 
-            handleCharacterUpdate({
+            // Add any feats granted by junctions (e.g., skill junctions grant skill feats like Experienced Smuggler)
+            const allFeats = getFeats();
+            const tempCharacterWithJunctions = { ...character, kineticistJunctions: updatedJunctions };
+            const grantedFeatNames = getAllKineticistJunctionGrantedFeats(tempCharacterWithJunctions);
+            console.log('[Kineticist Junction] Granted feats from junctions:', grantedFeatNames);
+
+            if (grantedFeatNames.length > 0) {
+                for (const featName of grantedFeatNames) {
+                    // Find the feat by name
+                    const grantedFeat = allFeats.find(f => f.name === featName);
+                    if (grantedFeat) {
+                        console.log('[Kineticist Junction] Adding granted feat:', grantedFeat.name);
+
+                        // Check if this feat is already in the list
+                        const hasGrantedFeat = updatedFeats.some(f => f.featId === grantedFeat.id);
+                        if (!hasGrantedFeat) {
+                            // Add the granted feat as a bonus feat at this level
+                            // Use 'kineticist-junction' as the source to track it comes from a junction
+                            const newFeat: CharacterFeat = {
+                                featId: grantedFeat.id,
+                                level: level,
+                                source: 'bonus',
+                                slotType: 'skill', // Skill junctions grant skill feats
+                                grantedBy: `kineticist-junction-${level}`, // Track which junction granted this
+                            };
+                            updatedFeats = [...updatedFeats, newFeat];
+                        }
+                    }
+                }
+            }
+
+            // Remove old bonus feats that were granted by junctions at this level
+            // This handles the case where the user changes their junction selection
+            updatedFeats = updatedFeats.filter(f => {
+                if (f.source === 'bonus' && f.grantedBy?.startsWith(`kineticist-junction-${level}`)) {
+                    // Check if this feat is still granted by the new junction selection
+                    const featData = allFeats.find(feat => feat.id === f.featId);
+                    if (featData && grantedFeatNames.includes(featData.name)) {
+                        return true; // Keep this feat, it's still granted
+                    }
+                    console.log('[Kineticist Junction] Removing old granted feat:', featData?.name);
+                    return false; // Remove this feat, it's no longer granted
+                }
+                return true; // Keep all other feats
+            });
+
+            console.log('[Kineticist Junction] Calling recalculateCharacter...');
+            const updated = recalculateCharacter({
                 ...character,
                 kineticistJunctions: updatedJunctions,
                 feats: updatedFeats,
             });
+
+            console.log('[Kineticist Junction] Final character junctions after recalc:', updated.kineticistJunctions);
+            console.log('[Kineticist Junction] Calling handleCharacterUpdate...');
+            handleCharacterUpdate(updated);
+            console.log('[Kineticist Junction] handleCharacterUpdate completed');
+        } else {
+            console.log('[CharacterSheetPage] Cannot save junction - missing character or selectionLevel');
         }
         setSelectionType(null);
         setSelectionLevel(null);
+    };
+
+    const handleApplyIntBonusSkills = (intBonusSkills: { [level: number]: string[] }) => {
+        if (character) {
+            console.log('[IntBonusSkills] Applying INT bonus skills:', intBonusSkills);
+
+            // Validate: remove skills for levels that don't have INT boosts anymore
+            const validatedIntBonusSkills: { [level: number]: string[] } = {};
+            for (const [lvl, skills] of Object.entries(intBonusSkills)) {
+                const level = parseInt(lvl);
+                const levelBoosts = character.abilityBoosts?.levelUp?.[level] || [];
+                const intBoostsAtLevel = levelBoosts.filter(b => b === 'int').length;
+
+                // Only keep skills if there are still INT boosts at this level
+                if (intBoostsAtLevel > 0 && skills.length > 0) {
+                    validatedIntBonusSkills[level] = skills.slice(0, intBoostsAtLevel);
+                }
+            }
+
+            // Get all valid skill names from validated intBonusSkills
+            const allValidSkillNames = new Set<string>();
+            Object.values(validatedIntBonusSkills).forEach(skills => {
+                skills.forEach(skill => allValidSkillNames.add(skill));
+            });
+
+            // Get old skill names to find which ones were removed
+            const oldSkillNames = new Set<string>();
+            Object.values(character.intBonusSkills || {}).forEach(skills => {
+                skills.forEach(skill => oldSkillNames.add(skill));
+            });
+
+            // Find removed skills (were in old but not in new)
+            const removedSkills = [...oldSkillNames].filter(skill => !allValidSkillNames.has(skill));
+
+            // Update skills: add new ones, downgrade removed ones to untrained
+            const updatedSkills = [...character.skills];
+
+            // Add or keep valid skills as trained
+            for (const skillName of allValidSkillNames) {
+                const existingSkill = updatedSkills.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+
+                if (!existingSkill) {
+                    // Find skill data to get ability score
+                    const skillData = skillsData.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+                    if (skillData) {
+                        updatedSkills.push({
+                            name: skillName,
+                            ability: skillData.ability,
+                            proficiency: 'trained',
+                        });
+                    }
+                } else if (existingSkill.proficiency === 'untrained') {
+                    // Upgrade from untrained to trained
+                    existingSkill.proficiency = 'trained';
+                }
+            }
+
+            // Downgrade removed skills to untrained (only if they were trained via INT bonus)
+            for (const skillName of removedSkills) {
+                const existingSkill = updatedSkills.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+                if (existingSkill && existingSkill.proficiency === 'trained') {
+                    // Check if this skill is NOT trained by other means (class, background, etc.)
+                    const classesList = getClasses();
+                    const classData = classesList.find((c: any) => c.id === character.classId);
+                    const autoTrainedSkills = classData?.trainedSkills || [];
+
+                    let backgroundSkills: string[] = [];
+                    if (character.backgroundId) {
+                        const bgData = backgrounds.find((b: any) => b.id === character.backgroundId);
+                        if (bgData?.trainedSkills) {
+                            backgroundSkills = bgData.trainedSkills;
+                        }
+                    }
+
+                    const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                                        backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                                        skillName.toLowerCase() === 'perception';
+
+                    // Only downgrade to untrained if not auto-trained by class/background
+                    if (!isAutoTrained) {
+                        existingSkill.proficiency = 'untrained';
+                    }
+                }
+            }
+
+            const updated = recalculateCharacter({
+                ...character,
+                skills: updatedSkills,
+                intBonusSkills: validatedIntBonusSkills,
+            });
+
+            handleCharacterUpdate(updated);
+        }
+        setSelectionType(null);
+    };
+
+    const handleRemoveFeat = (featId: string) => {
+        if (!character) return;
+
+        const allFeats = getFeats();
+        const featToRemove = allFeats.find(f => f.id === featId);
+
+        if (!featToRemove) return;
+
+        let updatedCharacter: Character;
+
+        if (isArchetypeDedication(featToRemove)) {
+            // Remove dedication and ALL archetype feats
+            const result = removeDedicationAndArchetypeFeats(character, featId);
+            updatedCharacter = result.character;
+
+            // Recalculate after removing archetype feats
+            updatedCharacter = recalculateCharacter(updatedCharacter);
+        } else {
+            // Regular feat removal - remove this feat and any bonus feats it granted
+            updatedCharacter = {
+                ...character,
+                feats: character.feats.filter(f => {
+                    // Remove the feat itself
+                    if (f.featId === featId) return false;
+                    // Also remove any bonus feats that were granted by this feat
+                    if (f.source === 'bonus' && f.grantedBy === featId) return false;
+                    return true;
+                }),
+            };
+
+            // Update dedication tracking
+            updatedCharacter = updateDedicationTrackingOnRemove(updatedCharacter, featId);
+
+            // Recalculate after removing feat
+            updatedCharacter = recalculateCharacter(updatedCharacter);
+        }
+
+        handleCharacterUpdate(updatedCharacter);
     };
 
     if (!character) {
@@ -458,9 +1200,11 @@ const CharacterSheetPage: React.FC = () => {
                 <FeatBrowser
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
+                    onRemove={handleRemoveFeat}
                     filterCategory="ancestry"
                     characterLevel={selectionLevel ?? character.level}
                     ancestryId={character.ancestryId}
+                    heritageId={character.heritageId}
                     character={character}
                 />
             )}
@@ -469,6 +1213,7 @@ const CharacterSheetPage: React.FC = () => {
                 <FeatBrowser
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
+                    onRemove={handleRemoveFeat}
                     filterCategory="class"
                     characterLevel={selectionLevel ?? character.level}
                     classId={character.classId}
@@ -480,6 +1225,7 @@ const CharacterSheetPage: React.FC = () => {
                 <FeatBrowser
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
+                    onRemove={handleRemoveFeat}
                     filterCategory="class"
                     characterLevel={selectionLevel ?? character.level}
                     character={character}
@@ -491,6 +1237,7 @@ const CharacterSheetPage: React.FC = () => {
                 <FeatBrowser
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
+                    onRemove={handleRemoveFeat}
                     filterCategory="skill"
                     characterLevel={selectionLevel ?? character.level}
                     character={character}
@@ -501,6 +1248,7 @@ const CharacterSheetPage: React.FC = () => {
                 <FeatBrowser
                     onClose={handleCloseSelection}
                     onSelect={handleSelectFeat}
+                    onRemove={handleRemoveFeat}
                     filterCategory="general"
                     characterLevel={selectionLevel ?? character.level}
                     character={character}
@@ -695,6 +1443,15 @@ const CharacterSheetPage: React.FC = () => {
                 />
             )}
 
+            {(pendingBackgroundId || pendingClassId) && overlappingSkill && character && (
+                <SkillOverlapBonusModal
+                    currentSkills={character.skills || []}
+                    overlappingSkill={overlappingSkill}
+                    onClose={handleCloseSkillOverlapModal}
+                    onSelect={handleSkillOverlapBonusSelect}
+                />
+            )}
+
             {selectionType === 'tactics' && character.classId === 'Oyee5Ds9uwYLEkD0' && (() => {
                 // Determine max selections based on level
                 const level = selectionLevel ?? character.level;
@@ -756,15 +1513,25 @@ const CharacterSheetPage: React.FC = () => {
             {selectionType === 'kineticistImpulse' && character && (
                 <KineticistImpulseBrowser
                     character={character}
+                    level={selectionLevel || 1}
                     onClose={handleCloseSelection}
                     onConfirm={(feats) => {
-                        // Remove any existing impulse feats (to avoid duplicates)
+                        const targetLevel = selectionLevel || 1;
+
+                        // Remove any existing impulse feats at this level (to avoid duplicates)
                         const filteredFeats = character.feats.filter(
-                            f => !(f.level === 1 && f.source === 'class' && f.slotType === 'impulse')
+                            f => !(f.level === targetLevel && f.source === 'class' && f.slotType === 'impulse')
                         );
+
+                        // Mark all new feats as impulse slotType
+                        const impulseFeats = feats.map(f => ({
+                            ...f,
+                            slotType: 'impulse' as const,
+                        }));
+
                         handleCharacterUpdate({
                             ...character,
-                            feats: [...filteredFeats, ...feats],
+                            feats: [...filteredFeats, ...impulseFeats],
                         });
                         handleCloseSelection();
                     }}
@@ -772,11 +1539,23 @@ const CharacterSheetPage: React.FC = () => {
             )}
 
             {selectionType === 'kineticistJunction' && character && selectionLevel && (
-                <KineticistJunctionBrowser
+                <>
+                    {console.log('[CharacterSheetPage] Rendering KineticistJunctionBrowser with level:', selectionLevel)}
+                    <KineticistJunctionBrowser
+                        character={character}
+                        level={selectionLevel}
+                        onClose={handleCloseSelection}
+                        onConfirm={handleSelectKineticistJunction}
+                    />
+                </>
+            )}
+
+            {selectionType === 'intBonusSkills' && character && (
+                <IntBonusSkillModal
                     character={character}
-                    level={selectionLevel}
+                    level={selectionLevel ?? undefined}
                     onClose={handleCloseSelection}
-                    onConfirm={handleSelectKineticistJunction}
+                    onApply={handleApplyIntBonusSkills}
                 />
             )}
         </>

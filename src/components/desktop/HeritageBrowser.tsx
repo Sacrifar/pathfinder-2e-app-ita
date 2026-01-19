@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { getHeritagesForAncestry, TranslatedHeritage } from '../../data';
+import { getHeritagesForAncestry, getVersatileHeritages, TranslatedHeritage } from '../../data';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../../hooks/useLanguage';
 import '../../styles/desktop.css';
 
@@ -20,7 +20,11 @@ export const HeritageBrowser: React.FC<HeritageBrowserProps> = ({
     const getName = useLocalizedName();
     const getDescription = useLocalizedDescription();
 
-    const availableHeritages = useMemo(() => getHeritagesForAncestry(ancestryId), [ancestryId]);
+    const availableHeritages = useMemo(() => {
+        const ancestryHeritages = getHeritagesForAncestry(ancestryId);
+        const versatileHeritages = getVersatileHeritages();
+        return [...ancestryHeritages, ...versatileHeritages];
+    }, [ancestryId]);
 
     const [selectedHeritage, setSelectedHeritage] = useState<TranslatedHeritage | null>(
         currentHeritageId ? availableHeritages.find(h => h.id === currentHeritageId) || null : null

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CharacterFeat } from '../../types';
 import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
@@ -31,11 +31,19 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
     onClose,
     onConfirm,
 }) => {
+    console.log('[KineticistJunctionBrowser] Component mounted with level:', level);
+    console.log('[KineticistJunctionBrowser] character:', character);
+    console.log('[KineticistJunctionBrowser] onConfirm:', onConfirm);
+
     const { t } = useLanguage();
     const [selectedChoice, setSelectedChoice] = useState<ChoiceType>(null);
     const [selectedJunctions, setSelectedJunctions] = useState<string[]>([]);
     const [selectedNewElementGate, setSelectedNewElementGate] = useState<string | null>(null);
     const [selectedNewElementImpulse, setSelectedNewElementImpulse] = useState<string | null>(null);
+
+    useEffect(() => {
+        console.log('[KineticistJunctionBrowser] useEffect - level changed to:', level);
+    }, [level]);
 
     // Get the character's current elements
     const characterElements = useMemo(() => {
@@ -133,7 +141,16 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
     }, [selectedChoice, selectedJunctions, selectedNewElementGate, selectedNewElementImpulse]);
 
     const handleConfirm = () => {
-        if (!canConfirm || !selectedChoice) return;
+        console.log('[JunctionBrowser] handleConfirm called');
+        console.log('[JunctionBrowser] canConfirm:', canConfirm, 'selectedChoice:', selectedChoice);
+        console.log('[JunctionBrowser] selectedJunctions:', selectedJunctions);
+        console.log('[JunctionBrowser] selectedNewElementGate:', selectedNewElementGate);
+        console.log('[JunctionBrowser] selectedNewElementImpulse:', selectedNewElementImpulse);
+
+        if (!canConfirm || !selectedChoice) {
+            console.log('[JunctionBrowser] Cannot confirm - returning early');
+            return;
+        }
 
         const data: any = {
             choice: selectedChoice,
@@ -146,7 +163,10 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
             data.newElementImpulseId = selectedNewElementImpulse;
         }
 
+        console.log('[JunctionBrowser] Sending data to onConfirm:', data);
+        console.log('[JunctionBrowser] onConfirm function:', onConfirm);
         onConfirm(data);
+        console.log('[JunctionBrowser] onConfirm called successfully');
     };
 
     const getGateName = (gateId: string): string => {
@@ -192,7 +212,7 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
                                     <div
                                         className="selection-list-item"
                                         onClick={() => setSelectedChoice('fork_the_path')}
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: 'pointer', marginTop: '8px' }}
                                     >
                                         <div className="item-name">
                                             <strong>{t('kineticist.forkThePath') || 'Fork the Path'}</strong>
@@ -340,7 +360,7 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
                                         <ul>
                                             <li>
                                                 <strong>{t('kineticist.expandThePortal') || 'Expand the Portal'}:</strong> {
-                                                    t('kineticist.expandThePortalDesc') || 'Choose a junction from your current element(s), gaining access to new impulses.'
+                                                    t('kineticist.expandThePortalDesc') || 'Choose a junction from your current element(s), gaining access to new impulses. You can select an impulse feat in the feats section.'
                                                 }
                                             </li>
                                             <li>
@@ -352,7 +372,7 @@ export const KineticistJunctionBrowser: React.FC<KineticistJunctionBrowserProps>
                                     </>
                                 ) : selectedChoice === 'expand_the_portal' ? (
                                     <>
-                                        <p>{t('kineticist.selectJunctionPrompt') || 'Select 1 junction from your current element(s).'}</p>
+                                        <p>{t('kineticist.selectJunctionPrompt') || 'Select 1 junction from your current element(s). After selecting, you can choose an impulse feat in the feats section.'}</p>
                                         <p><strong>{t('kineticist.currentElements') || 'Current Elements'}:</strong> {allAvailableElements.join(', ')}</p>
                                         {selectedJunctions.length > 0 && (
                                             <p><strong>{t('kineticist.selected') || 'Selected'}:</strong> {selectedJunctions.length} / 1</p>

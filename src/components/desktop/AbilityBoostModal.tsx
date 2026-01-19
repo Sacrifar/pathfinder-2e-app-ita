@@ -99,11 +99,27 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
             const keyAbility = (Array.isArray(classData.keyAbility)
                 ? classData.keyAbility
                 : [classData.keyAbility]) as (AbilityName | 'free')[];
+
+            // Validate saved class boost against current class options
+            const savedClassBoost = character.abilityBoosts.class;
+            let validSelected: AbilityName[];
+
+            if (savedClassBoost && keyAbility.includes(savedClassBoost as AbilityName)) {
+                // Saved boost is valid for this class
+                validSelected = [savedClassBoost];
+            } else if (keyAbility.length === 1 && keyAbility[0] !== 'free') {
+                // Class has only one key ability option - auto-select it
+                validSelected = [keyAbility[0] as AbilityName];
+            } else {
+                // Class has multiple options (free choice) - no auto-selection
+                validSelected = [];
+            }
+
             sources.push({
                 id: 'class',
                 label: language === 'it' ? 'Classe' : 'Class',
                 boosts: keyAbility.length > 1 ? ['free' as const] : keyAbility,
-                selected: character.abilityBoosts.class ? [character.abilityBoosts.class] : [],
+                selected: validSelected,
                 required: 1,
             });
         }
@@ -163,8 +179,8 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
                     if (!backgroundOptions.includes(ability)) return source; // Not a valid option
                     return { ...source, selected: [ability, source.selected[1] || ('' as AbilityName)] };
                 } else if (slotIndex === 1 && hasFree) {
-                    // Second slot: free boost (can't be one of the background options)
-                    if (backgroundOptions.includes(ability)) return source; // Not allowed
+                    // Second slot: free boost (can't be the one selected in first slot)
+                    if (ability === source.selected[0]) return source; // Not allowed: same as first slot selection
                     return { ...source, selected: [source.selected[0] || ('' as AbilityName), ability] };
                 }
                 return source;
@@ -266,17 +282,17 @@ export const AbilityBoostModal: React.FC<AbilityBoostModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Second boost: free (can't be from the 2 options) */}
+                                        {/* Second boost: free (can't be the selected one from first slot) */}
                                         {hasFree && (
                                             <div className="boost-slot">
                                                 <div className="slot-label">
                                                     {language === 'it' ? 'Scegli un boost libero:' : 'Choose one free boost:'}
                                                 </div>
                                                 <div className="boost-hint">
-                                                    {language === 'it' ? '(Non può essere uno dei due sopra)' : '(Cannot be one of the two above)'}
+                                                    {language === 'it' ? '(Non può essere quello selezionato sopra)' : '(Cannot be the selected ability above)'}
                                                 </div>
                                                 <div className="boost-options">
-                                                    {ABILITIES.filter(a => !backgroundOptions.includes(a.key)).map(ability => (
+                                                    {ABILITIES.filter(a => a.key !== source.selected[0]).map(ability => (
                                                         <button
                                                             key={ability.key}
                                                             className={`boost-option ${source.selected[1] === ability.key ? 'selected' : ''}`}

@@ -47,3 +47,5 @@ export { SkillTrainingModal } from './SkillTrainingModal';
 export { LevelUpBoostModal } from './LevelUpBoostModal';
 export { SkillIncreaseModal } from './SkillIncreaseModal';
 export { BuffBrowser } from './BuffBrowser';
+export { SkillOverlapBonusModal } from './SkillOverlapBonusModal';
+export { IntBonusSkillModal } from './IntBonusSkillModal';

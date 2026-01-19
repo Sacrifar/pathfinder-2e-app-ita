@@ -192,6 +192,14 @@ export interface CharacterFeat {
     source: 'ancestry' | 'class' | 'general' | 'skill' | 'bonus';
     slotType?: 'ancestry' | 'class' | 'general' | 'skill' | 'archetype' | 'impulse'; // The type of slot this feat occupies (for distinguishing archetypes from class feats, and kineticist impulses)
     choices?: string[];
+    // IMPORTANT: Choices persist even when level decreases (builder mode support)
+    // Example: If user selects Rogue Dedication at level 6 with Stealth skill choice,
+    // then goes back to level 2, the choice remains. When returning to level 6,
+    // the choice is still there and effects are reapplied.
+    // Stores choice VALUES only (e.g., "system.skills.thievery.rank", "Bon Mot")
+    // The flag mapping is determined by parsing the feat's ChoiceSet rules in order
+    choiceMap?: Record<string, string>; // Full choice map with flag names for resolving dynamic references
+    grantedBy?: string; // featId of the feat that granted this bonus feat (for cleanup when source feat is removed)
 }
 
 export type BonusType = 'status' | 'circumstance' | 'item' | 'penalty';
@@ -202,6 +210,7 @@ export type BonusSelector =
     | 'reflex'
     | 'will'
     | 'perception'
+    | 'initiative'
     | 'attack'
     | 'damage'
     | 'speed'
@@ -371,6 +380,14 @@ export interface Character {
     level: number;
     xp?: number; // Experience points
 
+    // Archetype Dedication Tracking
+    archetypeDedications?: {
+        [archetypeName: string]: {
+            dedicationLevel: number; // Level when dedication was taken
+            featsCount: number; // Number of archetype feats taken (including dedication)
+        };
+    };
+
     // Deity
     deityId?: string;
 
@@ -390,6 +407,10 @@ export interface Character {
     // Skills
     skills: SkillProficiency[];
 
+    // Manual skill training selections from level 1 (skill names chosen by user)
+    // These are stored separately from calculated proficiencies to survive recalculation
+    manualSkillTraining?: string[];
+
     // Saves
     saves: {
         fortitude: Proficiency;
@@ -405,12 +426,25 @@ export interface Character {
     // Proficiencies
     weaponProficiencies: { category: string; proficiency: Proficiency }[];
     armorProficiencies: { category: string; proficiency: Proficiency }[];
+    // Class DC proficiencies from archetype dedications (e.g., rogue, fighter, monk)
+    classDCs?: Array<{
+        classType: string;  // e.g., 'rogue', 'fighter', 'monk'
+        proficiency: Proficiency;
+        ability: AbilityName;  // e.g., 'dex' for rogue, choice of 'str'/'dex' for fighter/monk
+        dedicated?: boolean;  // Whether this is a dedicated class DC (from actual class, not archetype)
+    }>;
+    // Track which feats grant spellcasting (for archetype dedication spellcasters)
+    spellcastingFromFeats?: string[];  // Names of feats that grant spellcasting
 
     // Feats
     feats: CharacterFeat[];
 
     // Skill Increases (level -> skill name)
     skillIncreases: { [level: number]: string };
+
+    // Skill Bonus from INT increases (Remastered rule: +1 Trained skill per INT boost after level 1)
+    // Maps level -> array of skill names selected at that level
+    intBonusSkills: { [level: number]: string[] };
 
     // Equipment
     // Equipment
@@ -545,6 +579,7 @@ export function createEmptyCharacter(): Character {
         armorProficiencies: [],
         feats: [],
         skillIncreases: {},
+        intBonusSkills: {},
         equipment: [],
         equippedArmor: '',
         equippedShield: '',
@@ -666,6 +701,11 @@ export function migrateCharacter(data: any): Character {
     // Migrate commanderBanner (added for Commander class support)
     if (character.commanderBanner === undefined) {
         character.commanderBanner = undefined;
+    }
+
+    // Migrate archetypeDedications (added for Archetype Dedication Constraints)
+    if (!character.archetypeDedications) {
+        character.archetypeDedications = {};
     }
 
     return character;

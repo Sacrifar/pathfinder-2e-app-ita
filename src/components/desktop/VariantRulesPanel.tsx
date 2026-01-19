@@ -31,8 +31,8 @@ const VARIANT_RULES: VariantRuleOption[] = [
         key: 'gradualAbilityBoosts',
         name: 'Gradual Ability Boosts',
         nameIt: 'Aumenti Graduali delle Caratteristiche',
-        description: 'Gain 1 ability boost per level instead of 4 every 5 levels.',
-        descriptionIt: 'Ottieni 1 aumento di caratteristica per livello invece di 4 ogni 5 livelli.',
+        description: 'Gain 1 ability boost per level (2-20, except 6/11/16). Cannot boost same ability until 4 others have been boosted.',
+        descriptionIt: 'Ottieni 1 aumento caratteristica per livello (2-20, eccetto 6/11/16). Non puoi aumentare la stessa caratteristica finché non ne hai aumentate altre 3.',
         level: 'basic',
     },
     {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { backgrounds } from '../../data';
 import { AbilityName } from '../../types';
@@ -41,12 +41,15 @@ export const BackgroundBoostModal: React.FC<BackgroundBoostModalProps> = ({
         return t(`abilities.${ability}`) || ability.toUpperCase();
     };
 
-    // For free boost, exclude the two abilities offered by background
-    const getFreeBoostOptions = (): AbilityName[] => {
+    // For free boost, exclude only the selected ability (not both options)
+    const freeBoostOptions = useMemo((): AbilityName[] => {
         const allAbilities: AbilityName[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-        // Exclude the two abilities offered by this background
-        return allAbilities.filter(a => !abilityOptions.includes(a));
-    };
+        // Exclude only the ability that was selected as the first boost
+        const filtered = selectedBoost
+            ? allAbilities.filter(a => a !== selectedBoost)
+            : allAbilities;
+        return filtered;
+    }, [selectedBoost]);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -78,10 +81,10 @@ export const BackgroundBoostModal: React.FC<BackgroundBoostModalProps> = ({
                         <div className="boost-section">
                             <h3>{t('builder.chooseFreeBoost') || 'Choose one free boost:'}</h3>
                             <p className="boost-hint">
-                                {t('builder.freeBoostHint') || 'Cannot be one of the abilities above'}
+                                {t('builder.freeBoostHint') || '(Cannot be one of the abilities above)'}
                             </p>
                             <div className="boost-options">
-                                {getFreeBoostOptions().map(ability => (
+                                {freeBoostOptions.map(ability => (
                                     <button
                                         key={ability}
                                         className={`boost-option ${selectedFreeBoost === ability ? 'selected' : ''}`}

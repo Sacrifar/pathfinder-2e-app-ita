@@ -2,9 +2,14 @@ import React, { useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { SkillDisplay } from './SkillsPanel';
 
+interface ClassDCDisplay {
+    classType: string;
+    value: number;
+}
+
 interface CombatColumnProps {
     heroPoints: number;
-    classDC?: number;
+    classDC?: number | ClassDCDisplay[];
     perception: number;
     initiative: number;
     skills: SkillDisplay[];
@@ -62,12 +67,12 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
 
     const getProficiencyColor = useMemo(() => (proficiency: string) => {
         switch (proficiency) {
-            case 'untrained': return '#888';
-            case 'trained': return '#fff';
-            case 'expert': return '#10b981';
-            case 'master': return '#3b82f6';
-            case 'legendary': return '#f59e0b';
-            default: return '#888';
+            case 'untrained': return 'var(--prof-untrained)';
+            case 'trained': return 'var(--prof-trained)';
+            case 'expert': return 'var(--prof-expert)';
+            case 'master': return 'var(--prof-master)';
+            case 'legendary': return 'var(--prof-legendary)';
+            default: return 'var(--prof-untrained)';
         }
     }, []);
 
@@ -87,10 +92,23 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                     </div>
                 </div>
                 {classDC && (
-                    <div className="class-dc-display">
-                        <span className="status-label">{t('stats.classDC') || 'Class DC'}</span>
-                        <span className="dc-value">{classDC}</span>
-                    </div>
+                    <>
+                        {typeof classDC === 'number' ? (
+                            <div className="class-dc-display">
+                                <span className="status-label">{t('stats.classDC') || 'Class DC'}</span>
+                                <span className="dc-value">{classDC}</span>
+                            </div>
+                        ) : (
+                            classDC.map((dc) => (
+                                <div key={dc.classType} className="class-dc-display">
+                                    <span className="status-label">
+                                        {dc.classType.charAt(0).toUpperCase() + dc.classType.slice(1)} DC
+                                    </span>
+                                    <span className="dc-value">{dc.value}</span>
+                                </div>
+                            ))
+                        )}
+                    </>
                 )}
                 <div className="perception-display">
                     <span className="status-label">{t('stats.perception') || 'Perception'}</span>

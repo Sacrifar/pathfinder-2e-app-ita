@@ -144,6 +144,11 @@ export function getHeritagesForAncestry(ancestryId: string): TranslatedHeritage[
     );
 }
 
+// Get versatile heritages (can be applied to any ancestry)
+export function getVersatileHeritages(): TranslatedHeritage[] {
+    return heritages.filter(h => h.ancestrySlug === null || h.ancestrySlug === '');
+}
+
 // Helper to get ancestry by ID
 export function getAncestryById(id: string) {
     return ancestries.find(a => a.id === id || a.name.toLowerCase() === id.toLowerCase());

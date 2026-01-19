@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, SkillProficiency } from '../../types';
-import { classes, skills as allSkills } from '../../data';
+import { classes, skills as allSkills, backgrounds } from '../../data';
 
 interface SkillTrainingModalProps {
     character: Character;
     onClose: () => void;
-    onApply: (trainedSkills: SkillProficiency[]) => void;
+    onApply: (trainedSkills: SkillProficiency[], manualSkillTraining: string[]) => void;
 }
 
 export const SkillTrainingModal: React.FC<SkillTrainingModalProps> = ({
@@ -32,10 +32,33 @@ export const SkillTrainingModal: React.FC<SkillTrainingModalProps> = ({
     // Skills already trained by class (automatic)
     const autoTrainedSkills = selectedClass?.trainedSkills || [];
 
-    // Initialize selected skills from character
+    // Get background trained skills to exclude
+    let backgroundSkills: string[] = [];
+    if (character.backgroundId) {
+        const bgData = backgrounds.find((b: any) => b.id === character.backgroundId);
+        if (bgData?.trainedSkills) {
+            backgroundSkills = bgData.trainedSkills.map((s: string) => s.toLowerCase());
+        }
+    }
+
+    // Get bonus skill to exclude
+    const bonusSkill = character.skillIncreases?.[0]?.toLowerCase() || '';
+
+    // Initialize selected skills from character's manualSkillTraining or calculate from skills
     const [selectedSkills, setSelectedSkills] = useState<string[]>(() => {
+        // First try to use the manualSkillTraining array
+        if (character.manualSkillTraining && character.manualSkillTraining.length > 0) {
+            return character.manualSkillTraining;
+        }
+        // Fallback: derive from calculated skills (for backward compatibility)
         const existingTrained = character.skills
-            .filter(s => s.proficiency !== 'untrained' && !autoTrainedSkills.includes(s.name))
+            .filter(s => {
+                const skillNameLower = s.name.toLowerCase();
+                return s.proficiency !== 'untrained' &&
+                    !autoTrainedSkills.some(classSkill => classSkill.toLowerCase() === skillNameLower) &&
+                    skillNameLower !== bonusSkill &&
+                    !backgroundSkills.includes(skillNameLower);
+            })
             .map(s => s.name);
         return existingTrained;
     });
@@ -53,15 +76,26 @@ export const SkillTrainingModal: React.FC<SkillTrainingModalProps> = ({
 
     // Apply the skill selections
     const handleApply = () => {
-        const allTrainedNames = [...autoTrainedSkills, ...selectedSkills];
+        // Combine all trained skill names (case-insensitive comparison)
+        const allTrainedSkillsLower = [
+            ...autoTrainedSkills.map(s => s.toLowerCase()),
+            ...backgroundSkills,
+            ...selectedSkills.map(s => s.toLowerCase())
+        ];
+
+        // Include bonus skill if exists
+        if (bonusSkill) {
+            allTrainedSkillsLower.push(bonusSkill);
+        }
 
         const trainedSkills: SkillProficiency[] = allSkills.map(skill => ({
             name: skill.name,
             ability: skill.ability,
-            proficiency: allTrainedNames.includes(skill.name) ? 'trained' : 'untrained',
+            proficiency: allTrainedSkillsLower.includes(skill.name.toLowerCase()) ? 'trained' : 'untrained',
         }));
 
-        onApply(trainedSkills);
+        // Pass both the calculated skills AND the manual skill training selections
+        onApply(trainedSkills, selectedSkills);
     };
 
     const getSkillName = (skill: typeof allSkills[0]) => {
@@ -123,24 +157,28 @@ export const SkillTrainingModal: React.FC<SkillTrainingModalProps> = ({
                     <div className="skill-selection-section">
                         <h3>{t('builder.chooseSkills') || 'Choose Additional Skills'}</h3>
                         <div className="skill-grid">
-                            {allSkills
-                                .filter(skill => !autoTrainedSkills.includes(skill.name))
-                                .map(skill => {
-                                    const isSelected = selectedSkills.includes(skill.name);
-                                    const canSelect = selectedSkills.length < totalSlots || isSelected;
+                            {allSkills.map(skill => {
+                                const skillNameLower = skill.name.toLowerCase();
+                                const isAutoTrained = autoTrainedSkills.some(classSkill => classSkill.toLowerCase() === skillNameLower);
+                                const isBackground = backgroundSkills.includes(skillNameLower);
+                                const isBonus = skillNameLower === bonusSkill;
+                                const isAlreadyTrained = isAutoTrained || isBackground || isBonus;
 
-                                    return (
-                                        <button
-                                            key={skill.id}
-                                            className={`skill-option ${isSelected ? 'selected' : ''} ${!canSelect ? 'disabled' : ''}`}
-                                            onClick={() => toggleSkill(skill.name)}
-                                            disabled={!canSelect && !isSelected}
-                                        >
-                                            <span className="skill-name">{getSkillName(skill)}</span>
-                                            <span className="skill-ability">{getAbilityLabel(skill.ability)}</span>
-                                        </button>
-                                    );
-                                })}
+                                const isSelected = selectedSkills.includes(skill.name);
+                                const canSelect = !isAlreadyTrained && (selectedSkills.length < totalSlots || isSelected);
+
+                                return (
+                                    <button
+                                        key={skill.id}
+                                        className={`skill-option ${isSelected ? 'selected' : ''} ${isAlreadyTrained ? 'fixed' : ''} ${!canSelect && !isAlreadyTrained ? 'disabled' : ''}`}
+                                        onClick={() => !isAlreadyTrained && toggleSkill(skill.name)}
+                                        disabled={isAlreadyTrained || (!canSelect && !isSelected)}
+                                    >
+                                        <span className="skill-name">{getSkillName(skill)}</span>
+                                        <span className="skill-ability">{getAbilityLabel(skill.ability)}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

@@ -116,6 +116,15 @@ interface RawFeatSystem {
     prerequisites: { value: Array<{ value: string }> };
     traits: { rarity: string; value: string[] };
     description: { value: string };
+    rules?: any[];
+    subfeatures?: {
+        proficiencies?: {
+            [category: string]: {
+                rank?: number;
+                attribute?: string;
+            }
+        }
+    };
 }
 
 interface RawConditionSystem {
@@ -263,6 +272,15 @@ export interface LoadedFeat {
     rarity: string;
     prerequisites: string[];
     description: string;
+    rules?: any[];
+    subfeatures?: {
+        proficiencies?: {
+            [category: string]: {
+                rank?: number;
+                attribute?: string;
+            }
+        }
+    };
 }
 
 export type ConditionRuleSelector =
@@ -539,8 +557,12 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
     // Extract prerequisites as strings
     const prerequisites = (sys.prerequisites?.value || []).map(p => p.value);
 
+    // Generate ID from name for consistency (matches granted item UUID format)
+    // This ensures that feats granted via UUIDs can be found in the database
+    const id = raw.name.toLowerCase().replace(/\s+/g, '-');
+
     return {
-        id: raw._id,
+        id,
         name: raw.name,
         category,
         level: sys.level?.value || 1,
@@ -550,6 +572,8 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
         rarity: sys.traits?.rarity || 'common',
         prerequisites,
         description: stripHtml(sys.description?.value || ''),
+        rules: sys.rules,
+        subfeatures: sys.subfeatures,
     };
 }
 

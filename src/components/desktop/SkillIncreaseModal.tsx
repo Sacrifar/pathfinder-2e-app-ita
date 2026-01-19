@@ -74,6 +74,7 @@ export const SkillIncreaseModal: React.FC<SkillIncreaseModalProps> = ({
             const next = getNextProficiency(current);
             if (next) {
                 onApply(selectedSkill, next);
+                onClose();
             }
         }
     };

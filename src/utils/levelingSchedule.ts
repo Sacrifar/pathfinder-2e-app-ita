@@ -115,9 +115,9 @@ export function getAbilityBoostLevelsUpTo(
     gradualBoosts?: boolean
 ): number[] {
     if (gradualBoosts) {
-        // Gradual Ability Boosts: 1 boost per level (levels 1-20)
-        // But level 1 is handled separately in character creation
-        return Array.from({ length: level }, (_, i) => i + 1).filter(l => l > 1);
+        // Gradual Ability Boosts: 1 boost at levels 2,3,4,5, 7,8,9,10, 12,13,14,15, 17,18,19,20
+        // Pause levels (no boost): 6, 11, 16
+        return Array.from({ length: level }, (_, i) => i + 1).filter(l => l > 1 && l % 5 !== 1);
     }
     return ABILITY_BOOST_LEVELS.filter(l => l <= level);
 }
@@ -130,7 +130,9 @@ export function hasAbilityBoostAtLevel(
     gradualBoosts?: boolean
 ): boolean {
     if (gradualBoosts) {
-        return level > 1; // Every level except 1 gets a boost
+        // Gradual boosts at every level from 2-20 except pause levels (6, 11, 16)
+        // These are levels where level % 5 == 1 (i.e., 6, 11, 16, 21...)
+        return level > 1 && level % 5 !== 1;
     }
     return ABILITY_BOOST_LEVELS.includes(level as typeof ABILITY_BOOST_LEVELS[number]);
 }
@@ -143,8 +145,10 @@ export function getTotalAbilityBoostsUpTo(
     gradualBoosts?: boolean
 ): number {
     if (gradualBoosts) {
-        // Level 1 doesn't count in gradual boosts (handled in creation)
-        return Math.max(0, level - 1);
+        // Count gradual boost levels (levels 2-20 except 6, 11, 16)
+        const gradualLevels = Array.from({ length: level }, (_, i) => i + 1)
+            .filter(l => l > 1 && l % 5 !== 1).length;
+        return gradualLevels;
     }
     return ABILITY_BOOST_LEVELS.filter(l => l <= level).length * 4; // 4 boosts per level
 }

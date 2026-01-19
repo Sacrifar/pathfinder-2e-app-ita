@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
 
@@ -30,6 +31,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onShowVariantRules,
 }) => {
     const { t } = useLanguage();
+    const navigate = useNavigate();
     // const [showExportOptions, setShowExportOptions] = useState(false);  // Reserved for future submenu
 
     if (!isOpen) return null;
@@ -216,6 +218,34 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
                 {/* Menu Sections */}
                 <div style={{ padding: '8px 0' }}>
+                    {/* Navigation Section */}
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{
+                            padding: '8px 20px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            color: 'var(--text-muted, #666)',
+                            letterSpacing: '0.5px',
+                        }}>
+                            {t('menu.navigation') || 'Navigation'}
+                        </div>
+
+                        {/* Back to Home */}
+                        <button
+                            onClick={() => {
+                                navigate('/');
+                                onClose();
+                            }}
+                            style={buttonStyle}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary, #2a2a2a)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                        >
+                            <span style={{ fontSize: '18px' }}>🏠</span>
+                            <span>{t('menu.backToHome') || 'Back to Home'}</span>
+                        </button>
+                    </div>
+
                     {/* Variant Rules Section */}
                     {onShowVariantRules && (
                         <div style={{ marginBottom: '16px' }}>

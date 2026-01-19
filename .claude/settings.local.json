@@ -12,7 +12,14 @@
       "Bash(find:*)",
       "Bash(npm run dev)",
       "Bash(grep:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(npx vite build)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(awk:*)",
+      "Bash(git stash:*)",
+      "Bash(xargs:*)"
     ]
   }
 }

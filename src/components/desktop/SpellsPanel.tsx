@@ -98,6 +98,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         return value >= 0 ? `+${value}` : `${value}`;
     };
 
+    // Helper to get spell name from slug
+    const getSpellNameFromSlug = (slug: string): string => {
+        const spell = allSpells.find(s => {
+            // Convert spell ID to slug format for comparison
+            const spellSlug = s.id.toLowerCase().replace(/\s+/g, '-');
+            return spellSlug === slug.toLowerCase();
+        });
+        return spell?.name || slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
     // Spell slots display
     const slotLevels = Object.keys(spellcasting.spellSlots || {}).map(Number).sort((a, b) => a - b);
 
@@ -326,7 +336,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                     <div className="spells-list">
                         {spellcasting.knownSpells.map(spellId => (
                             <div key={spellId} className="spell-item">
-                                <span className="spell-name">{spellId}</span>
+                                <span className="spell-name">{getSpellNameFromSlug(spellId)}</span>
                                 <button
                                     className="spell-cast-btn"
                                     onClick={() => onCastSpell(spellId)}

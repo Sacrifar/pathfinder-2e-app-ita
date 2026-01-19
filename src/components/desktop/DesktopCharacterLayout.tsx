@@ -48,7 +48,7 @@ import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff, AbilityName } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
-import { getSpecializationById, classHasSpecializations, getSpecializationsForClass, type ClassSpecialization } from '../../data/classSpecializations';
+import { getSpecializationById, classHasSpecializations, getSpecializationsForClass, getKineticistElementFromGateId, type ClassSpecialization } from '../../data/classSpecializations';
 import {
     calculateConditionPenalties,
     getSkillPenalty,
@@ -75,6 +75,7 @@ import {
     hasAbilityBoostAtLevel,
     SKILL_INCREASE_LEVELS,
 } from '../../utils/levelingSchedule';
+import { recalculateCharacter } from '../../utils/characterRecalculator';
 
 interface ActionData {
     id: string;
@@ -108,8 +109,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [showRestModal, setShowRestModal] = useState(false);
     const [showVariantRules, setShowVariantRules] = useState(false);
     const [showDeityBrowser, setShowDeityBrowser] = useState(false);
-    const [showTacticBrowser, setShowTacticBrowser] = useState(false);
-    const [tacticsLevel, setTacticsLevel] = useState(1);
+    // NOTE: TacticBrowser is now handled via onOpenSelection mechanism
+    // const [showTacticBrowser, setShowTacticBrowser] = useState(false);
+    // const [tacticsLevel, setTacticsLevel] = useState(1);
 
     // Lookup entity names
     const selectedAncestry = ancestries.find(a => a.id === character.ancestryId);
@@ -155,6 +157,78 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             if (!skillDef) return skillName;
             return getName(skillDef);
         };
+
+        // Calculate initial INT from character creation boosts only
+        // This is used for Level 1 Skill Training cap (should not change with level-up INT boosts)
+        const calculateInitialInt = () => {
+            let intScore = 10; // Base score
+
+            // Add ancestry INT boosts
+            if (character.abilityBoosts?.ancestry) {
+                const intBoosts = character.abilityBoosts.ancestry.filter(b => b === 'int').length;
+                intScore += intBoosts * 2;
+            }
+
+            // Add background INT boosts
+            if (character.abilityBoosts?.background) {
+                const intBoosts = character.abilityBoosts.background.filter(b => b === 'int').length;
+                intScore += intBoosts * 2;
+            }
+
+            // Add class INT boost
+            if (character.abilityBoosts?.class === 'int') {
+                intScore += 2;
+            }
+
+            // Add free INT boosts (from level 1 free boosts)
+            if (character.abilityBoosts?.free) {
+                const intBoosts = character.abilityBoosts.free.filter(b => b === 'int').length;
+                intScore += intBoosts * 2;
+            }
+
+            return intScore;
+        };
+
+        const initialInt = calculateInitialInt();
+
+        // Calculate INT-based skill bonuses (Remastered rule)
+        // Each INT boost after level 1 grants 1 Trained skill
+        const calculateIntBonusSkillsAvailable = () => {
+            let intBoostCount = 0;
+            if (character.abilityBoosts?.levelUp) {
+                for (const [level, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
+                    const lvl = parseInt(level);
+                    if (lvl > 1) {
+                        const intBoosts = boosts.filter(b => b === 'int').length;
+                        intBoostCount += intBoosts;
+                    }
+                }
+            }
+            // Count total selected skills across all levels
+            let selectedCount = 0;
+            if (character.intBonusSkills) {
+                Object.values(character.intBonusSkills).forEach(skills => {
+                    selectedCount += skills.length;
+                });
+            }
+            const available = intBoostCount - selectedCount;
+            return Math.max(0, available);
+        };
+
+        // Get INT bonus skills available at a specific level
+        const getIntBonusSkillsAvailableAtLevel = (level: number) => {
+            // Count INT boosts from levelUp at this specific level
+            const levelBoosts = character.abilityBoosts?.levelUp?.[level] || [];
+            const intBoostsAtLevel = levelBoosts.filter(b => b === 'int').length;
+
+            // Count how many skills have been selected at this level
+            const selectedAtLevel = character.intBonusSkills?.[level]?.length || 0;
+
+            // Return the number of available slots at this level
+            return Math.max(0, intBoostsAtLevel - selectedAtLevel);
+        };
+
+        const intBonusSkillsAvailable = calculateIntBonusSkillsAvailable();
 
         // Get all feat slots using variant-aware function
         const allFeatSlots = getAllFeatSlotsUpToLevel(20, variantRules);
@@ -287,14 +361,36 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         value: '',  // Icon and badge provide all info
                         currentCount: (() => {
                             const autoTrainedSkills = selectedClass?.trainedSkills || [];
-                            return character.skills.filter(s =>
-                                s.proficiency !== 'untrained' && !autoTrainedSkills.includes(s.name)
-                            ).length;
+                            const bonusSkill = character.skillIncreases?.[0]; // Get overlap bonus skill if exists
+
+                            // Get background trained skills to exclude from count
+                            let backgroundSkills: string[] = [];
+                            if (character.backgroundId) {
+                                const bgData = backgrounds.find((b: any) => b.id === character.backgroundId);
+                                if (bgData?.trainedSkills) {
+                                    backgroundSkills = bgData.trainedSkills.map((s: string) => s.toLowerCase());
+                                }
+                            }
+
+                            const count = character.skills.filter(s => {
+                                const skillNameLower = s.name.toLowerCase();
+                                return s.proficiency !== 'untrained' &&
+                                    !autoTrainedSkills.some(classSkill => classSkill.toLowerCase() === skillNameLower) &&
+                                    skillNameLower !== (bonusSkill?.toLowerCase() || '') &&
+                                    !backgroundSkills.includes(skillNameLower);
+                            }).length;
+
+                            console.log('[SkillTraining] currentCount:', count, 'INT:', character.abilityScores.int);
+                            return count;
                         })(),
                         maxValue: (() => {
                             const classSkillSlots = selectedClass?.additionalSkills || 0;
-                            const intMod = Math.floor((character.abilityScores.int - 10) / 2);
-                            return classSkillSlots + Math.max(0, intMod);
+                            // Use initial INT for level 1 skill training cap (not current INT)
+                            // This ensures the cap doesn't increase when INT is raised at higher levels
+                            const intMod = Math.floor((initialInt - 10) / 2);
+                            const max = classSkillSlots + Math.max(0, intMod);
+                            console.log('[SkillTraining] maxValue:', max, 'classSkillSlots:', classSkillSlots, 'intMod:', intMod, 'initialInt:', initialInt, 'currentInt:', character.abilityScores.int);
+                            return max;
                         })(),
                         required: true,
                         onClick: () => onOpenSelection('skillTraining', 1),
@@ -319,13 +415,44 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 });
             }
 
+            // Add INT bonus skills section (Remastered rule: 1 Trained skill per INT boost after level 1)
+            // This appears at the level where INT was boosted
+            const intBonusSkillsAtLevel = getIntBonusSkillsAvailableAtLevel(level);
+            const hasIntBoostAtLevel = character.abilityBoosts?.levelUp?.[level]?.includes('int');
+
+            if (level > 1 && hasIntBoostAtLevel) {
+                // Show skills selected at this specific level
+                const selectedSkillsAtLevel = character.intBonusSkills?.[level] || [];
+                const skillNames = selectedSkillsAtLevel.map(skillName => {
+                    const skillDef = skillsData.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+                    return skillDef ? getName(skillDef) : skillName;
+                }).join(', ');
+
+                const levelBoosts = character.abilityBoosts?.levelUp?.[level] || [];
+                const intBoostsAtLevel = levelBoosts.filter(b => b === 'int').length;
+
+                choices.push({
+                    id: `intBonusSkills${level}`,
+                    type: 'skill',
+                    label: 'builder.intBonusSkills',
+                    value: skillNames,
+                    currentCount: selectedSkillsAtLevel.length,
+                    maxValue: intBoostsAtLevel,
+                    required: selectedSkillsAtLevel.length < intBoostsAtLevel,
+                    onClick: () => onOpenSelection('intBonusSkills', level),
+                });
+            }
+
             // Add skill increases if this level has them
             if (SKILL_INCREASE_LEVELS.includes(level as any)) {
+                const hasSkillIncrease = !!character.skillIncreases?.[level];
                 choices.push({
                     id: `skillIncrease${level}`,
                     type: 'skill',
                     label: 'builder.skillIncrease',
                     value: getSkillIncreaseName(level),
+                    currentCount: hasSkillIncrease ? 1 : 0,
+                    maxValue: 1,
                     required: true,
                     onClick: () => onOpenSelection('skillIncrease', level),
                 });
@@ -427,17 +554,84 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             // Show ONLY Gate's Threshold option (hide Single Gate and Dual Gate choices)
             const GATES_THRESHOLD_LEVELS = [5, 9, 13, 17];
             if (character.classId === 'RggQN3bX5SEcsffR' && GATES_THRESHOLD_LEVELS.includes(level)) {
+                if (level === 5) {
+                    console.log('[Sidebar] Full kineticistJunctions object:', character.kineticistJunctions);
+                }
                 const junctionData = character.kineticistJunctions?.[level];
-                const hasJunction = !!junctionData;
+
+                // Check if junction is properly completed:
+                // - Fork the Path: needs newElementGateId
+                // - Expand the Portal: needs junctionIds with at least 1 junction
+                const hasJunction = junctionData && (
+                    (junctionData.choice === 'fork_the_path' && !!junctionData.newElementGateId) ||
+                    (junctionData.choice === 'expand_the_portal' && junctionData.junctionIds && junctionData.junctionIds.length > 0)
+                );
+
+                console.log(`[Sidebar Level ${level}] junctionData:`, junctionData, 'hasJunction:', hasJunction);
+
+                // Get the junction value for display - show junction name or 'Fork: [Element]'
+                let junctionValue = '';
+                if (hasJunction) {
+                    if (junctionData.choice === 'expand_the_portal' && junctionData.junctionIds && junctionData.junctionIds.length > 0) {
+                        // Show the selected junction name (e.g., "Aura Junction")
+                        const junctionId = junctionData.junctionIds[0];
+                        const junction = getSpecializationById(junctionId);
+                        if (junction) {
+                            junctionValue = (junction.nameIt && t('specialization.title') === 'Specializzazione di Classe')
+                                ? junction.nameIt
+                                : junction.name;
+                        } else {
+                            junctionValue = t('kineticist.expand') || 'Expand';
+                        }
+                    } else if (junctionData.choice === 'fork_the_path' && junctionData.newElementGateId) {
+                        // Show 'Fork: [Element]' for Fork the Path
+                        const newElement = getKineticistElementFromGateId(junctionData.newElementGateId);
+                        junctionValue = newElement
+                            ? `Fork: ${newElement.charAt(0).toUpperCase() + newElement.slice(1)}`
+                            : 'Fork';
+                    }
+                }
 
                 choices.push({
                     id: `gatesThreshold${level}`,
                     type: 'secondaryClass',
                     label: 'kineticist.gatesThreshold',
-                    value: hasJunction ? (junctionData.choice === 'expand_the_portal' ? 'Expand' : 'Fork') : '',
+                    value: junctionValue,
                     required: true,
-                    onClick: () => onOpenSelection('kineticistJunction', level),
+                    onClick: () => {
+                        console.log('[DesktopCharacterLayout] Opening kineticistJunction for level:', level);
+                        onOpenSelection('kineticistJunction', level);
+                    },
                 });
+
+                // If Expand the Portal was chosen, add impulse selection
+                // Fork the Path adds the impulse automatically, so no selection needed
+                if (hasJunction && junctionData.choice === 'expand_the_portal') {
+                    console.log(`[Sidebar Level ${level}] Adding impulse selection for Expand the Portal`);
+                    // Expand the Portal gives access to impulses from current elements
+                    const impulseFeats = feats.filter(f => {
+                        if (f.level !== level) return false;
+                        const featData = getFeats().find(feat => feat.id === f.featId);
+                        return featData && featData.traits.includes('impulse');
+                    });
+
+                    console.log(`[Sidebar Level ${level}] Found impulse feats:`, impulseFeats);
+
+                    // Get feat names for display
+                    const impulseFeatNames = impulseFeats.map(f => {
+                        const featData = getFeats().find(feat => feat.id === f.featId);
+                        return featData ? featData.name : f.featId;
+                    });
+
+                    choices.push({
+                        id: `kineticistImpulse${level}`,
+                        type: 'kineticistImpulse',
+                        label: 'kineticist.impulseFeats',
+                        value: impulseFeatNames.length > 0 ? impulseFeatNames.join(', ') : '',
+                        required: true,
+                        onClick: () => onOpenSelection('kineticistImpulse', level),
+                    });
+                }
             }
 
             // Add Kineticist impulse selection at level 1
@@ -776,9 +970,23 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         return wisMod + profBonus + penalty;
     };
 
-    const getClassDC = () => {
+    const getClassDC = (): { classType: string; value: number }[] => {
+        console.log(`[getClassDC] START - character.level=${character.level}, character.classDCs=`, character.classDCs);
+        const result: { classType: string; value: number }[] = [];
+
+        // Calculate ABP item bonus for class DC (same for all class DCs)
+        let itemBonus = 0;
+        if (character.variantRules?.automaticBonusProgression) {
+            const level = character.level || 1;
+            if (level >= 4) itemBonus = 1;
+            if (level >= 8) itemBonus = 2;
+            if (level >= 12) itemBonus = 3;
+            if (level >= 16) itemBonus = 4;
+            if (level >= 20) itemBonus = 5;
+        }
+
+        // Calculate base class DC
         // Default to Strength if no class selected, otherwise use class key ability
-        // Note: Class key ability can be an array in data, we take the first one or default
         let keyAbilityAttr = 'str';
         if (selectedClass) {
             if (Array.isArray(selectedClass.keyAbility)) {
@@ -788,20 +996,76 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             }
         }
 
-        // In a real app, we would check if character has actually selected a key ability boost
-        // For now, we use the class default
         const keyAbilityScore = character.abilityScores[keyAbilityAttr as keyof typeof character.abilityScores] || 10;
         const keyMod = Math.floor((keyAbilityScore - 10) / 2);
 
-        // Class DC is usually 10 + key mod + proficiency + level.
-        // Assuming trained for level 1 characters unless specified otherwise.
-        // Use Variant Rules support for Proficiency Without Level
+        // Determine Class DC proficiency based on class and level
+        const KINETICIST_CLASS_ID = 'RggQN3bX5SEcsffR';
+        const isKineticist = character.classId === KINETICIST_CLASS_ID || selectedClass?.name?.toLowerCase() === 'kineticist';
+
+        let classDCProficiency = ProficiencyRank.Trained;
+
+        if (isKineticist) {
+            if (character.level >= 19) {
+                classDCProficiency = ProficiencyRank.Legendary;
+            } else if (character.level >= 15) {
+                classDCProficiency = ProficiencyRank.Master;
+            } else if (character.level >= 7) {
+                classDCProficiency = ProficiencyRank.Expert;
+            }
+        }
+
         const profBonus = calculateProficiencyBonusWithVariant(
             character.level || 1,
-            ProficiencyRank.Trained,
+            classDCProficiency,
             character.variantRules?.proficiencyWithoutLevel
         );
-        return 10 + keyMod + profBonus;
+
+        console.log(`[getClassDC] Base ${selectedClass?.name || 'Class'}: mod=${keyMod}, profBonus=${profBonus}, itemBonus=${itemBonus}, total=${10 + keyMod + profBonus + itemBonus}`);
+
+        result.push({
+            classType: selectedClass?.name || 'Class',
+            value: 10 + keyMod + profBonus + itemBonus
+        });
+
+        // Add class DCs from archetype dedications
+        if (character.classDCs && Array.isArray(character.classDCs)) {
+            for (const dc of character.classDCs) {
+                // Only show class DCs at or below current level
+                // Note: classDCs array is populated by applySubfeaturesProficiencies which already filters by level
+
+                // Get ability modifier for this class DC
+                const dcAbilityScore = character.abilityScores[dc.ability] || 10;
+                const dcMod = Math.floor((dcAbilityScore - 10) / 2);
+
+                // Calculate proficiency bonus
+                const dcProfRank = dc.proficiency === 'trained' ? ProficiencyRank.Trained :
+                    dc.proficiency === 'expert' ? ProficiencyRank.Expert :
+                        dc.proficiency === 'master' ? ProficiencyRank.Master :
+                            dc.proficiency === 'legendary' ? ProficiencyRank.Legendary :
+                                ProficiencyRank.Untrained;
+
+                // Archetype dedication class DCs use the same formula as base class DC
+                // Proficiency bonus = Level + Rank (e.g., Level 10 + Trained 2 = 12)
+                const dcProfBonus = calculateProficiencyBonusWithVariant(
+                    character.level || 1,
+                    dcProfRank,
+                    character.variantRules?.proficiencyWithoutLevel
+                );
+
+                // Use the same itemBonus calculated earlier for base class DC
+                const calculatedDC = 10 + dcMod + dcProfBonus + itemBonus;
+                console.log(`[getClassDC] ${dc.classType}: mod=${dcMod}, profBonus=${dcProfBonus}, itemBonus=${itemBonus}, total=${calculatedDC}`);
+
+                result.push({
+                    classType: dc.classType.charAt(0).toUpperCase() + dc.classType.slice(1),
+                    value: calculatedDC
+                });
+            }
+        }
+
+        console.log(`[getClassDC] END - result:`, result);
+        return result;
     };
 
     const getAC = () => {
@@ -842,9 +1106,35 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 character.variantRules?.proficiencyWithoutLevel
             );
 
-            // 4. Calculate Total Modifier including condition penalties
+            // 4. Apply buffs from feats (e.g., Untrained Improvisation)
+            const skillId = skill.id.toLowerCase();
+            const skillBuffs = (character.buffs || []).filter(b => {
+                // Check for buffs that apply to this specific skill or all skills
+                // For "skill-*" buffs (like Untrained Improvisation), only apply to untrained skills
+                if (b.selector === 'skill-*' && proficiency !== 'untrained') {
+                    return false;
+                }
+                return b.selector === `skill-${skillId}` || b.selector === 'skill-*';
+            });
+
+            // Group bonuses by type - only the highest bonus of each type applies
+            const statusBonuses = skillBuffs.filter(b => b.type === 'status' && b.bonus > 0).map(b => b.bonus);
+            const circumstanceBonuses = skillBuffs.filter(b => b.type === 'circumstance' && b.bonus > 0).map(b => b.bonus);
+            const itemBonuses = skillBuffs.filter(b => b.type === 'item' && b.bonus > 0).map(b => b.bonus);
+
+            // Only the highest bonus of each type applies
+            const totalBonus = Math.max(0, ...statusBonuses, 0) +
+                              Math.max(0, ...circumstanceBonuses, 0) +
+                              Math.max(0, ...itemBonuses, 0);
+
+            // Penalties always stack (add together)
+            const penalties = skillBuffs
+                .filter(b => b.bonus < 0 || b.type === 'penalty')
+                .reduce((sum, b) => sum + b.bonus, 0);
+
+            // 5. Calculate Total Modifier including condition penalties
             const conditionPenalty = getSkillPenalty(skill.ability, conditionPenalties);
-            const totalMod = abilityMod + profBonus + conditionPenalty;
+            const totalMod = abilityMod + profBonus + totalBonus + penalties + conditionPenalty;
 
             return {
                 ...skill,
@@ -856,6 +1146,31 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     };
 
     const calculatedSkills = calculateSkills();
+
+    // Calculate initiative including buffs from feats (e.g., Incredible Initiative)
+    const getInitiativeMod = () => {
+        const basePerception = getPerceptionMod();
+
+        // Apply initiative buffs from feats with proper PF2e stacking rules
+        const initiativeBuffs = (character.buffs || []).filter(b => b.selector === 'initiative');
+
+        // Group bonuses by type - only the highest bonus of each type applies
+        const statusBonuses = initiativeBuffs.filter(b => b.type === 'status' && b.bonus > 0).map(b => b.bonus);
+        const circumstanceBonuses = initiativeBuffs.filter(b => b.type === 'circumstance' && b.bonus > 0).map(b => b.bonus);
+        const itemBonuses = initiativeBuffs.filter(b => b.type === 'item' && b.bonus > 0).map(b => b.bonus);
+
+        // Only the highest bonus of each type applies
+        const totalBonus = Math.max(0, ...statusBonuses, 0) +
+                          Math.max(0, ...circumstanceBonuses, 0) +
+                          Math.max(0, ...itemBonuses, 0);
+
+        // Penalties always stack (add together)
+        const penalties = initiativeBuffs
+            .filter(b => b.bonus < 0 || b.type === 'penalty')
+            .reduce((sum, b) => sum + b.bonus, 0);
+
+        return basePerception + totalBonus + penalties;
+    };
 
     return (
         <div className="desktop-layout">
@@ -883,35 +1198,22 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     });
                 }}
                 onLevelChange={(newLevel) => {
-                    // Cleanup on level down: remove feats, boosts, and skill increases above new level
-                    const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
-                    const cleanedLevelUp: Record<number, string[]> = {};
-                    if (character.abilityBoosts?.levelUp) {
-                        for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
-                            if (parseInt(lvl) <= newLevel) {
-                                cleanedLevelUp[parseInt(lvl)] = boosts;
-                            }
-                        }
-                    }
-                    const cleanedSkillIncreases: Record<number, string> = {};
-                    if (character.skillIncreases) {
-                        for (const [lvl, skill] of Object.entries(character.skillIncreases)) {
-                            if (parseInt(lvl) <= newLevel) {
-                                cleanedSkillIncreases[parseInt(lvl)] = skill;
-                            }
-                        }
-                    }
+                    // Preserve ALL choices for builder mode/retraining
+                    // The character data keeps all selections regardless of level
+                    // recalculateCharacter handles applying only what's active at newLevel
 
-                    onCharacterUpdate({
+                    const updatedCharacter = {
                         ...character,
                         level: newLevel,
-                        feats: cleanedFeats,
-                        abilityBoosts: {
-                            ...character.abilityBoosts,
-                            levelUp: cleanedLevelUp as { [level: number]: AbilityName[] },
-                        },
-                        skillIncreases: cleanedSkillIncreases,
-                    });
+                        // Keep all feats, boosts, and skillIncreases for builder mode
+                        feats: character.feats || [],
+                        abilityBoosts: character.abilityBoosts,
+                        skillIncreases: character.skillIncreases || {},
+                    };
+
+                    // Recalculate to properly update HP, skill proficiencies, and other derived stats
+                    const recalculatedCharacter = recalculateCharacter(updatedCharacter);
+                    onCharacterUpdate(recalculatedCharacter);
                 }}
             />
 
@@ -921,35 +1223,22 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     sections={buildSections}
                     currentLevel={character.level || 1}
                     onLevelChange={(newLevel) => {
-                        // Cleanup on level down: remove feats, boosts, and skill increases above new level
-                        const cleanedFeats = character.feats.filter(f => f.level <= newLevel);
-                        const cleanedLevelUp: Record<number, string[]> = {};
-                        if (character.abilityBoosts?.levelUp) {
-                            for (const [lvl, boosts] of Object.entries(character.abilityBoosts.levelUp)) {
-                                if (parseInt(lvl) <= newLevel) {
-                                    cleanedLevelUp[parseInt(lvl)] = boosts;
-                                }
-                            }
-                        }
-                        const cleanedSkillIncreases: Record<number, string> = {};
-                        if (character.skillIncreases) {
-                            for (const [lvl, skill] of Object.entries(character.skillIncreases)) {
-                                if (parseInt(lvl) <= newLevel) {
-                                    cleanedSkillIncreases[parseInt(lvl)] = skill;
-                                }
-                            }
-                        }
+                        // Preserve ALL choices for builder mode/retraining
+                        // The character data keeps all selections regardless of level
+                        // recalculateCharacter handles applying only what's active at newLevel
 
-                        onCharacterUpdate({
+                        const updatedCharacter = {
                             ...character,
                             level: newLevel,
-                            feats: cleanedFeats,
-                            abilityBoosts: {
-                                ...character.abilityBoosts,
-                                levelUp: cleanedLevelUp as { [level: number]: AbilityName[] },
-                            },
-                            skillIncreases: cleanedSkillIncreases,
-                        });
+                            // Keep all feats, boosts, and skillIncreases for builder mode
+                            feats: character.feats || [],
+                            abilityBoosts: character.abilityBoosts,
+                            skillIncreases: character.skillIncreases || {},
+                        };
+
+                        // Recalculate to properly update HP, skill proficiencies, and other derived stats
+                        const recalculatedCharacter = recalculateCharacter(updatedCharacter);
+                        onCharacterUpdate(recalculatedCharacter);
                     }}
                 />
 
@@ -958,7 +1247,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     heroPoints={1}
                     classDC={getClassDC()}
                     perception={getPerceptionMod()}
-                    initiative={getPerceptionMod()}
+                    initiative={getInitiativeMod()}
                     skills={calculatedSkills}
                 />
 
@@ -968,8 +1257,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     <SurvivalHeader
                         ac={getAC()}
                         hp={{
-                            current: character.hitPoints.current || calculateMaxHP(character),
-                            max: character.hitPoints.max || calculateMaxHP(character)
+                            current: character.hitPoints.current,
+                            max: character.hitPoints.max
                         }}
                         fortitude={calculateSavingThrow(character, 'fortitude')}
                         reflex={calculateSavingThrow(character, 'reflex')}
@@ -1267,8 +1556,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 )
             }
 
-            {/* Tactics Browser Modal */}
-            {
+            {/* Tactics Browser Modal - Now handled via CharacterSheetPage selection mechanism */}
+            {/* 
                 showTacticBrowser && (
                     <Suspense fallback={<LoadingFallback />}>
                         <TacticBrowser
@@ -1280,7 +1569,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         />
                     </Suspense>
                 )
-            }
+            */}
 
             {/* Main Menu */}
             {menuOpen && (
