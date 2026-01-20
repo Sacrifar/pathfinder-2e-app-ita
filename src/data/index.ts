@@ -47,6 +47,9 @@ export * from './pets';
 // Export tactics
 export * from './tactics';
 
+// Export class progressions
+export * from './classProgressions';
+
 // ============ Compatibility wrappers ============
 // These provide nameIt/descriptionIt for components that expect them
 

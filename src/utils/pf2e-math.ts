@@ -108,17 +108,37 @@ export function getABPBonuses(level: number) {
 /**
  * Calculate Armor Class with ABP support
  * @param character Character data
+ * AC = 10 + Dex Mod (capped) + Armor Bonus + Proficiency Bonus + Item Bonus
  */
 export function calculateACWithABP(character: Character): number {
     const baseAC = 10;
     const dexMod = getAbilityModifier(character.abilityScores.dex);
+
+    // Apply dex cap from armor (default to 99 for no cap)
+    const dexCap = character.armorClass.dexCap ?? 99;
+    const effectiveDex = Math.min(dexMod, dexCap);
+
+    // Armor bonus from equipped armor (e.g., Studded Leather gives +2)
+    let armorBonus = character.armorClass.acBonus || 0;
+
+    // Fallback: if acBonus is not set but itemBonus has a value, it might be the old format
+    // where itemBonus was incorrectly storing acBonus. Don't double-count.
+    if (armorBonus === 0 && character.armorClass.itemBonus && character.armorClass.itemBonus > 0) {
+        // Check if this looks like an armor bonus (typically 1-6 for light/medium/heavy armor)
+        // rather than an item bonus (potency rune, typically 1, 2, or 3)
+        if (character.armorClass.itemBonus <= 6) {
+            armorBonus = character.armorClass.itemBonus;
+        }
+    }
+
+    // Calculate proficiency bonus
     const profBonus = calculateProficiencyBonusWithVariant(
-        character.level,
-        character.armorClass.proficiency === 'untrained' ? ProficiencyRank.Untrained :
+        character.level || 1,
         character.armorClass.proficiency === 'trained' ? ProficiencyRank.Trained :
         character.armorClass.proficiency === 'expert' ? ProficiencyRank.Expert :
         character.armorClass.proficiency === 'master' ? ProficiencyRank.Master :
-        ProficiencyRank.Legendary,
+        character.armorClass.proficiency === 'legendary' ? ProficiencyRank.Legendary :
+        ProficiencyRank.Untrained,
         character.variantRules?.proficiencyWithoutLevel
     );
 
@@ -128,11 +148,13 @@ export function calculateACWithABP(character: Character): number {
         const abp = getABPBonuses(character.level);
         itemBonus = abp.potency + abp.resilient;
     } else {
-        // Standard: Use item bonus from equipment
-        itemBonus = character.armorClass.itemBonus || 0;
+        // Standard: Use item bonus from equipment (potency runes)
+        // If we used itemBonus as armorBonus above, set itemBonus to 0
+        itemBonus = (armorBonus === character.armorClass.itemBonus) ? 0 : (character.armorClass.itemBonus || 0);
     }
 
-    return baseAC + dexMod + profBonus + itemBonus;
+    // AC = 10 + Dex (capped) + Armor Bonus + Proficiency Bonus + Item Bonus
+    return baseAC + effectiveDex + armorBonus + profBonus + itemBonus;
 }
 
 /**

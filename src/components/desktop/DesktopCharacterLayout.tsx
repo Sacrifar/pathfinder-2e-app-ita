@@ -9,6 +9,7 @@ import { SurvivalHeader } from './SurvivalHeader';
 
 // Lazy load panels - caricate solo quando necessarie
 const WeaponsPanel = lazy(() => import('./WeaponsPanel').then(m => ({ default: m.WeaponsPanel })));
+const ImpulsePanel = lazy(() => import('./ImpulsePanel').then(m => ({ default: m.ImpulsePanel })));
 const DefensePanel = lazy(() => import('./DefensePanel').then(m => ({ default: m.DefensePanel })));
 const GearPanel = lazy(() => import('./GearPanel').then(m => ({ default: m.GearPanel })));
 const ResourcesPanel = lazy(() => import('./ResourcesPanel').then(m => ({ default: m.ResourcesPanel })));
@@ -27,6 +28,7 @@ const DeityBrowser = lazy(() => import('./DeityBrowser').then(m => ({ default: m
 const VariantRulesPanel = lazy(() => import('./VariantRulesPanel').then(m => ({ default: m.VariantRulesPanel })));
 const TacticBrowser = lazy(() => import('./TacticBrowser').then(m => ({ default: m.TacticBrowser })));
 const TacticsPanel = lazy(() => import('./TacticsPanel').then(m => ({ default: m.TacticsPanel })));
+const SkillActionsModal = lazy(() => import('./SkillActionsModal').then(m => ({ default: m.SkillActionsModal })));
 
 // ActiveConditions e CharacterTabs devono rimanere non-lazy per performance
 import { ActiveConditions } from './ActiveConditions';
@@ -110,6 +112,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const [showRestModal, setShowRestModal] = useState(false);
     const [showVariantRules, setShowVariantRules] = useState(false);
     const [showDeityBrowser, setShowDeityBrowser] = useState(false);
+    const [skillActionsModal, setSkillActionsModal] = useState<{ skillName: string; proficiency: Proficiency } | null>(null);
     // NOTE: TacticBrowser is now handled via onOpenSelection mechanism
     // const [showTacticBrowser, setShowTacticBrowser] = useState(false);
     // const [tacticsLevel, setTacticsLevel] = useState(1);
@@ -512,7 +515,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 }
 
                 choices.push({
-                    id: `${slot.type}Feat${level}${idx > 0 ? idx : ''}`,
+                    id: `${slot.type}Feat${level}-${idx}`,
                     type: `${slot.type}Feat`,  // e.g., 'ancestryFeat', 'classFeat', 'generalFeat', 'skillFeat'
                     label: labelKey,
                     value: featValue,
@@ -1158,6 +1161,26 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         });
     };
 
+    // Check if character has access to impulses (Kineticist class or Kineticist Dedication)
+    const hasImpulses = (): boolean => {
+        const KINETICIST_CLASS_ID = 'RggQN3bX5SEcsffR';
+
+        // Check if character is a Kineticist
+        if (character.classId === KINETICIST_CLASS_ID) {
+            return true;
+        }
+
+        // Check if character has Kineticist Dedication feat
+        const allFeats = getFeats();
+        const hasKineticistDedication = character.feats?.some(feat => {
+            const featData = allFeats.find(f => f.id === feat.featId);
+            const featName = featData?.name?.toLowerCase() || '';
+            return featName.includes('kineticist dedication');
+        });
+
+        return hasKineticistDedication || false;
+    };
+
     const calculatedSkills = calculateSkills();
 
     // Calculate initiative including buffs from feats (e.g., Incredible Initiative)
@@ -1257,11 +1280,24 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
                 {/* Column 2: Combat Column - Character Sheet */}
                 <CombatColumn
-                    heroPoints={1}
+                    heroPoints={character.heroPoints ?? 1}
                     classDC={getClassDC()}
                     perception={getPerceptionMod()}
                     initiative={getInitiativeMod()}
                     skills={calculatedSkills}
+                    onSkillClick={(skillName) => {
+                        const skill = calculatedSkills.find(s => s.name === skillName);
+                        if (skill) {
+                            setSkillActionsModal({ skillName, proficiency: skill.proficiency });
+                        }
+                    }}
+                    onHeroPointChange={(newHeroPoints) => {
+                        const updatedCharacter = {
+                            ...character,
+                            heroPoints: newHeroPoints,
+                        };
+                        onCharacterUpdate(updatedCharacter);
+                    }}
                 />
 
                 {/* Column 3: Content Area - Status & Management */}
@@ -1296,6 +1332,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         onTabChange={setActiveTab}
                         hasSpells={selectedClass?.spellcasting !== undefined}
                         hasPets={character.pets && character.pets.length > 0}
+                        hasImpulses={hasImpulses()}
                     />
 
                     <div className="tab-content">
@@ -1305,6 +1342,14 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                     <WeaponsPanel
                                         character={character}
                                         onCharacterUpdate={onCharacterUpdate}
+                                    />
+                                </Suspense>
+                            )}
+
+                            {activeTab === 'impulse' && (
+                                <Suspense fallback={<LoadingFallback />}>
+                                    <ImpulsePanel
+                                        character={character}
                                     />
                                 </Suspense>
                             )}
@@ -1568,6 +1613,20 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         <DeityBrowser
                             onSelectDeity={handleSelectDeity}
                             onClose={() => setShowDeityBrowser(false)}
+                        />
+                    </Suspense>
+                )
+            }
+
+            {/* Skill Actions Modal */}
+            {
+                skillActionsModal && (
+                    <Suspense fallback={<LoadingFallback />}>
+                        <SkillActionsModal
+                            isOpen={skillActionsModal !== null}
+                            onClose={() => setSkillActionsModal(null)}
+                            skillName={skillActionsModal.skillName}
+                            characterProficiency={skillActionsModal.proficiency}
                         />
                     </Suspense>
                 )

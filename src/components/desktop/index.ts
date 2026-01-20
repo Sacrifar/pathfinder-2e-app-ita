@@ -13,6 +13,7 @@ export { CombatColumn } from './CombatColumn';
 
 // Tab Panels
 export { WeaponsPanel } from './WeaponsPanel';
+export { ImpulsePanel } from './ImpulsePanel';
 export { DefensePanel } from './DefensePanel';
 export { GearPanel } from './GearPanel';
 export { ResourcesPanel } from './ResourcesPanel';

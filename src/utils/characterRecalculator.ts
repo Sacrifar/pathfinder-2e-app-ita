@@ -32,8 +32,9 @@
 import { Character, SkillProficiency, AbilityName, Buff, BonusType } from '../types';
 import { ancestries, backgrounds, classes, skills } from '../data';
 import { recalculateSkillsFromFeats, applySubfeaturesProficiencies, applyDeitySkillsFromDedications } from './featChoices';
-import { getFeats } from '../data/pf2e-loader';
-import { getAllKineticistJunctionSkills, getAllKineticistJunctionGrantedFeats } from '../data/classFeatures';
+import { getFeats, getArmor } from '../data/pf2e-loader';
+import { getAllKineticistJunctionSkills } from '../data/classFeatures';
+import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, proficiencyLevelToName } from '../data/classProgressions';
 
 /**
  * Recalculate ALL character data from scratch
@@ -46,6 +47,7 @@ export function recalculateCharacter(character: Character): Character {
     updated = recalculateAbilityScores(updated);
     updated = recalculateSkills(updated);
     updated = recalculateSavesAndPerception(updated); // Recalculate saves and perception from feats and class
+    updated = initializeArmorProficiency(updated); // Initialize base class armor proficiencies
     updated = applySubfeaturesProficiencies(updated); // Apply feat proficiencies (armor, weapons, class DC)
     updated = recalculateHP(updated);
     updated = recalculateSpeed(updated);
@@ -312,8 +314,9 @@ export function recalculateHP(character: Character): Character {
     // Get ancestry HP (added once, not multiplied by level)
     const ancestryHP = ancestryData?.hitPoints || 0;
 
-    // Calculate base HP per level
-    const hpPerLevel = classData.hp || 8;
+    // Calculate base HP per level from class progression data
+    const classId = classData.id;
+    const hpPerLevel = getHitPointsPerLevel(classId);
 
     // Total HP = Ancestry HP (once) + (Class HP + CON mod) × Level
     let maxHP = ancestryHP + (hpPerLevel + conMod) * character.level;
@@ -377,18 +380,9 @@ export function recalculateSavesAndPerception(character: Character): Character {
 
     if (!classData) return updated;
 
-    // Helper to convert proficiency string to rank number
-    // PF2e proficiency ranks: Untrained=0, Trained=2, Expert=4, Master=6, Legendary=8
-    const profToRank = (prof: string): number => {
-        switch (prof) {
-            case 'untrained': return 0;
-            case 'trained': return 2;
-            case 'expert': return 4;
-            case 'master': return 6;
-            case 'legendary': return 8;
-            default: return 0;
-        }
-    };
+    // Helper to convert proficiency level number (0-4) to rank number (0, 2, 4, 6, 8)
+    // Mapping: 0(untrained)=0, 1(trained)=2, 2(expert)=4, 3(master)=6, 4(legendary)=8
+    const profLevelToRank = (level: number): number => level * 2;
 
     const rankToProf = (rank: number): 'untrained' | 'trained' | 'expert' | 'master' | 'legendary' => {
         switch (rank) {
@@ -401,78 +395,21 @@ export function recalculateSavesAndPerception(character: Character): Character {
         }
     };
 
-    // Start with class base proficiencies
-    // Class data saves: 2 = good save (starts trained), 1 = bad save (starts untrained)
-    let fortitudeRank = profToRank(classData.fortitude >= 2 ? 'trained' : 'untrained');
-    let reflexRank = profToRank(classData.reflex >= 2 ? 'trained' : 'untrained');
-    let willRank = profToRank(classData.will >= 2 ? 'trained' : 'untrained');
+    // Get base proficiencies from class progression data
+    const classId = classData.id;
+    const level = character.level || 1;
 
-    // Perception is always trained minimum
-    let perceptionRank = profToRank('trained');
+    // Get saving throw proficiencies from class progression data (returns 0-4)
+    const fortProfLevel = getSavingThrowAtLevel(classId, 'fortitude', level);
+    const reflexProfLevel = getSavingThrowAtLevel(classId, 'reflex', level);
+    const willProfLevel = getSavingThrowAtLevel(classId, 'will', level);
+    const perceptionProfLevel = getPerceptionAtLevel(classId, level);
 
-    // Apply level-based progression
-    // Most classes get Expert in one save at level 3, Master at level 13
-    // Some classes (like Fighter) get Expert in Fortitude at level 1
-    // Kineticist class ID: RggQN3bX5SEcsffR
-    const isKineticist = classData.id === 'RggQN3bX5SEcsffR' || classData.name?.toLowerCase() === 'kineticist';
-    if (isKineticist) {
-        // Kineticist progression (PF2e Remaster / Rage of Elements):
-        // Level 1: Fortitude Expert, Reflex Expert, Will Trained
-        // Level 3: Will Expert
-        // Level 7: Fortitude Master
-        // Level 9: Perception Expert
-        // Level 11: Reflex Master, Fortitude Legendary
-
-        // Level 1: Fort Expert, Reflex Expert
-        fortitudeRank = Math.max(fortitudeRank, 4); // Expert from level 1
-        reflexRank = Math.max(reflexRank, 4); // Expert from level 1
-        willRank = Math.max(willRank, 2); // Trained at level 1
-
-        // Level 3: Will Expert
-        if (character.level >= 3) {
-            willRank = Math.max(willRank, 4);
-        }
-
-        // Level 7: Fortitude Master
-        if (character.level >= 7) {
-            fortitudeRank = Math.max(fortitudeRank, 6);
-        }
-
-        // Level 11: Reflex Master
-        if (character.level >= 11) {
-            reflexRank = Math.max(reflexRank, 6);
-        }
-
-        // Level 15: Fortitude Legendary
-        if (character.level >= 15) {
-            fortitudeRank = Math.max(fortitudeRank, 8);
-        }
-    } else {
-        // Standard class progression
-        if (character.level >= 3) {
-            if (classData.fortitude >= 2) fortitudeRank = Math.max(fortitudeRank, 4);
-            if (classData.reflex >= 2) reflexRank = Math.max(reflexRank, 4);
-            if (classData.will >= 2) willRank = Math.max(willRank, 4);
-        }
-
-        if (character.level >= 13) {
-            // Master in good save at level 13
-            if (classData.fortitude >= 2) fortitudeRank = Math.max(fortitudeRank, 6);
-            if (classData.reflex >= 2) reflexRank = Math.max(reflexRank, 6);
-            if (classData.will >= 2) willRank = Math.max(willRank, 6);
-        }
-    }
-
-    // Perception progression
-    if (isKineticist) {
-        // Kineticist: Trained at 1 → Expert at 9
-        if (character.level >= 9) {
-            perceptionRank = Math.max(perceptionRank, 4);
-        }
-    } else if (character.level >= 17) {
-        // Most classes get Master in Perception at level 17
-        perceptionRank = Math.max(perceptionRank, 6);
-    }
+    // Convert to rank numbers (0, 2, 4, 6, 8) for compatibility with feat calculations
+    let fortitudeRank = profLevelToRank(fortProfLevel);
+    let reflexRank = profLevelToRank(reflexProfLevel);
+    let willRank = profLevelToRank(willProfLevel);
+    let perceptionRank = profLevelToRank(perceptionProfLevel);
 
     // Now apply feat effects (like Canny Acumen)
     if (character.feats && character.feats.length > 0) {
@@ -585,6 +522,94 @@ export function recalculateSavesAndPerception(character: Character): Character {
     };
 
     updated.perception = rankToProf(perceptionRank);
+
+    return updated;
+}
+
+/**
+ * Initialize base class armor proficiencies
+ * Uses class progression data to determine armor proficiency at each level
+ * This sets the armorClass.proficiency field based on equipped armor or unarmored
+ */
+export function initializeArmorProficiency(character: Character): Character {
+    const updated = { ...character };
+    const classData = classes.find((c: any) => c.id === character.classId);
+
+    if (!classData) return updated;
+
+    // Initialize armorProficiencies array if not present
+    if (!updated.armorProficiencies) {
+        updated.armorProficiencies = [];
+    }
+
+    const classId = classData.id;
+    const level = character.level || 1;
+
+    // Helper to update or add armor proficiency
+    const updateArmorProficiency = (
+        category: 'light' | 'medium' | 'heavy' | 'unarmored'
+    ) => {
+        const profLevel = getArmorProficiencyAtLevel(classId, category, level);
+        const profName = proficiencyLevelToName(profLevel);
+
+        const existing = updated.armorProficiencies!.find(p => p.category === category);
+        if (existing) {
+            // Update existing if class progression is higher
+            const profOrder = ['untrained', 'trained', 'expert', 'master', 'legendary'];
+            const existingIdx = profOrder.indexOf(existing.proficiency);
+            const newIdx = profOrder.indexOf(profName);
+            if (newIdx > existingIdx) {
+                existing.proficiency = profName;
+            }
+        } else if (profLevel > 0) {
+            // Only add if trained or better
+            updated.armorProficiencies!.push({ category, proficiency: profName });
+        }
+    };
+
+    // Update all armor categories from class progression
+    updateArmorProficiency('light');
+    updateArmorProficiency('medium');
+    updateArmorProficiency('heavy');
+    updateArmorProficiency('unarmored');
+
+    // Determine the appropriate armorClass.proficiency based on equipped armor
+    if (updated.equippedArmor) {
+        // Character has armor equipped - use the best applicable armor proficiency
+        // For now, we'll use light armor proficiency for light armor
+        const lightArmorProf = updated.armorProficiencies.find(p => p.category === 'light');
+        const mediumArmorProf = updated.armorProficiencies.find(p => p.category === 'medium');
+        const heavyArmorProf = updated.armorProficiencies.find(p => p.category === 'heavy');
+
+        // Find the equipped armor to determine its category
+        const armors = getArmor();
+        const equippedArmorData = armors.find((a: any) => a.id === updated.equippedArmor);
+
+        if (equippedArmorData) {
+            const armorCategory = equippedArmorData.category;
+            let bestProficiency: 'untrained' | 'trained' | 'expert' | 'master' | 'legendary' = 'untrained';
+
+            if (armorCategory === 'heavy' && heavyArmorProf) {
+                bestProficiency = heavyArmorProf.proficiency;
+            } else if (armorCategory === 'medium' && mediumArmorProf) {
+                bestProficiency = mediumArmorProf.proficiency;
+            } else if (lightArmorProf) {
+                bestProficiency = lightArmorProf.proficiency;
+            }
+
+            updated.armorClass = {
+                ...updated.armorClass,
+                proficiency: bestProficiency
+            };
+        }
+    } else {
+        // No armor equipped - use unarmored defense proficiency
+        const unarmoredProf = updated.armorProficiencies.find(p => p.category === 'unarmored');
+        updated.armorClass = {
+            ...updated.armorClass,
+            proficiency: unarmoredProf?.proficiency || 'trained'
+        };
+    }
 
     return updated;
 }

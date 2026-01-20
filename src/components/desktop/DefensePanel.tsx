@@ -69,7 +69,8 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
             equippedArmor: armor.id,
             armorClass: {
                 ...character.armorClass,
-                itemBonus: armor.acBonus,
+                acBonus: armor.acBonus,  // Armor bonus from the armor itself
+                itemBonus: 0,  // Item bonus from runes (set separately)
                 dexCap: armor.dexCap,
                 // checkPenalty: armor.checkPenalty // Not stored in AC currently
             }
@@ -95,6 +96,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
             equippedArmor: undefined,
             armorClass: {
                 ...character.armorClass,
+                acBonus: 0,  // Remove armor bonus
                 itemBonus: 0,
                 dexCap: 99
             }

@@ -13,6 +13,8 @@ interface CombatColumnProps {
     perception: number;
     initiative: number;
     skills: SkillDisplay[];
+    onSkillClick?: (skillName: string) => void;
+    onHeroPointChange?: (newHeroPoints: number) => void;
 }
 
 // Componente memoizzato per render singolo skill
@@ -22,8 +24,13 @@ const SkillItem = React.memo<{
     formatModifier: (val: number) => string;
     getProficiencyIcon: (prof: string) => string;
     getProficiencyColor: (prof: string) => string;
-}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor }) => (
-    <div className="skill-item">
+    onSkillClick?: (skillName: string) => void;
+}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor, onSkillClick }) => (
+    <div
+        className={`skill-item ${onSkillClick ? 'clickable' : ''}`}
+        onClick={() => onSkillClick?.(skill.name)}
+        style={onSkillClick ? { cursor: 'pointer' } : undefined}
+    >
         <span className="skill-name">
             {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
         </span>
@@ -47,6 +54,8 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
     perception,
     initiative,
     skills,
+    onSkillClick,
+    onHeroPointChange,
 }) => {
     const { t } = useLanguage();
 
@@ -76,6 +85,21 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
         }
     }, []);
 
+    // Handle hero point click with cascade behavior
+    const handleHeroPointClick = (clickedIndex: number) => {
+        if (!onHeroPointChange) return;
+
+        // If clicking on a filled dot, empty it and all dots after it (cascade off)
+        // If clicking on an empty dot, fill it and all dots before it (cascade on)
+        if (clickedIndex < heroPoints) {
+            // Clicking a filled dot - cascade off (empty this and all after)
+            onHeroPointChange(clickedIndex);
+        } else {
+            // Clicking an empty dot - cascade on (fill this and all before)
+            onHeroPointChange(clickedIndex + 1);
+        }
+    };
+
     return (
         <div className="combat-column">
             {/* Status & DCs */}
@@ -86,7 +110,9 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                         {[0, 1, 2].map((i) => (
                             <div
                                 key={i}
-                                className={`hero-point-icon ${i < heroPoints ? 'filled' : 'empty'}`}
+                                className={`hero-point-icon ${i < heroPoints ? 'filled' : 'empty'} ${onHeroPointChange ? 'clickable' : ''}`}
+                                onClick={() => handleHeroPointClick(i)}
+                                style={onHeroPointChange ? { cursor: 'pointer' } : undefined}
                             />
                         ))}
                     </div>
@@ -132,6 +158,7 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                             formatModifier={formatModifier}
                             getProficiencyIcon={getProficiencyIcon}
                             getProficiencyColor={getProficiencyColor}
+                            onSkillClick={onSkillClick}
                         />
                     ))}
                 </div>

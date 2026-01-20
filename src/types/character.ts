@@ -43,6 +43,7 @@ export interface ArmorClass {
     base: number;
     proficiency: Proficiency;
     itemBonus: number;
+    acBonus?: number;  // Armor bonus from equipped armor
     dexCap?: number;
 }
 
@@ -404,6 +405,9 @@ export interface Character {
     // HP
     hitPoints: HitPoints;
 
+    // Hero Points (0-3)
+    heroPoints?: number;
+
     // Skills
     skills: SkillProficiency[];
 
@@ -570,6 +574,7 @@ export function createEmptyCharacter(): Character {
             levelUp: {}
         },
         hitPoints: { current: 0, max: 0, temporary: 0 },
+        heroPoints: 1, // Start with 1 hero point
         skills: [],
         saves: { fortitude: 'untrained', reflex: 'untrained', will: 'untrained' },
         perception: 'trained',
@@ -706,6 +711,11 @@ export function migrateCharacter(data: any): Character {
     // Migrate archetypeDedications (added for Archetype Dedication Constraints)
     if (!character.archetypeDedications) {
         character.archetypeDedications = {};
+    }
+
+    // Migrate heroPoints (added for interactive hero points)
+    if (character.heroPoints === undefined) {
+        character.heroPoints = 1;
     }
 
     return character;

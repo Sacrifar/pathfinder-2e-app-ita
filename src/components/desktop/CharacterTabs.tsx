@@ -1,13 +1,14 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
-export type TabId = 'weapons' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions';
+export type TabId = 'weapons' | 'impulse' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions';
 
 interface CharacterTabsProps {
     activeTab: TabId;
     onTabChange: (tab: TabId) => void;
     hasSpells?: boolean;
     hasPets?: boolean;
+    hasImpulses?: boolean;
 }
 
 export const CharacterTabs: React.FC<CharacterTabsProps> = ({
@@ -15,11 +16,13 @@ export const CharacterTabs: React.FC<CharacterTabsProps> = ({
     onTabChange,
     hasSpells = false,
     hasPets = false,
+    hasImpulses = false,
 }) => {
     const { t } = useLanguage();
 
     const tabs: { id: TabId; label: string; show: boolean }[] = [
         { id: 'weapons', label: t('tabs.weapons') || 'Weapons', show: true },
+        { id: 'impulse', label: t('tabs.impulse') || 'Impulse', show: hasImpulses },
         { id: 'defense', label: t('tabs.defense') || 'Defense', show: true },
         { id: 'gear', label: t('tabs.gear') || 'Gear', show: true },
         { id: 'resources', label: t('tabs.resources') || 'Resources', show: true },

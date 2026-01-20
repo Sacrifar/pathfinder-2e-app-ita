@@ -264,11 +264,13 @@ export interface LoadedSpell {
 
 export interface LoadedFeat {
     id: string;
+    rawId?: string; // Original Foundry UUID (_id from raw data) for matching with character.feats.featId
     name: string;
     category: 'ancestry' | 'class' | 'skill' | 'general' | 'archetype' | 'mythic' | 'bonus';
     level: number;
     actionType: 'passive' | 'action' | 'reaction' | 'free';
     actionCost: number | null;
+    altActionCosts?: number[]; // Alternative action costs (e.g., reaction OR 2-action activity)
     traits: string[];
     rarity: string;
     prerequisites: string[];
@@ -545,6 +547,70 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
         actionCost = sys.actions.value;
     }
 
+    // For feats that can be used in multiple ways (e.g., reaction OR 2-action activity)
+    // parse the description to extract alternative action costs
+    const altActionCosts: number[] = [];
+    const description = sys.description?.value || '';
+
+    // Check for reaction indicator
+    const hasReaction = /<span[^>]*action-glyph[^>]*>R<\/span>/i.test(description) ||
+                         /<span[^>]*action-glyph[^>]*>reaction<\/span>/i.test(description);
+
+    // Check for numeric action glyphs like <span class="action-glyph">2</span>
+    const actionGlyphPattern = /<span[^>]*action-glyph[^>]*>(\d+)<\/span>/gi;
+    const foundCosts = new Set<number>();
+
+    let match;
+    while ((match = actionGlyphPattern.exec(description)) !== null) {
+        const costNum = parseInt(match[1]);
+        if (!isNaN(costNum) && costNum >= 1 && costNum <= 3) {
+            foundCosts.add(costNum);
+        }
+    }
+
+    // If we found numeric action costs or reaction, process them
+    if (foundCosts.size > 0 || hasReaction) {
+        const costsArray = Array.from(foundCosts).sort();
+
+        // Use the first numeric cost as actionCost if not already set
+        if (actionCost === null && costsArray.length > 0) {
+            actionCost = costsArray[0];
+        }
+
+        // Add remaining costs as alternatives
+        for (const cost of costsArray) {
+            if (actionCost !== cost) {
+                altActionCosts.push(cost);
+            }
+        }
+
+        // For reaction feats that also have a numeric cost alternative
+        // mark the reaction as the primary if actionType is reaction
+        // but don't add it to altActionCosts since it's not a "numeric" cost
+        if (hasReaction && actionType !== 'reaction') {
+            // This feat has both reaction and numeric cost options
+            // Keep the reaction type but add the numeric cost to alternatives
+            altActionCosts.push(...costsArray.filter(c => c !== actionCost));
+        }
+    }
+
+    // Fallback: check for "X-action activity" patterns
+    if (altActionCosts.length === 0) {
+        const activityMatch = description.match(/(\d+)-action activity/gi);
+        if (activityMatch) {
+            activityMatch.forEach(match => {
+                const costNum = parseInt(match.match(/\d+/)![0]);
+                if (!isNaN(costNum) && costNum >= 1 && costNum <= 3) {
+                    if (actionCost === null) {
+                        actionCost = costNum;
+                    } else if (actionCost !== costNum && !altActionCosts.includes(costNum)) {
+                        altActionCosts.push(costNum);
+                    }
+                }
+            });
+        }
+    }
+
     // Normalize category
     let category: LoadedFeat['category'] = 'general';
     const rawCategory = sys.category?.toLowerCase() || '';
@@ -563,17 +629,22 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
     // This ensures that feats granted via UUIDs can be found in the database
     const id = raw.name.toLowerCase().replace(/\s+/g, '-');
 
+    // Store the raw _id for matching with character.feats.featId
+    const rawId = raw._id;
+
     return {
         id,
+        rawId,
         name: raw.name,
         category,
         level: sys.level?.value || 1,
         actionType,
         actionCost,
+        altActionCosts: altActionCosts.length > 0 ? altActionCosts : undefined,
         traits: sys.traits?.value || [],
         rarity: sys.traits?.rarity || 'common',
         prerequisites,
-        description: stripHtml(sys.description?.value || ''),
+        description: stripHtml(description),
         rules: sys.rules,
         subfeatures: sys.subfeatures,
     };
@@ -822,8 +893,155 @@ function transformClass(raw: RawPF2eItem): LoadedClass | null {
     };
 }
 
+/**
+ * Clean up FoundryVTT UUID references from descriptions.
+ * Converts @UUID[Compendium.pf2e.actionspf2e.Item.Treat Wounds] to "Treat Wounds"
+ */
+function cleanUuidReferences(text: string): string {
+    // Match @UUID[...] patterns and extract the item name
+    // Pattern matches: @UUID[Compendium.pf2e.actionspf2e.Item.Treat Wounds]
+    // The name is typically the last part after the last dot
+    return text.replace(
+        /@UUID\[Compendium\.[^\]]+\](?:\{([^}]+)\})?/g,
+        (match, displayText) => {
+            // If there's display text in curly braces, use that
+            if (displayText) {
+                return displayText;
+            }
+
+            // Extract the content inside the brackets
+            const content = match.slice(6, -1); // Remove "@UUID[" and "]"
+
+            // Try to extract the name (last segment after the last dot)
+            // Handle cases like "Compendium.pf2e.actionspf2e.Item.Treat Wounds"
+            const parts = content.split('.');
+            if (parts.length >= 4) {
+                // The name is after the 4th part (e.g., "Item.Treat Wounds" -> "Treat Wounds")
+                // Or sometimes it's just the last part
+                const lastPart = parts[parts.length - 1];
+
+                // Also handle nested brackets like [[/act ...]]{...}
+                const bracketMatch = lastPart.match(/\}\]([^\]]+)\]$/);
+                if (bracketMatch) {
+                    return bracketMatch[1];
+                }
+
+                // Check if there's a display text in curly braces at the end
+                const curlyMatch = content.match(/\{([^}]+)\}$/);
+                if (curlyMatch) {
+                    return curlyMatch[1];
+                }
+
+                // Return the last part as the name
+                return lastPart.replace(/\\/g, '').trim();
+            }
+
+            // If we can't parse it, just return a placeholder
+            return '[link]';
+        }
+    );
+}
+
+/**
+ * Clean up [[/act ...]] action links
+ * Converts [[/act decipher-writing statistic=society]]{Society} to "Society"
+ */
+function cleanActionLinks(text: string): string {
+    return text.replace(
+        /\[\[\/act[^\]]+\]\]\{([^}]+)\}/g,
+        '$1'
+    );
+}
+
+/**
+ * Clean up @Check[...] references
+ * Converts @Check[reflex|against:kineticist|basic|options:area-effect] to "Reflex save"
+ */
+function cleanCheckReferences(text: string): string {
+    return text.replace(
+        /@Check\[([^\]]+)\]/g,
+        (_match, content: string) => {
+            // Extract the save type (first part before |)
+            const saveType = content.split('|')[0];
+            // Capitalize the save type
+            return saveType.charAt(0).toUpperCase() + saveType.slice(1) + ' save';
+        }
+    );
+}
+
+/**
+ * Clean up @Damage[...] references
+ * Converts @Damage[(floor((@actor.level -8)/3)+3)d12[electricity],1d10[sonic]|options:area-damage]{text} to "text" or "damage"
+ */
+function cleanDamageReferences(text: string): string {
+    return text.replace(
+        /@Damage\[([^\]]+)\](?:\{([^}]+)\})?/g,
+        (_match, _content: string, displayText?: string) => {
+            // If there's display text in curly braces, use that
+            if (displayText) {
+                return displayText;
+            }
+            return 'damage';
+        }
+    );
+}
+
+/**
+ * Clean up @Localize[...] references
+ * Converts @Localize[PF2E.NPC.Abilities.Glossary.Ferocity] to "[Special]"
+ */
+function cleanLocalizeReferences(text: string): string {
+    return text.replace(
+        /@Localize\[([^\]]+)\]/g,
+        '[Special]'
+    );
+}
+
+/**
+ * Clean up @Template[...] references
+ * Converts @Template[emanation|distance:10] to "10-foot emanation"
+ */
+function cleanTemplateReferences(text: string): string {
+    return text.replace(
+        /@Template\[([^\]]+)\]/g,
+        (_match, content: string) => {
+            const parts = content.split('|');
+            const type = parts[0];
+            const distancePart = parts.find((p: string) => p.startsWith('distance:'));
+            const distance = distancePart ? distancePart.split(':')[1] : '';
+            return distance ? `${distance}-foot ${type}` : type;
+        }
+    );
+}
+
+/**
+ * Clean up any leftover FoundryVTT syntax fragments
+ * Removes things like |options:area-damage] or similar fragments
+ */
+function cleanLeftoverFragments(text: string): string {
+    return text
+        // Remove leftover pipe options like |options:area-damage]
+        .replace(/\|options:[^\]\s,\.]+/g, '')
+        // Remove leftover |against:CLASS|basic patterns
+        .replace(/\|against:[^\]\s,\.]+/g, '')
+        // Remove lone |basic fragments
+        .replace(/\|basic(?=[\]\s,\.])/g, '')
+        // Remove any remaining brackets that shouldn't be there
+        .replace(/(?<!\w)\]|\[(?!\w)/g, '');
+}
+
 function stripHtml(html: string): string {
-    return html
+    // First, clean all FoundryVTT references
+    let cleaned = cleanUuidReferences(html);
+    cleaned = cleanActionLinks(cleaned);
+    cleaned = cleanCheckReferences(cleaned);
+    cleaned = cleanDamageReferences(cleaned);
+    cleaned = cleanLocalizeReferences(cleaned);
+    cleaned = cleanTemplateReferences(cleaned);
+    cleaned = cleanLeftoverFragments(cleaned);
+
+    // Then remove HTML tags and entities
+    return cleaned
         .replace(/<[^>]*>/g, '')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')

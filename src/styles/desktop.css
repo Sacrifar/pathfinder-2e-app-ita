@@ -399,10 +399,19 @@
     height: 12px;
     border-radius: 50%;
     background: var(--desktop-border);
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.hero-point-icon.clickable:hover {
+    transform: scale(1.2);
 }
 
 .hero-point-icon.filled {
     background: var(--desktop-accent-gold);
+}
+
+.hero-point-icon.filled.clickable:hover {
+    filter: brightness(1.2);
 }
 
 .dc-value,
@@ -6357,4 +6366,496 @@
     padding: 2px 6px;
     background: var(--desktop-bg-tertiary);
     border-radius: 3px;
+}
+
+/* ===== Skill Actions Modal ===== */
+.skill-actions-modal {
+    max-width: 700px;
+    width: 90%;
+}
+
+.no-actions-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--desktop-text-secondary);
+    font-size: 15px;
+}
+
+.skill-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skill-action-card {
+    background: var(--desktop-bg-tertiary);
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid var(--desktop-border);
+    transition: all 0.2s ease;
+}
+
+.skill-action-card:hover {
+    border-color: var(--desktop-border-light);
+    background: var(--desktop-card-hover);
+}
+
+.action-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.action-cost-badge {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--desktop-bg);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.action-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--desktop-text);
+    margin: 0;
+}
+
+.action-proficiency-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: var(--desktop-accent-blue);
+    color: white;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.action-description {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--desktop-text-secondary);
+}
+
+.action-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.trait-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    background: var(--desktop-bg);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    color: var(--desktop-text-secondary);
+}
+
+/* Skill item clickable style */
+.skill-item.clickable:hover {
+    background: var(--desktop-card-hover);
+}
+
+.action-header {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.action-header:hover {
+    background: var(--desktop-card-hover);
+    border-radius: 8px;
+    margin: -14px;
+    padding: 14px;
+}
+
+.action-body {
+    margin-top: 10px;
+}
+
+.expand-icon {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--desktop-accent-blue);
+    min-width: 20px;
+    text-align: center;
+}
+
+.action-description {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Impulse Panel ===== */
+.impulse-panel {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.panel-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--desktop-text);
+    margin: 0 0 8px 0;
+}
+
+.impulse-section {
+    margin-bottom: 16px;
+}
+
+.impulse-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--desktop-accent-gold, #f59e0b);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+}
+
+.impulse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.impulse-card {
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s ease;
+}
+
+.impulse-card:hover {
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    transform: translateY(-2px);
+}
+
+.blast-card {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.03));
+}
+
+.impulse-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.impulse-element-icon {
+    font-size: 18px;
+}
+
+.impulse-level {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-accent-blue, #3b82f6);
+    background: rgba(59, 130, 246, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.impulse-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-text);
+    flex: 1;
+}
+
+.blast-mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.blast-mode-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 4px;
+    color: var(--desktop-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+}
+
+.blast-mode-btn:hover {
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.blast-mode-btn.active {
+    background: var(--desktop-accent-gold, rgba(245, 158, 11, 0.3));
+    border-color: var(--desktop-accent-gold, #f59e0b);
+    color: var(--desktop-text);
+}
+
+.impulse-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.trait-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    color: var(--desktop-text-secondary);
+}
+
+.impulse-description {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--desktop-text-secondary);
+    margin: 0;
+}
+
+.impulse-requirements {
+    font-size: 11px;
+    color: var(--desktop-text-secondary);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.05));
+}
+
+.element-group {
+    margin-bottom: 20px;
+}
+
+.element-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.03));
+    border-radius: 6px;
+}
+
+.element-icon {
+    font-size: 20px;
+}
+
+.element-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--desktop-text);
+    flex: 1;
+}
+
+.element-count {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--desktop-text-secondary);
+}
+
+.empty-state p {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+}
+
+.empty-state-hint {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* ===== Impulse Modal ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--desktop-bg-primary, #1a1a1a);
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border-radius: 50%;
+    color: var(--desktop-text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.1));
+    color: var(--desktop-text);
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--desktop-text);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.modal-level-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--desktop-accent-blue, #3b82f6);
+    background: rgba(59, 130, 246, 0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.modal-element-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.modal-cost {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--desktop-text);
+}
+
+.modal-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.modal-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--desktop-text-secondary);
+    white-space: pre-wrap;
+}
+
+/* ===== Impulse Card Enhancements ===== */
+.impulse-card.clickable {
+    cursor: pointer;
+}
+
+.impulse-card.clickable:hover {
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.08));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.impulse-cost {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cost-label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+}
+
+.passive-badge {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.impulse-element-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    color: var(--desktop-text-secondary);
+}
+
+/* ===== Multi-Cost Display ===== */
+.multi-cost {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cost-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.modal-cost .multi-cost {
+    gap: 12px;
+}
+
+.modal-cost .cost-option {
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.empty-state-debug {
+    font-size: 11px;
+    color: var(--desktop-accent-blue, #3b82f6);
+    background: rgba(59, 130, 246, 0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-family: monospace;
 }

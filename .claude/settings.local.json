@@ -20,7 +20,8 @@
       "Bash(awk:*)",
       "Bash(git stash:*)",
       "Bash(xargs:*)",
-      "Bash(start http://localhost:5173)"
+      "Bash(start http://localhost:5173)",
+      "Bash(del:*)"
     ]
   }
 }
