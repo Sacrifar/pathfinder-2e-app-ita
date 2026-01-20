@@ -7,7 +7,11 @@ import App from './App.tsx'
 import './styles/index.css'
 import './styles/desktop.css'
 
-createRoot(document.getElementById('root')!).render(
+console.log('Main file executing');
+const rootElement = document.getElementById('root');
+console.log('Root element:', rootElement);
+
+createRoot(rootElement!).render(
     <StrictMode>
         <BrowserRouter>
             <ThemeProvider>

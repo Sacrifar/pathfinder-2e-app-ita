@@ -19,7 +19,7 @@ import {
     IntBonusSkillModal,
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
-import { LoadedFeat, getClasses, getFeats } from '../data/pf2e-loader';
+import { LoadedFeat, getClasses, getFeats, getSpells } from '../data/pf2e-loader';
 import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
 import { backgrounds, skills as skillsData } from '../data';
 import { recalculateCharacter } from '../utils/characterRecalculator';
@@ -679,8 +679,16 @@ const CharacterSheetPage: React.FC = () => {
             let hasSpellChoices = false;
 
             if (choices && Object.keys(choices).length > 0) {
-                // Check if any of the choices are spells (slug format)
-                const spellChoices = Object.values(choices).filter(v => v.includes('-'));
+                // Validate spell IDs against the actual spell database
+                const allSpells = getSpells();
+                const validSpellIds = new Set(allSpells.map(s => s.id.toLowerCase()));
+
+                // Check if any of the choices are actual spells (validate against spell database)
+                const spellChoices = Object.values(choices).filter(v => {
+                    const normalizedId = v.toLowerCase().replace(/\s+/g, '-');
+                    return v.includes('-') && validSpellIds.has(normalizedId);
+                });
+
                 if (spellChoices.length > 0) {
                     hasSpellChoices = true;
                     // Add spell slugs to knownSpells if not already present

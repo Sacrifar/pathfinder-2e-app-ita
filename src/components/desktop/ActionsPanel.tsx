@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
-import { getActions, getFeats, LoadedFeat } from '../../data/pf2e-loader';
+import { getActions, getFeats, getActionsByClass } from '../../data/pf2e-loader';
+import { classes } from '../../data';
 
 // Import action icons
 import actionSingle from '../../data/Azioni/action_single.png';
@@ -12,6 +13,7 @@ import actionReaction from '../../data/Azioni/action_reaction.png';
 
 type ActionCost = 'free' | 'reaction' | '1' | '2' | '3';
 type ActionSource = 'basic' | 'feat' | 'skill' | 'pet';
+type ActionCategory = 'all' | 'basic' | 'skill' | 'interaction' | 'offense' | 'movement' | 'class';
 
 interface PetAction {
     id: string;
@@ -145,11 +147,21 @@ interface Action {
     description: string;
     traits: string[];
     source: ActionSource;
+    category?: string;
+}
+
+interface ActionData {
+    id: string;
+    name: string;
+    cost: '1' | '2' | '3' | 'free' | 'reaction';
+    description: string;
+    traits: string[];
+    skill?: string;
 }
 
 interface ActionsPanelProps {
     character: Character;
-    onActionClick: (action: Action) => void;
+    onActionClick: (action: ActionData) => void;
 }
 
 // Helper to check if character meets proficiency requirement
@@ -166,125 +178,224 @@ const meetsSkillRequirement = (
     return charProfLevel >= requiredLevel;
 };
 
-// Helper to check if an action comes from a feat the character has
-const isActionFromCharacterFeat = (
-    actionName: string,
-    characterFeatIds: Set<string>,
-    allFeats: LoadedFeat[]
-): boolean => {
-    // Find feats that match the action name (feats often grant actions with the same name)
-    const matchingFeat = allFeats.find(f =>
-        f.name.toLowerCase() === actionName.toLowerCase() ||
-        f.name.toLowerCase().replace(/\s+/g, '-') === actionName.toLowerCase().replace(/\s+/g, '-')
-    );
-
-    if (matchingFeat && characterFeatIds.has(matchingFeat.id)) {
-        return true;
-    }
-
-    return false;
-};
-
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     character,
     onActionClick,
 }) => {
     const { t, language } = useLanguage();
-    const [filter, setFilter] = useState<ActionCost | 'all' | 'skill' | 'feat' | 'pet'>('all');
-    const [searchQuery] = useState('');
+    const [costFilter, setCostFilter] = useState<ActionCost | 'all'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<ActionCategory>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Load all feats for cross-referencing
-    const allFeats = useMemo(() => getFeats(), []);
+    // Load ONLY relevant actions for this character
+    const allActions = useMemo(() => {
+        const actions: Action[] = [];
 
-    // Get character's feat IDs
-    const characterFeatIds = useMemo(() => {
-        return new Set(character.feats?.map(f => f.featId) || []);
-    }, [character.feats]);
+        // Get character's class name for class-specific actions
+        const characterClass = classes.find(c => c.id === character.classId);
+        const className = characterClass?.name?.toLowerCase().replace(/\s+/g, '-');
 
-    // Get character's pet types
-    const characterPetTypes = useMemo(() => {
-        const types = new Set<'familiar' | 'animal-companion' | 'eidolon'>();
-        character.pets?.forEach(pet => {
-            if (pet.type === 'familiar') types.add('familiar');
-            if (pet.type === 'animal-companion') types.add('animal-companion');
-            if (pet.type === 'eidolon') types.add('eidolon');
-        });
-        return types;
-    }, [character.pets]);
+        // Get all class-specific actions (intrinsic class actions)
+        let classSpecificActions: string[] = [];
+        if (className) {
+            const classActions = getActionsByClass(className);
+            classSpecificActions = classActions.map(a => a.id);
+        }
 
-    // Load and categorize actions from pf2e data
-    const { basicActions, skillActions, featActions, petActions } = useMemo(() => {
+        // Get all actions from the database
         const loaded = getActions();
-        const basic: Action[] = [];
-        const skill: Action[] = [];
-        const feat: Action[] = [];
-        const pet: Action[] = [];
+
+        // Get all feat IDs the character has
+        const characterFeatIds = new Set(character.feats?.map(f => f.featId) || []);
+
+        // Load all feats to check which ones grant actions
+        const allFeats = getFeats();
+        const characterFeats = allFeats.filter(f => characterFeatIds.has(f.id));
+
+        // Create a set of action names granted by character's feats
+        const featGrantedActions = new Set<string>();
+        for (const feat of characterFeats) {
+            if (feat.actionType !== 'passive') {
+                featGrantedActions.add(feat.name.toLowerCase());
+            }
+        }
+
+        // Create a map of actions by name for quick lookup
+        const actionsByName = new Map<string, typeof loaded[0]>();
+        for (const a of loaded) {
+            actionsByName.set(a.name.toLowerCase(), a);
+        }
+
+        // Track which action IDs we've already included
+        const includedActionIds = new Set<string>();
 
         for (const a of loaded) {
-            const action: Action = {
-                id: a.id,
-                name: a.name,
-                cost: a.cost,
-                description: a.description,
-                traits: a.traits,
-                source: 'basic',
-            };
+            let source: ActionSource = 'basic';
+            let skill: string | undefined;
+            let shouldInclude = false;
 
-            // Check if it's a basic action
+            // 1. Basic actions - always include
             if (BASIC_ACTION_NAMES.includes(a.name)) {
-                action.source = 'basic';
-                basic.push(action);
-                continue;
+                shouldInclude = true;
+                source = 'basic';
             }
-
-            // Check if it's a skill action
-            const skillReq = SKILL_ACTION_REQUIREMENTS[a.name];
-            if (skillReq) {
-                action.source = 'skill';
-                action.skill = skillReq.skill;
-                // Only include if character meets the proficiency requirement
-                if (meetsSkillRequirement(character, skillReq.skill, skillReq.minProficiency)) {
-                    skill.push(action);
+            // 2. Skill actions - include if character has the skill with required proficiency
+            else if (SKILL_ACTION_REQUIREMENTS[a.name]) {
+                const req = SKILL_ACTION_REQUIREMENTS[a.name];
+                const charSkill = character.skills.find(
+                    s => s.name.toLowerCase() === req.skill.toLowerCase()
+                );
+                if (charSkill && meetsSkillRequirement(character, req.skill, req.minProficiency)) {
+                    shouldInclude = true;
+                    source = 'skill';
+                    skill = req.skill;
                 }
-                continue;
+            }
+            // 3. Class-specific actions (intrinsic class actions from actions/class/{className}/)
+            else if (classSpecificActions.includes(a.id)) {
+                shouldInclude = true;
+                source = 'feat';  // Use 'feat' source for class actions
+            }
+            // 4. Actions from character's feats (including archetypes, etc.)
+            else if (featGrantedActions.has(a.name.toLowerCase())) {
+                shouldInclude = true;
+                source = 'feat';
             }
 
-            // Check if it's an action from a feat the character has
-            if (isActionFromCharacterFeat(a.name, characterFeatIds, allFeats)) {
-                action.source = 'feat';
-                feat.push(action);
-                continue;
+            if (shouldInclude) {
+                actions.push({
+                    id: a.id,
+                    name: a.name,
+                    cost: a.cost,
+                    skill,
+                    description: a.description,
+                    traits: a.traits,
+                    source,
+                    category: a.category,
+                });
+                includedActionIds.add(a.id);
             }
+        }
 
-            // Also check traits for skill-related actions not in our map
-            if (a.traits.some(t => t.toLowerCase() === 'skill')) {
-                action.source = 'skill';
-                skill.push(action);
+        // 5. Add virtual actions from feats that don't exist in the actions database
+        // These are typically class abilities, impulses, etc.
+        for (const feat of characterFeats) {
+            if (feat.actionType !== 'passive') {
+                const featNameLower = feat.name.toLowerCase();
+
+                // Only add if we haven't already included an action with this name
+                if (!includedActionIds.has(featNameLower)) {
+                    let cost: ActionCost = '1';
+                    if (feat.actionType === 'free') cost = 'free';
+                    else if (feat.actionType === 'reaction') cost = 'reaction';
+                    else if (feat.actionCost === 2) cost = '2';
+                    else if (feat.actionCost === 3) cost = '3';
+
+                    actions.push({
+                        id: `feat-${feat.id}`,  // Use feat ID prefix
+                        name: feat.name,
+                        cost: cost,
+                        description: feat.description,
+                        traits: feat.traits,
+                        source: 'feat',
+                        category: feat.category === 'class' ? 'class' : undefined,
+                    });
+                    includedActionIds.add(`feat-${feat.id}`);
+                }
             }
         }
 
         // Add pet-specific actions
+        const characterPetTypes = new Set<'familiar' | 'animal-companion' | 'eidolon'>();
+        character.pets?.forEach(pet => {
+            if (pet.type === 'familiar') characterPetTypes.add('familiar');
+            if (pet.type === 'animal-companion') characterPetTypes.add('animal-companion');
+            if (pet.type === 'eidolon') characterPetTypes.add('eidolon');
+        });
+
         for (const petAction of PET_ACTIONS) {
-            // Only include pet actions if character has that type of pet
             if (characterPetTypes.has(petAction.petType)) {
-                pet.push({
+                actions.push({
                     id: petAction.id,
                     name: petAction.name,
                     cost: petAction.cost,
                     description: language === 'it' && petAction.descriptionIt ? petAction.descriptionIt : petAction.description,
                     traits: petAction.traits,
                     source: 'pet',
+                    category: 'basic',
                 });
             }
         }
 
-        return { basicActions: basic, skillActions: skill, featActions: feat, petActions: pet };
-    }, [character, characterFeatIds, allFeats, characterPetTypes, language]);
+        return actions;
+    }, [character, language, classes]);
 
-    // Combined actions for "all" filter (basic + skill + feat actions available to character)
-    const availableActions = useMemo(() => {
-        return [...basicActions, ...skillActions, ...featActions, ...petActions];
-    }, [basicActions, skillActions, featActions, petActions]);
+    // Get class-specific actions count (from character's class feats)
+    const classActionsCount = useMemo(() => {
+        const allFeats = getFeats();
+        const characterFeatIds = new Set(character.feats?.map(f => f.featId) || []);
+
+        return allActions.filter(a => {
+            // Find if this action corresponds to a feat
+            const matchingFeat = allFeats.find(f =>
+                f.name.toLowerCase() === a.name.toLowerCase() ||
+                f.name.toLowerCase().replace(/\s+/g, '-') === a.name.toLowerCase().replace(/\s+/g, '-')
+            );
+            // Only count if it's a class feat that the character has
+            return matchingFeat && matchingFeat.category === 'class' && characterFeatIds.has(matchingFeat.id);
+        }).length;
+    }, [allActions, character.feats]);
+
+    // Filter actions based on cost and category filters
+    const filteredActions = useMemo(() => {
+        let actions = [...allActions];
+
+        // Apply cost filter
+        if (costFilter !== 'all') {
+            actions = actions.filter(a => a.cost === costFilter);
+        }
+
+        // Apply category filter
+        if (categoryFilter === 'basic') {
+            actions = actions.filter(a => a.source === 'basic' || BASIC_ACTION_NAMES.includes(a.name));
+        } else if (categoryFilter === 'skill') {
+            actions = actions.filter(a => a.source === 'skill' || a.traits.some(tr => tr.toLowerCase() === 'skill'));
+        } else if (categoryFilter === 'class') {
+            // Filter for class-specific actions (from character's class feats only)
+            const allFeats = getFeats();
+            const characterFeatIds = new Set(character.feats?.map(f => f.featId) || []);
+
+            actions = actions.filter(a => {
+                const matchingFeat = allFeats.find(f =>
+                    f.name.toLowerCase() === a.name.toLowerCase() ||
+                    f.name.toLowerCase().replace(/\s+/g, '-') === a.name.toLowerCase().replace(/\s+/g, '-')
+                );
+                // Only show class feats that the character has
+                return matchingFeat && matchingFeat.category === 'class' && characterFeatIds.has(matchingFeat.id);
+            });
+        } else if (categoryFilter === 'interaction') {
+            actions = actions.filter(a => a.category === 'interaction');
+        } else if (categoryFilter === 'offense') {
+            actions = actions.filter(a => a.category === 'offense');
+        } else if (categoryFilter === 'movement') {
+            actions = actions.filter(a => a.category === 'movement');
+        }
+
+        // Apply search filter
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            actions = actions.filter(a =>
+                a.name.toLowerCase().includes(q) ||
+                a.description.toLowerCase().includes(q) ||
+                a.traits.some(tr => tr.toLowerCase().includes(q))
+            );
+        }
+
+        // Sort by name
+        actions.sort((a, b) => a.name.localeCompare(b.name));
+
+        return actions;
+    }, [allActions, costFilter, categoryFilter, searchQuery]);
 
     // Get the icon image for action cost
     const getCostIcon = (cost: ActionCost): string => {
@@ -297,124 +408,109 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
         }
     };
 
-    // Filter actions based on selection
-    const getFilteredActions = (): Action[] => {
-        let actions: Action[];
-
-        switch (filter) {
-            case 'all':
-                // Show basic actions + actions from character feats + available skill actions
-                actions = availableActions;
-                break;
-            case 'skill':
-                actions = skillActions;
-                break;
-            case 'feat':
-                actions = featActions;
-                break;
-            case 'pet':
-                actions = petActions;
-                break;
-            case '1':
-            case '2':
-            case '3':
-            case 'free':
-            case 'reaction':
-                actions = availableActions.filter(a => a.cost === filter);
-                break;
-            default:
-                actions = availableActions;
-        }
-
-        // Apply search filter
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            actions = actions.filter(a =>
-                a.name.toLowerCase().includes(q) ||
-                a.description.toLowerCase().includes(q) ||
-                a.traits.some(t => t.toLowerCase().includes(q))
-            );
-        }
-
-        // Sort: basic first, then skill, then feat
-        actions.sort((a, b) => {
-            const sourceOrder: Record<ActionSource, number> = { basic: 0, skill: 1, feat: 2, pet: 3 };
-            const orderDiff = sourceOrder[a.source] - sourceOrder[b.source];
-            if (orderDiff !== 0) return orderDiff;
-            return a.name.localeCompare(b.name);
-        });
-
-        return actions;
-    };
-
-    const filteredActions = getFilteredActions();
-
     return (
         <div className="actions-panel">
             <div className="panel-header">
                 <h3>{t('tabs.actions') || 'Actions'}</h3>
             </div>
 
-            {/* Filter Buttons */}
+            {/* Search Input */}
+            <div className="actions-search">
+                <input
+                    type="text"
+                    placeholder={t('search.placeholder') || 'Search actions...'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                />
+            </div>
+
+            {/* Cost Filter Buttons */}
             <div className="actions-filters">
+                <span className="filter-label">{t('filters.cost') || 'Cost'}:</span>
                 <button
-                    className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilter('all')}
+                    className={`filter-btn ${costFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('all')}
                 >
                     {t('filters.all') || 'All'}
                 </button>
                 <button
-                    className={`filter-btn ${filter === '1' ? 'active' : ''}`}
-                    onClick={() => setFilter('1')}
+                    className={`filter-btn ${costFilter === '1' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('1')}
                 >
                     <img src={actionSingle} alt="1 Action" className="filter-icon" />
                 </button>
                 <button
-                    className={`filter-btn ${filter === '2' ? 'active' : ''}`}
-                    onClick={() => setFilter('2')}
+                    className={`filter-btn ${costFilter === '2' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('2')}
                 >
                     <img src={actionDouble} alt="2 Actions" className="filter-icon" />
                 </button>
                 <button
-                    className={`filter-btn ${filter === '3' ? 'active' : ''}`}
-                    onClick={() => setFilter('3')}
+                    className={`filter-btn ${costFilter === '3' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('3')}
                 >
                     <img src={actionTriple} alt="3 Actions" className="filter-icon" />
                 </button>
                 <button
-                    className={`filter-btn ${filter === 'reaction' ? 'active' : ''}`}
-                    onClick={() => setFilter('reaction')}
+                    className={`filter-btn ${costFilter === 'reaction' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('reaction')}
                 >
                     <img src={actionReaction} alt="Reaction" className="filter-icon" />
                 </button>
                 <button
-                    className={`filter-btn ${filter === 'free' ? 'active' : ''}`}
-                    onClick={() => setFilter('free')}
+                    className={`filter-btn ${costFilter === 'free' ? 'active' : ''}`}
+                    onClick={() => setCostFilter('free')}
                 >
                     <img src={actionFree} alt="Free Action" className="filter-icon" />
                 </button>
+            </div>
+
+            {/* Category Filter Buttons */}
+            <div className="actions-filters">
+                <span className="filter-label">{t('filters.category') || 'Category'}:</span>
                 <button
-                    className={`filter-btn ${filter === 'skill' ? 'active' : ''}`}
-                    onClick={() => setFilter('skill')}
+                    className={`filter-btn ${categoryFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('all')}
+                >
+                    {t('filters.all') || 'All'}
+                </button>
+                <button
+                    className={`filter-btn ${categoryFilter === 'basic' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('basic')}
+                >
+                    {t('filters.basic') || 'Basic'}
+                </button>
+                <button
+                    className={`filter-btn ${categoryFilter === 'skill' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('skill')}
                 >
                     {t('filters.skill') || 'Skill'}
                 </button>
-                {featActions.length > 0 && (
-                    <button
-                        className={`filter-btn ${filter === 'feat' ? 'active' : ''}`}
-                        onClick={() => setFilter('feat')}
-                    >
-                        {t('filters.feat') || 'Feat'}
-                    </button>
-                )}
-                {petActions.length > 0 && (
-                    <button
-                        className={`filter-btn ${filter === 'pet' ? 'active' : ''}`}
-                        onClick={() => setFilter('pet')}
-                    >
-                        {t('filters.pet') || 'Pet'}
-                    </button>
-                )}
+                <button
+                    className={`filter-btn ${categoryFilter === 'class' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('class')}
+                >
+                    {t('filters.class') || 'Class'} ({classActionsCount})
+                </button>
+                <button
+                    className={`filter-btn ${categoryFilter === 'interaction' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('interaction')}
+                >
+                    {t('filters.interaction') || 'Interaction'}
+                </button>
+                <button
+                    className={`filter-btn ${categoryFilter === 'offense' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('offense')}
+                >
+                    {t('filters.offense') || 'Offense'}
+                </button>
+                <button
+                    className={`filter-btn ${categoryFilter === 'movement' ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter('movement')}
+                >
+                    {t('filters.movement') || 'Movement'}
+                </button>
             </div>
 
             {/* Actions Grid - Simplified: only icon + name + source indicator */}
@@ -428,7 +524,14 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                         <div
                             key={action.id}
                             className={`action-card action-card-compact action-source-${action.source}`}
-                            onClick={() => onActionClick(action)}
+                            onClick={() => onActionClick({
+                                id: action.id,
+                                name: action.name,
+                                cost: action.cost,
+                                description: action.description,
+                                traits: action.traits,
+                                skill: action.skill,
+                            })}
                         >
                             <img
                                 src={getCostIcon(action.cost)}

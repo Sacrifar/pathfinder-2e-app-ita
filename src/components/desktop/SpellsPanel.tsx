@@ -98,6 +98,21 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         return value >= 0 ? `+${value}` : `${value}`;
     };
 
+    // Create a Set of valid spell IDs for quick lookup
+    const validSpellIds = useMemo(() => {
+        return new Set(allSpells.map(s => s.id.toLowerCase()));
+    }, [allSpells]);
+
+    // Filter known spells to only include actual spells (not feats/actions)
+    const validKnownSpells = useMemo(() => {
+        return spellcasting.knownSpells.filter(spellId => {
+            const normalizedId = spellId.toLowerCase().replace(/\s+/g, '-');
+            // Check if this ID exists in the actual spell database
+            return validSpellIds.has(normalizedId) ||
+                   allSpells.some(s => s.id.toLowerCase() === normalizedId);
+        });
+    }, [spellcasting.knownSpells, validSpellIds, allSpells]);
+
     // Helper to get spell name from slug
     const getSpellNameFromSlug = (slug: string): string => {
         const spell = allSpells.find(s => {
@@ -106,6 +121,14 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             return spellSlug === slug.toLowerCase();
         });
         return spell?.name || slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    // Helper to get full spell object from slug
+    const getSpellFromSlug = (slug: string): LoadedSpell | undefined => {
+        return allSpells.find(s => {
+            const spellSlug = s.id.toLowerCase().replace(/\s+/g, '-');
+            return spellSlug === slug.toLowerCase();
+        });
     };
 
     // Spell slots display
@@ -325,7 +348,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             {/* Known Spells */}
             <div className="known-spells-section">
                 <h4>{t('stats.knownSpells') || 'Known Spells'}</h4>
-                {spellcasting.knownSpells.length === 0 ? (
+                {validKnownSpells.length === 0 ? (
                     <div>
                         <p className="text-muted">{t('builder.noSpellsKnown') || 'No spells known yet.'}</p>
                         <button className="add-btn" onClick={() => setShowBrowser(true)}>
@@ -334,17 +357,20 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                     </div>
                 ) : (
                     <div className="spells-list">
-                        {spellcasting.knownSpells.map(spellId => (
-                            <div key={spellId} className="spell-item">
-                                <span className="spell-name">{getSpellNameFromSlug(spellId)}</span>
-                                <button
-                                    className="spell-cast-btn"
-                                    onClick={() => onCastSpell(spellId)}
-                                >
-                                    {t('actions.cast') || 'Cast'}
-                                </button>
-                            </div>
-                        ))}
+                        {validKnownSpells.map(spellId => {
+                            const spell = getSpellFromSlug(spellId);
+                            return (
+                                <div key={spellId} className="spell-item">
+                                    <span className="spell-name">{spell?.name || getSpellNameFromSlug(spellId)}</span>
+                                    <button
+                                        className="spell-cast-btn"
+                                        onClick={() => onCastSpell(spellId)}
+                                    >
+                                        {t('actions.cast') || 'Cast'}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>

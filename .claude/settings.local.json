@@ -19,7 +19,8 @@
       "Bash(npm run type-check:*)",
       "Bash(awk:*)",
       "Bash(git stash:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(start http://localhost:5173)"
     ]
   }
 }

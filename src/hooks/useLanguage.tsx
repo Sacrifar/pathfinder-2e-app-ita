@@ -147,6 +147,22 @@ const translations: Record<Language, Record<string, string>> = {
         'stats.heroPoints': 'Hero Points',
         'stats.classDC': 'Class DC',
 
+        // HP Management
+        'hp.damage': 'Damage',
+        'hp.heal': 'Heal',
+        'hp.temporary': 'Temp HP',
+        'hp.custom': 'Custom',
+        'hp.apply': 'Apply',
+        'hp.manageTitle': 'Manage Hit Points',
+        'hp.clickToManage': 'Click to manage HP',
+        'hp.quickAdjust': 'Quick Adjust',
+        'hp.customHP': 'Custom HP',
+        'hp.customValue': 'Enter value (negative for damage)',
+        'hp.tempHP': 'Temporary HP',
+        'hp.tempValue': 'Set temp HP',
+        'hp.clear': 'Clear',
+        'hp.currentTemp': 'Current',
+
         // Tabs
         'tabs.weapons': 'Weapons',
         'tabs.defense': 'Defense',
@@ -231,7 +247,16 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Filters
         'filters.all': 'All',
+        'filters.cost': 'Cost',
+        'filters.category': 'Category',
+        'filters.basic': 'Basic',
         'filters.skill': 'Skill',
+        'filters.class': 'Class',
+        'filters.interaction': 'Interaction',
+        'filters.offense': 'Offense',
+        'filters.movement': 'Movement',
+        'filters.feat': 'Feat',
+        'filters.pet': 'Pet',
 
         // Status
         'status.encumbered': 'Encumbered',
@@ -781,6 +806,22 @@ const translations: Record<Language, Record<string, string>> = {
         'stats.heroPoints': 'Punti Eroe',
         'stats.classDC': 'CD di Classe',
 
+        // HP Management
+        'hp.damage': 'Danno',
+        'hp.heal': 'Cura',
+        'hp.temporary': 'PF Temp',
+        'hp.custom': 'Personalizzato',
+        'hp.apply': 'Applica',
+        'hp.manageTitle': 'Gestisci Punti Ferita',
+        'hp.clickToManage': 'Clicca per gestire PF',
+        'hp.quickAdjust': 'Regolazione Veloce',
+        'hp.customHP': 'PF Personalizzati',
+        'hp.customValue': 'Inserisci valore (negativo per danno)',
+        'hp.tempHP': 'PF Temporanei',
+        'hp.tempValue': 'Imposta PF temporanei',
+        'hp.clear': 'Cancella',
+        'hp.currentTemp': 'Attuale',
+
         // Tabs
         'tabs.weapons': 'Armi',
         'tabs.defense': 'Difesa',
@@ -850,7 +891,16 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Filters
         'filters.all': 'Tutti',
+        'filters.cost': 'Costo',
+        'filters.category': 'Categoria',
+        'filters.basic': 'Base',
         'filters.skill': 'Abilità',
+        'filters.class': 'Classe',
+        'filters.interaction': 'Interazione',
+        'filters.offense': 'Offesa',
+        'filters.movement': 'Movimento',
+        'filters.feat': 'Talento',
+        'filters.pet': 'Animale',
 
         // Status
         'status.encumbered': 'Ingombrato',

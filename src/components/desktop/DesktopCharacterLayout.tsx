@@ -17,7 +17,8 @@ const PetsPanel = lazy(() => import('./PetsPanel').then(m => ({ default: m.PetsP
 const FeatsPanel = lazy(() => import('./FeatsPanel').then(m => ({ default: m.FeatsPanel })));
 const ActionsPanel = lazy(() => import('./ActionsPanel').then(m => ({ default: m.ActionsPanel })));
 const BiographyPanel = lazy(() => import('./BiographyPanel').then(m => ({ default: m.BiographyPanel })));
-const DetailModal = lazy(() => import('./DetailModal').then(m => ({ default: m.DetailModal, ActionDetailContent: m.ActionDetailContent })));
+const DetailModal = lazy(() => import('./DetailModal').then(m => ({ default: m.DetailModal })));
+const ActionDetailContent = lazy(() => import('./DetailModal').then(m => ({ default: m.ActionDetailContent })));
 const RestModal = lazy(() => import('./RestModal').then(m => ({ default: m.RestModal })));
 const ConditionBrowser = lazy(() => import('./ConditionBrowser').then(m => ({ default: m.ConditionBrowser })));
 const BuffBrowser = lazy(() => import('./BuffBrowser').then(m => ({ default: m.BuffBrowser })));
@@ -80,7 +81,7 @@ import { recalculateCharacter } from '../../utils/characterRecalculator';
 interface ActionData {
     id: string;
     name: string;
-    cost: string;
+    cost: '1' | '2' | '3' | 'free' | 'reaction';
     description: string;
     traits: string[];
     skill?: string;
@@ -666,6 +667,18 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     const handleRest = () => {
         // Open the Rest & Recovery modal
         setShowRestModal(true);
+    };
+
+    // HP Handler
+    const handleHPChange = (newHP: { current: number; temporary?: number }) => {
+        onCharacterUpdate({
+            ...character,
+            hitPoints: {
+                ...character.hitPoints,
+                current: newHP.current,
+                temporary: newHP.temporary ?? character.hitPoints.temporary
+            }
+        });
     };
 
     // Condition Handlers
@@ -1258,7 +1271,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         ac={getAC()}
                         hp={{
                             current: character.hitPoints.current,
-                            max: character.hitPoints.max
+                            max: character.hitPoints.max,
+                            temporary: character.hitPoints.temporary
                         }}
                         fortitude={calculateSavingThrow(character, 'fortitude')}
                         reflex={calculateSavingThrow(character, 'reflex')}
@@ -1266,6 +1280,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         onRest={handleRest}
                         onAddCondition={() => setShowConditionBrowser(true)}
                         onAddBuff={() => setShowBuffBrowser(true)}
+                        onHPChange={handleHPChange}
                     />
 
                     <ActiveConditions
@@ -1441,7 +1456,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 <Suspense fallback={<LoadingFallback />}>
                                     <ActionsPanel
                                         character={character}
-                                        onActionClick={(action) => setSelectedAction(action as ActionData)}
+                                        onActionClick={setSelectedAction}
                                     />
                                 </Suspense>
                             )}
@@ -1468,13 +1483,15 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     title={selectedAction?.name || ''}
                 >
                     {selectedAction && (
-                        <ActionDetailContent
-                            name={selectedAction.name}
-                            cost={selectedAction.cost}
-                            description={selectedAction.description}
-                            traits={selectedAction.traits}
-                            skill={selectedAction.skill}
-                        />
+                        <Suspense fallback={<LoadingFallback />}>
+                            <ActionDetailContent
+                                name={selectedAction.name}
+                                cost={selectedAction.cost}
+                                description={selectedAction.description}
+                                traits={selectedAction.traits}
+                                skill={selectedAction.skill}
+                            />
+                        </Suspense>
                     )}
                 </DetailModal>
             </Suspense>

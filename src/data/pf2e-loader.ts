@@ -243,6 +243,7 @@ export interface LoadedAction {
     category: string;
     traits: string[];
     description: string;
+    filePath: string;  // Path to the JSON file (e.g., './pf2e/actions/class/alchemist/quick-alchemy.json')
 }
 
 export interface LoadedSpell {
@@ -461,7 +462,7 @@ function transformWeapon(raw: RawPF2eItem): LoadedWeapon | null {
     };
 }
 
-function transformAction(raw: RawPF2eItem): LoadedAction | null {
+function transformAction(raw: RawPF2eItem, filePath: string): LoadedAction | null {
     if (raw.type !== 'action') return null;
 
     const sys = raw.system as unknown as RawActionSystem;
@@ -480,6 +481,7 @@ function transformAction(raw: RawPF2eItem): LoadedAction | null {
         category: sys.category || 'basic',
         traits: sys.traits?.value || [],
         description: stripHtml(sys.description?.value || ''),
+        filePath,
     };
 }
 
@@ -922,7 +924,7 @@ export function getActions(): LoadedAction[] {
 
         const module = actionModules[path];
         const raw = (module as { default?: RawPF2eItem }).default || module;
-        const action = transformAction(raw as RawPF2eItem);
+        const action = transformAction(raw as RawPF2eItem, path);
         if (action) {
             actions.push(action);
         }
@@ -940,6 +942,18 @@ export function getActionsByCategory(category: string): LoadedAction[] {
 
 export function getActionsByCost(cost: LoadedAction['cost']): LoadedAction[] {
     return getActions().filter(a => a.cost === cost);
+}
+
+/**
+ * Get actions for a specific class by filtering file path
+ * Class actions are stored in ./pf2e/actions/class/{className}/
+ */
+export function getActionsByClass(className: string): LoadedAction[] {
+    return getActions().filter(a => {
+        // Normalize class name for path matching (lowercase, spaces to hyphens)
+        const normalizedClass = className.toLowerCase().replace(/\s+/g, '-');
+        return a.filePath.includes(`./pf2e/actions/class/${normalizedClass}/`);
+    });
 }
 
 export function getSpells(): LoadedSpell[] {

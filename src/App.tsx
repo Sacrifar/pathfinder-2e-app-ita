@@ -7,6 +7,7 @@ import { BrowsePage } from './pages/BrowsePage';
 import CharacterSheetPage from './pages/CharacterSheetPage';
 
 function App() {
+    console.log('App component rendering');
     return (
         <Routes>
             {/* Desktop Character Sheet - fullscreen, no wrapper */}
