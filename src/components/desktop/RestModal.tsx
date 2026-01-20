@@ -70,10 +70,10 @@ export const RestModal: React.FC<RestModalProps> = ({
         if (updatedSpellcasting?.spellSlots) {
             updatedSpellcasting = {
                 ...updatedSpellcasting,
-                spellSlots: Object.keys(updatedSpellcasting.spellSlots).reduce((acc, level) => {
+                spellSlots: Object.keys(updatedSpellcasting!.spellSlots).reduce((acc, level) => {
                     const lvl = parseInt(level);
                     acc[lvl] = {
-                        max: updatedSpellcasting.spellSlots![lvl].max,
+                        max: updatedSpellcasting!.spellSlots![lvl].max,
                         used: 0,
                     };
                     return acc;

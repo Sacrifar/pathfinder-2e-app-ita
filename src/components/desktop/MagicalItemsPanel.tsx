@@ -20,14 +20,14 @@ export const MagicalItemsPanel: React.FC<MagicalItemsPanelProps> = ({
     onPrepareStaff,
     onCastWand,
 }) => {
-    const { t, language } = useLanguage();
-    const [selectedStaff, setSelectedStaff] = useState<EquippedItem | null>(null);
+    const { t, language: _language } = useLanguage();
+    const [_selectedStaff, _setSelectedStaff] = useState<EquippedItem | null>(null);
     const [showOverchargeWarning, setShowOverchargeWarning] = useState(false);
     const [overchargeWandId, setOverchargeWandId] = useState<string | null>(null);
 
     // Filter magical items (Staves and Wands)
     const staves = equipment.filter(item =>
-        item.magical?.charges && item.magical.linkedSpells && item.linkedSpells.length > 0
+        item.magical?.charges && item.magical.linkedSpells && item.magical.linkedSpells.length > 0
     );
 
     const wands = equipment.filter(item =>

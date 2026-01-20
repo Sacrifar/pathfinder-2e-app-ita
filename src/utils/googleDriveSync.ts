@@ -158,7 +158,7 @@ export class GoogleDriveSync {
         try {
             const folderId = await this.getOrCreateAppFolder();
             const fileName = `${character.name || 'character'}.json`;
-            const fileId = `character_${character.id}`;
+            const _fileId = `character_${character.id}`;
 
             // Check if file exists
             const listResponse = await (window as any).gapi.client.drive.files.list({

@@ -64,11 +64,6 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
         if (!modifiers || modifiers.length === 0) return null;
 
         const netModifier = modifiers.reduce((sum, mod) => sum + mod.value, 0);
-        const badgeColor = netModifier > 0
-            ? 'var(--color-success, #10b981)'
-            : netModifier < 0
-                ? 'var(--color-danger, #ef4444)'
-                : 'var(--text-secondary, #888)';
 
         return (
             <div

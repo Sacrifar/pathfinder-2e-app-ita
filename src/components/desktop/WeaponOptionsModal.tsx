@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, EquippedItem, StrikingRune, SpecialMaterial, AbilityOverride } from '../../types';
+import { Character, EquippedItem, StrikingRune, SpecialMaterial, AbilityOverride, WeaponRunes, WeaponCustomization } from '../../types';
 import { LoadedWeapon } from '../../data/pf2e-loader';
 import {
     FUNDAMENTAL_RUNES,
     PROPERTY_RUNES,
-    getMaxPropertyRunes,
+    getMaxPropertyRunes as getMaxPropertyRunesFromPotency,
     getAvailablePropertyRunes,
-    isValidPropertyRune,
     PropertyRuneData,
 } from '../../data/weaponRunes';
 
@@ -20,7 +19,7 @@ interface WeaponOptionsModalProps {
 }
 
 export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
-    character,
+    character: _character,
     weapon,
     equippedWeapon,
     onClose,
@@ -28,14 +27,18 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
 }) => {
     const { t } = useLanguage();
 
-    // Local state for form fields
-    const [potencyRune, setPotencyRune] = useState<number>(equippedWeapon.runes?.potencyRune || 0);
-    const [strikingRune, setStrikingRune] = useState<StrikingRune | undefined>(equippedWeapon.runes?.strikingRune);
-    const [propertyRunes, setPropertyRunes] = useState<string[]>(equippedWeapon.runes?.propertyRunes || []);
+    // Cast runes and customization to weapon-specific types
+    const weaponRunes = equippedWeapon.runes as WeaponRunes | undefined;
+    const weaponCustomization = equippedWeapon.customization as WeaponCustomization | undefined;
 
-    const [material, setMaterial] = useState<SpecialMaterial | undefined>(equippedWeapon.customization?.material);
-    const [isLarge, setIsLarge] = useState<boolean>(equippedWeapon.customization?.isLarge || false);
-    const [bulkOverride, setBulkOverride] = useState<number | undefined>(equippedWeapon.customization?.bulkOverride);
+    // Local state for form fields
+    const [potencyRune, setPotencyRune] = useState<number>(weaponRunes?.potencyRune || 0);
+    const [strikingRune, setStrikingRune] = useState<StrikingRune | undefined>(weaponRunes?.strikingRune);
+    const [propertyRunes, setPropertyRunes] = useState<string[]>(weaponRunes?.propertyRunes || []);
+
+    const [material, setMaterial] = useState<SpecialMaterial | undefined>(weaponCustomization?.material);
+    const [isLarge, setIsLarge] = useState<boolean>(weaponCustomization?.isLarge || false);
+    const [bulkOverride, setBulkOverride] = useState<number | undefined>(weaponCustomization?.bulkOverride);
 
     // Calculate available property runes
     const availablePropertyRunes = useMemo(() => {
@@ -43,23 +46,23 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
     }, [potencyRune]);
 
     const maxPropertyRunes = useMemo(() => {
-        return getMaxPropertyRunes(potencyRune);
+        return getMaxPropertyRunesFromPotency(potencyRune);
     }, [potencyRune]);
 
     const [attackAbilityOverride, setAttackAbilityOverride] = useState<AbilityOverride>(
-        equippedWeapon.customization?.attackAbilityOverride || 'auto'
+        weaponCustomization?.attackAbilityOverride || 'auto'
     );
-    const [customName, setCustomName] = useState<string>(equippedWeapon.customization?.customName || '');
-    const [bonusAttack, setBonusAttack] = useState<number | undefined>(equippedWeapon.customization?.bonusAttack);
-    const [bonusDamage, setBonusDamage] = useState<number | undefined>(equippedWeapon.customization?.bonusDamage);
-    const [customDamageType, setCustomDamageType] = useState<string>(equippedWeapon.customization?.customDamageType || '');
+    const [customName, setCustomName] = useState<string>(weaponCustomization?.customName || '');
+    const [bonusAttack, setBonusAttack] = useState<number | undefined>(weaponCustomization?.bonusAttack);
+    const [bonusDamage, setBonusDamage] = useState<number | undefined>(weaponCustomization?.bonusDamage);
+    const [customDamageType, setCustomDamageType] = useState<string>(weaponCustomization?.customDamageType || '');
 
     const [criticalSpecialization, setCriticalSpecialization] = useState<boolean>(
-        equippedWeapon.customization?.criticalSpecialization || false
+        weaponCustomization?.criticalSpecialization || false
     );
 
     // Calculate max property runes based on potency rune
-    const getMaxPropertyRunes = () => {
+    const _getMaxPropertyRunes = () => {
         if (potencyRune >= 3) return 3;
         if (potencyRune >= 2) return 2;
         if (potencyRune >= 1) return 1;
@@ -165,7 +168,6 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                             {t('weapons.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
                         </h3>
                         {propertyRunes.map((runeId, index) => {
-                            const runeData = getPropertyRuneData(runeId);
                             return (
                                 <div key={index} className="option-row property-rune-row">
                                     <select

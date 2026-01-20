@@ -62,7 +62,7 @@ export interface ActiveModifiers {
 /**
  * Create an empty modifier breakdown
  */
-function emptyModifier(): ModifierBreakdown {
+function _emptyModifier(): ModifierBreakdown {
     return { total: 0, status: 0, circumstance: 0, item: 0, penalty: 0, condition: 0 };
 }
 
@@ -142,7 +142,7 @@ export function calculateConditionPenalties(
  * - Penalties always stack (add together)
  * - Different bonus types stack with each other
  */
-function applyStackingRules(modifiers: { bonus: number; type: BonusType }[]): number {
+function _applyStackingRules(modifiers: { bonus: number; type: BonusType }[]): number {
     // Separate bonuses by type
     const statusBonuses = modifiers.filter(m => m.type === 'status' && m.bonus > 0).map(m => m.bonus);
     const circumstanceBonuses = modifiers.filter(m => m.type === 'circumstance' && m.bonus > 0).map(m => m.bonus);
@@ -150,8 +150,8 @@ function applyStackingRules(modifiers: { bonus: number; type: BonusType }[]): nu
 
     // For bonuses, only the highest of each type applies
     const totalBonus = Math.max(0, ...statusBonuses, 0) +
-                      Math.max(0, ...circumstanceBonuses, 0) +
-                      Math.max(0, ...itemBonuses, 0);
+        Math.max(0, ...circumstanceBonuses, 0) +
+        Math.max(0, ...itemBonuses, 0);
 
     // Penalties always stack
     const totalPenalty = modifiers

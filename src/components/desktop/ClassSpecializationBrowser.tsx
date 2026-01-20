@@ -251,7 +251,7 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
                                             ? (selectedSpecializations.length > 0
                                                 ? `${selectedSpecializations.length} ${t('specialization.selected') || 'selected'}`
                                                 : getTypeName(currentType!)
-                                              )
+                                            )
                                             : getSpecName(selectedSpecialization!)
                                         }
                                     </h3>
@@ -290,7 +290,7 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
                                     <button
                                         className="select-btn"
                                         onClick={handleSelect}
-                                        disabled={supportsMultiSelect && selectedSpecializations.length === 0}
+                                        disabled={supportsMultiSelect && selectedSpecializations.length === 0 || undefined}
                                     >
                                         {t('actions.confirm') || 'Confirm'}
                                     </button>

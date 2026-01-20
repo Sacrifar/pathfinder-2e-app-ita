@@ -59,6 +59,8 @@ export interface Speed {
     climb?: number;
     fly?: number;
     burrow?: number;
+    earth?: number;  // For earth-glide abilities
+    incorporeal?: number;  // For incorporeal movement
 }
 
 export interface MagicalItemProperties {
@@ -532,6 +534,8 @@ export interface Character {
     // Metadata
     notes?: string;
     biography?: CharacterBiography;  // Detailed character biography and appearance
+    senses?: string[];  // List of senses like darkvision, low-light vision
+    languages?: string[];  // List of known languages
     createdAt: string;
     updatedAt: string;
 }

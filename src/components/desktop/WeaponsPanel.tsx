@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, EquippedItem } from '../../types';
+import { Character, EquippedItem, WeaponCustomization } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 import { calculateWeaponDamage } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
@@ -188,7 +188,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     }, [isCommander, character.tactics?.known]);
 
     // Get currently prepared tactics
-    const preparedTactics = useMemo(() => {
+    const _preparedTactics = useMemo(() => {
         if (!isCommander) return [];
         const preparedIds = character.tactics?.prepared || [];
         return knownTactics.filter(t => preparedIds.includes(t.id));
@@ -291,13 +291,16 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                         const isTwoHanded = item.isTwoHanded;
 
                         // Calculate damage with equipped weapon data (runes, customization)
-                        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, item);
+                        // Cast runes and customization to weapon-specific types
+                        const weaponRunes = item.runes as { strikingRune?: string } | undefined;
+                        const weaponCustomization = item.customization as WeaponCustomization | undefined;
+                        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
 
                         // Check if has two-hand trait
                         const hasTwoHand = hasTwoHandTrait(weapon);
 
                         // Get custom name if set
-                        const displayName = item.customization?.customName || weapon.name;
+                        const displayName = weaponCustomization?.customName || weapon.name;
 
                         return (
                             <div key={item.id} className="weapon-card">
@@ -372,14 +375,14 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                 <div className="weapon-stats-section">
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
-                                        <span className="stat-value">{damage} {item.customization?.customDamageType || weapon.damageType}</span>
+                                        <span className="stat-value">{damage} {(item.customization as WeaponCustomization | undefined)?.customDamageType || weapon.damageType}</span>
                                     </div>
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.hands') || 'Hands'}:</span>
                                         <span className="stat-value">{weapon.hands}</span>
                                     </div>
                                     {/* Critical Specialization Effect */}
-                                    {item.customization?.criticalSpecialization && (
+                                    {(item.customization as WeaponCustomization | undefined)?.criticalSpecialization && (
                                         <div className="weapon-stat-row crit-spec-row">
                                             <span className="stat-label">{t('weapons.criticalSpecialization') || 'Crit Spec'}:</span>
                                             <span className="stat-value crit-spec-enabled">✓ Enabled</span>

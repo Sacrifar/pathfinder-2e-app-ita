@@ -59,9 +59,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
     };
 
-    const togglePreview = () => {
-        setIsPreview(!isPreview);
-    };
+
 
     const formatButtons = [
         { cmd: 'bold', icon: '𝗕', label: 'Bold' },
@@ -90,7 +88,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                             <button
                                 key={index}
                                 className="rte-btn"
-                                onClick={() => execCommand(btn.cmd, btn.value)}
+                                onClick={() => execCommand(btn.cmd!, btn.value)}
                                 title={btn.label}
                             >
                                 {btn.icon}

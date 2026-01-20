@@ -4,7 +4,6 @@
  */
 
 import { getClasses } from './pf2e-loader';
-import type { LoadedClass } from './pf2e-loader';
 
 // Import specialization JSON files from pf2e data
 import bomberData from './pf2e/class-features/bomber.json';
@@ -40,7 +39,7 @@ import tomeData from './pf2e/class-features/tome.json';
 import wandData from './pf2e/class-features/wand.json';
 import weaponData from './pf2e/class-features/weapon.json';
 
-import arcaneSchoolData from './pf2e/class-features/arcane-school.json';
+import _arcaneSchoolData from './pf2e/class-features/arcane-school.json';
 import elementalSchoolData from './pf2e/class-features/elemental-school.json';
 import schoolOfArsGrammaticaData from './pf2e/class-features/school-of-ars-grammatica.json';
 import schoolOfBattleMagicData from './pf2e/class-features/school-of-battle-magic.json';
@@ -56,7 +55,7 @@ import schoolOfTheBoundaryData from './pf2e/class-features/school-of-the-boundar
 import schoolOfTheReclamationData from './pf2e/class-features/school-of-the-reclamation.json';
 import schoolOfUnifiedMagicalTheoryData from './pf2e/class-features/school-of-unified-magical-theory.json';
 
-import arcaneThesisData from './pf2e/class-features/arcane-thesis.json';
+import _arcaneThesisData from './pf2e/class-features/arcane-thesis.json';
 import experimentalSpellshapingData from './pf2e/class-features/experimental-spellshaping.json';
 import improvedFamiliarAttunementData from './pf2e/class-features/improved-familiar-attunement.json';
 import spellBlendingData from './pf2e/class-features/spell-blending.json';
@@ -1262,7 +1261,7 @@ export const CLASS_SPECIALIZATIONS_BY_NAME: Record<string, ClassSpecializationTy
 };
 
 // Classes that don't have specializations or have complex/unsupported systems
-const CLASSES_WITHOUT_SPECIALIZATIONS = [
+const _CLASSES_WITHOUT_SPECIALIZATIONS = [
     'Fighter', // No specialization by design
     'Monk', // No specialization by design
     'Guardian', // No specialization by design

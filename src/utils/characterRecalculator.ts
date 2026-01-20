@@ -687,8 +687,8 @@ export function recalculateSenses(character: Character): Character {
         return updated;
     }
 
-    // Start with ancestry senses
-    updated.senses = ancestry.senses || ['vision'];
+    // Start with ancestry senses (cast to include senses which may exist in data)
+    updated.senses = (ancestry as { senses?: string[] }).senses || ['vision'];
 
     // TODO: Add feat-based senses (like Keen Eyes)
 
@@ -710,9 +710,10 @@ export function recalculateLanguages(character: Character): Character {
         languages.push(...ancestry.languages);
     }
 
-    // Add background bonus languages
-    if (background?.bonusLanguages) {
-        for (const lang of background.bonusLanguages) {
+    // Add background bonus languages (cast to include bonusLanguages which may exist in data)
+    const bgWithLang = background as { bonusLanguages?: string[] } | undefined;
+    if (bgWithLang?.bonusLanguages) {
+        for (const lang of bgWithLang.bonusLanguages) {
             if (!languages.includes(lang)) {
                 languages.push(lang);
             }

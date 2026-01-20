@@ -19,7 +19,7 @@ interface ArmorOptionsModalProps {
 }
 
 export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
-    character,
+    character: _character,
     armor,
     equippedArmor,
     onClose,
@@ -159,7 +159,6 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
                             {t('armor.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
                         </h3>
                         {propertyRunes.map((runeId, index) => {
-                            const runeData = getPropertyRuneData(runeId);
                             return (
                                 <div key={index} className="option-row property-rune-row">
                                     <select

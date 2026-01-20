@@ -97,7 +97,7 @@ export function calculateBulk(character: Character, inventory: EquippedItem[]): 
 
         // Check if container capacity is exceeded
         const capacity = container.capacity || 999; // Default high capacity
-        const effectiveBulk = Math.min(containerBulk + itemsBulk, containerBulk + capacity);
+        const _effectiveBulk = Math.min(containerBulk + itemsBulk, containerBulk + capacity);
 
         containerBulk += Math.min(itemsBulk, capacity);
         result.totalBulk += containerBulk;

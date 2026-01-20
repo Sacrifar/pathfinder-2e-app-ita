@@ -86,7 +86,7 @@ const COMPANION_PROGRESSION: CompanionProgression[] = [
  */
 export function calculateCompanionStats(
     companion: Pet & { specificData: AnimalCompanionData },
-    master: Character
+    _master: Character
 ): Partial<AnimalCompanionData> {
     const companionData = companion.specificData;
     const companionLevel = companionData.level;
@@ -117,11 +117,11 @@ export function calculateCompanionStats(
         const damageBonus = progression.damageDiceModifier;
         return {
             name: attack.name,
-            actionCost: attack.actionCost,
+            actionCost: (attack as { actionCost?: number | null }).actionCost ?? null,
             attackBonus,
             damage: upgradeDamageDice(attack.damage, damageBonus),
             damageType: attack.damageType,
-            traits: attack.traits,
+            traits: (attack as { traits?: string[] }).traits ?? [],
         };
     });
 

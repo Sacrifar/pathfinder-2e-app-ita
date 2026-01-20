@@ -5,7 +5,7 @@ import { CharacterFeat, Character } from '../../types';
 import { checkPrerequisites, extractSkillFromPrerequisites } from '../../utils/prereqValidator';
 import { skills as allSkills, getAncestryById, getClassById, heritages } from '../../data';
 import { FeatActionIcon } from '../../utils/actionIcons';
-import { getKineticistElementFromGateId, getClassNameById } from '../../data/classSpecializations';
+import { getKineticistElementFromGateId } from '../../data/classSpecializations';
 import { parseFeatChoices, getChoiceOptions, getChoiceDisplayValue, FeatChoice, parseGrantedItems } from '../../utils/featChoices';
 import {
     getActiveDedicationConstraint,
@@ -554,10 +554,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                             <div>
                                 <strong>{t('feats.dedicationConstraint') || 'Archetype Dedication Constraint'}</strong>
                                 <div style={{ marginTop: '4px', fontSize: '13px', opacity: 0.9 }}>
-                                    {t('feats.dedicationConstraintDescription', {
-                                        archetype: activeDedicationConstraint.archetypeName,
-                                        count: activeDedicationConstraint.remainingFeatsNeeded
-                                    }) || `You must take ${activeDedicationConstraint.remainingFeatsNeeded} more ${activeDedicationConstraint.archetypeName} feat${activeDedicationConstraint.remainingFeatsNeeded > 1 ? 's' : ''} before selecting feats from other archetypes.`}
+                                    {t('feats.dedicationConstraintDescription') || `You must take ${activeDedicationConstraint.remainingFeatsNeeded} more ${activeDedicationConstraint.archetypeName} feat${activeDedicationConstraint.remainingFeatsNeeded > 1 ? 's' : ''} before selecting feats from other archetypes.`}
                                 </div>
                             </div>
                         </div>

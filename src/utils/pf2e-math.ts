@@ -135,10 +135,10 @@ export function calculateACWithABP(character: Character): number {
     const profBonus = calculateProficiencyBonusWithVariant(
         character.level || 1,
         character.armorClass.proficiency === 'trained' ? ProficiencyRank.Trained :
-        character.armorClass.proficiency === 'expert' ? ProficiencyRank.Expert :
-        character.armorClass.proficiency === 'master' ? ProficiencyRank.Master :
-        character.armorClass.proficiency === 'legendary' ? ProficiencyRank.Legendary :
-        ProficiencyRank.Untrained,
+            character.armorClass.proficiency === 'expert' ? ProficiencyRank.Expert :
+                character.armorClass.proficiency === 'master' ? ProficiencyRank.Master :
+                    character.armorClass.proficiency === 'legendary' ? ProficiencyRank.Legendary :
+                        ProficiencyRank.Untrained,
         character.variantRules?.proficiencyWithoutLevel
     );
 
@@ -346,7 +346,7 @@ export function calculateWeaponDamage(
     equippedWeapon?: { runes?: { strikingRune?: string }; customization?: { bonusDamage?: number; customDamageType?: string } }
 ): string {
     const strMod = getAbilityModifier(character.abilityScores.str);
-    const dexMod = getAbilityModifier(character.abilityScores.dex);
+    const _dexMod = getAbilityModifier(character.abilityScores.dex);
 
     // Parse base damage dice
     const damageMatch = weapon.damage.match(/^(\d+)d(\d+)$/);
@@ -496,10 +496,10 @@ export function calculateSavingThrow(
     const profBonus = calculateProficiencyBonusWithVariant(
         character.level || 1,
         proficiency === 'untrained' ? ProficiencyRank.Untrained :
-        proficiency === 'trained' ? ProficiencyRank.Trained :
-        proficiency === 'expert' ? ProficiencyRank.Expert :
-        proficiency === 'master' ? ProficiencyRank.Master :
-        ProficiencyRank.Legendary,
+            proficiency === 'trained' ? ProficiencyRank.Trained :
+                proficiency === 'expert' ? ProficiencyRank.Expert :
+                    proficiency === 'master' ? ProficiencyRank.Master :
+                        ProficiencyRank.Legendary,
         character.variantRules?.proficiencyWithoutLevel
     );
 

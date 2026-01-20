@@ -106,7 +106,6 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
         onClose();
     };
 
-    const reinforcingRuneData = SHIELD_FUNDAMENTAL_RUNES.reinforcing.find(r => r.value === reinforcingRune);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -168,7 +167,6 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
                             {t('shield.propertyRunes') || 'Property Runes'} ({propertyRunes.length})
                         </h3>
                         {propertyRunes.map((runeId, index) => {
-                            const runeData = getPropertyRuneData(runeId);
                             return (
                                 <div key={index} className="option-row property-rune-row">
                                     <select

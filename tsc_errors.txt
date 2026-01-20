@@ -1,0 +1,45 @@
+src/components/common/DiceBox.tsx(81,11): error TS6133: 'rollDice' is declared but its value is never read.
+src/components/desktop/ArmorOptionsModal.tsx(162,35): error TS6133: '_runeData' is declared but its value is never read.
+src/components/desktop/CraftingPanel.tsx(152,15): error TS6133: '_goldCost' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(234,15): error TS6133: '_intBonusSkillsAvailable' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(423,19): error TS6133: '_intBonusSkillsAtLevel' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(539,27): error TS6133: '_tierTactics' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(758,11): error TS6133: '_handleAddTactic' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(805,11): error TS6133: '_handleAdvanceRound' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(861,11): error TS6133: '_getProficiencyBonus' is declared but its value is never read.
+src/components/desktop/KineticistJunctionBrowser.tsx(3,21): error TS6133: 'CharacterFeat' is declared but its value is never read.
+src/components/desktop/KineticistJunctionBrowser.tsx(4,20): error TS6133: 'LoadedFeat' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(23,16): error TS6133: 'language' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(24,12): error TS6133: 'selectedStaff' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(24,27): error TS6133: 'setSelectedStaff' is declared but its value is never read.
+src/components/desktop/ResourcesPanel.tsx(4,38): error TS6133: 'ClassResourceTemplate' is declared but its value is never read.
+src/components/desktop/ShieldOptionsModal.tsx(109,11): error TS6133: 'reinforcingRuneData' is declared but its value is never read.
+src/components/desktop/ShieldOptionsModal.tsx(171,35): error TS6133: 'runeData' is declared but its value is never read.
+src/components/desktop/StatsHeader.tsx(67,15): error TS6133: 'badgeColor' is declared but its value is never read.
+src/components/desktop/TopBar.tsx(35,5): error TS6133: 'onRestClick' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(65,11): error TS6133: 'getMaxPropertyRunes' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(171,35): error TS6133: 'runeData' is declared but its value is never read.
+src/components/desktop/WeaponsPanel.tsx(191,11): error TS6133: '_preparedTactics' is declared but its value is never read.
+src/components/desktop/WeaponsPanel.tsx(296,31): error TS2451: Cannot redeclare block-scoped variable 'weaponCustom'.
+src/components/desktop/WeaponsPanel.tsx(303,31): error TS2451: Cannot redeclare block-scoped variable 'weaponCustom'.
+src/components/desktop/WeaponsPanel.tsx(304,59): error TS2339: Property 'customName' does not exist on type '{ bonusDamage?: number | undefined; customDamageType?: string | undefined; }'.
+src/data/classFeatures.ts(8,1): error TS6133: 'LoadedFeat' is declared but its value is never read.
+src/data/classResourceTemplates.ts(38,19): error TS6133: 'level' is declared but its value is never read.
+src/data/classResourceTemplates.ts(109,19): error TS6133: 'level' is declared but its value is never read.
+src/data/classSpecializations.ts(7,1): error TS6133: 'LoadedClass' is declared but its value is never read.
+src/data/classSpecializations.ts(43,1): error TS6133: 'arcaneSchoolData' is declared but its value is never read.
+src/data/classSpecializations.ts(59,1): error TS6133: 'arcaneThesisData' is declared but its value is never read.
+src/data/classSpecializations.ts(1265,7): error TS6133: 'CLASSES_WITHOUT_SPECIALIZATIONS' is declared but its value is never read.
+src/pages/CharacterSheetPage.tsx(21,107): error TS6133: 'Proficiency' is declared but its value is never read.
+src/pages/CharacterSheetPage.tsx(828,11): error TS6133: 'handleSelectKineticistImpulse' is declared but its value is never read.
+src/utils/archetypeDedication.ts(7,21): error TS6133: 'CharacterFeat' is declared but its value is never read.
+src/utils/archetypeDedication.ts(23,11): error TS6133: 'allFeats' is declared but its value is never read.
+src/utils/archetypeDedication.ts(326,5): error TS6133: 'featLevel' is declared but its value is never read.
+src/utils/bulkCalculator.ts(100,15): error TS6133: 'effectiveBulk' is declared but its value is never read.
+src/utils/conditionModifiers.ts(65,10): error TS6133: 'emptyModifier' is declared but its value is never read.
+src/utils/conditionModifiers.ts(145,10): error TS6133: 'applyStackingRules' is declared but its value is never read.
+src/utils/dedicationAnalyzer.ts(15,26): error TS6196: 'SkillProficiency' is declared but never used.
+src/utils/featChoices.ts(723,39): error TS2339: Property 'map' does not exist on type 'never'.
+src/utils/googleDriveSync.ts(161,19): error TS6133: 'fileId' is declared but its value is never read.
+src/utils/petStats.ts(89,5): error TS6133: 'master' is declared but its value is never read.
+src/utils/pf2e-math.ts(349,11): error TS6133: 'dexMod' is declared but its value is never read.

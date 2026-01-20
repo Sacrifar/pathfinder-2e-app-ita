@@ -535,6 +535,7 @@ export function calculateAnimalCompanionStats(
     return {
         size: template.size,
         level: companionLevel,
+        stage: 'young',  // Companions start as young
         hitPoints: {
             current: hp,
             max: hp

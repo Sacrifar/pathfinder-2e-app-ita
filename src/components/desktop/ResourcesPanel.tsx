@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CustomResource } from '../../types';
-import { getAvailableResources, type ClassResourceTemplate } from '../../data/classResourceTemplates';
+import { getAvailableResources } from '../../data/classResourceTemplates';
 
 interface ResourcesPanelProps {
     character: Character;

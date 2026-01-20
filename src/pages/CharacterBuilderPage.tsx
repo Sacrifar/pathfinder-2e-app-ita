@@ -412,7 +412,7 @@ function ClassStep({ character, onSelect, t, getName, getDescription }: {
                         subtitle={cls.name}
                         badges={[
                             `HP ${cls.hitPoints}`,
-                            Array.isArray(cls.keyAbility) ? cls.keyAbility.join('/').toUpperCase() : cls.keyAbility.toUpperCase(),
+                            Array.isArray(cls.keyAbility) ? cls.keyAbility.join('/').toUpperCase() : String(cls.keyAbility).toUpperCase(),
                             cls.spellcasting ? cls.spellcasting.tradition : 'Martial'
                         ]}
                         description={getDescription(cls)}

@@ -12,7 +12,7 @@
  */
 
 import type { LoadedFeat } from '../data/pf2e-loader';
-import type { Character, SkillProficiency } from '../types';
+import type { Character } from '../types';
 import { FeatChoice } from './featChoices';
 import { getDeityById } from '../data/deities';
 import { getClassFeatureSkills } from '../data/classFeatures';

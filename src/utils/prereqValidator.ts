@@ -253,8 +253,10 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
     if (specMatch && character.classSpecializationId) {
         const requiredSpecName = specMatch[1].toLowerCase().trim();
 
-        // Get the character's current specialization
-        const characterSpec = getSpecializationById(character.classSpecializationId);
+        const specId = Array.isArray(character.classSpecializationId)
+            ? character.classSpecializationId[0]
+            : character.classSpecializationId;
+        const characterSpec = getSpecializationById(specId);
 
         if (characterSpec) {
             // Check if the character's specialization matches the prerequisite

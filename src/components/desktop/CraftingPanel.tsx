@@ -106,7 +106,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
         onCharacterUpdate({
             ...character,
             crafting: {
-                ...character.crafting,
+                dailyItems: character.crafting?.dailyItems || [],
                 projects: updatedProjects,
             },
         });
@@ -133,7 +133,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
         onCharacterUpdate({
             ...character,
             crafting: {
-                ...character.crafting,
+                dailyItems: character.crafting?.dailyItems || [],
                 projects: updatedProjects,
             },
         });
@@ -149,7 +149,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
         if (!formula) return;
 
         // Calculate gold cost (targetValue is in sp, convert to gp)
-        const goldCost = project.targetValue / 100;
+        const _goldCost = project.targetValue / 100;
 
         // TODO: Check if character has enough gold
         // For now, just add to inventory (simplified)
@@ -158,7 +158,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
         onCharacterUpdate({
             ...character,
             crafting: {
-                ...character.crafting,
+                dailyItems: character.crafting?.dailyItems || [],
                 projects: updatedProjects,
             },
             // TODO: Add item to inventory
@@ -178,7 +178,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
             onCharacterUpdate({
                 ...character,
                 crafting: {
-                    ...character.crafting,
+                    projects: character.crafting?.projects || [],
                     dailyItems: updatedDailyItems,
                 },
             });
@@ -188,7 +188,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
             onCharacterUpdate({
                 ...character,
                 crafting: {
-                    ...character.crafting,
+                    projects: character.crafting?.projects || [],
                     dailyItems: updatedDailyItems,
                 },
             });
@@ -206,7 +206,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
             onCharacterUpdate({
                 ...character,
                 crafting: {
-                    ...character.crafting,
+                    projects: character.crafting?.projects || [],
                     dailyItems: updatedDailyItems,
                 },
             });
@@ -216,7 +216,7 @@ export const CraftingPanel: React.FC<CraftingPanelProps> = ({
             onCharacterUpdate({
                 ...character,
                 crafting: {
-                    ...character.crafting,
+                    projects: character.crafting?.projects || [],
                     dailyItems: updatedDailyItems,
                 },
             });

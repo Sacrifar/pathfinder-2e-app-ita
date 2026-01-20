@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
-export type TabId = 'weapons' | 'impulse' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions';
+export type TabId = 'weapons' | 'impulse' | 'defense' | 'gear' | 'resources' | 'spells' | 'pets' | 'details' | 'feats' | 'actions' | 'biography' | 'notes';
 
 interface CharacterTabsProps {
     activeTab: TabId;

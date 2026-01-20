@@ -15,7 +15,7 @@ interface DefensePanelProps {
 
 export const DefensePanel: React.FC<DefensePanelProps> = ({
     character,
-    ac,
+    ac: _ac,
     onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
@@ -643,7 +643,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         onClose={() => setShowBrowser(false)}
                         onEquipArmor={handleEquipArmor}
                         onEquipShield={handleEquipShield}
-                        onEquipGear={() => {}}
+                        onEquipGear={() => { }}
                         initialTab={browserTab}
                     />
                 )

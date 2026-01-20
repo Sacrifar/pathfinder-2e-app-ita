@@ -264,7 +264,7 @@ function ClassesBrowser({ search, selectedId, onSelect, t, getName, getDescripti
                         <span className="tag">
                             {Array.isArray(selectedClass.keyAbility)
                                 ? selectedClass.keyAbility.join('/').toUpperCase()
-                                : selectedClass.keyAbility.toUpperCase()}
+                                : String(selectedClass.keyAbility).toUpperCase()}
                         </span>
                         {selectedClass.spellcasting && (
                             <span className="trait trait-uncommon">{selectedClass.spellcasting.tradition}</span>

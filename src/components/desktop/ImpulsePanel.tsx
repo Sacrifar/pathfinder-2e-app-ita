@@ -83,9 +83,9 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                     const nameLower = f.name.toLowerCase();
                     const idFromName = nameLower.replace(/\s+/g, '-');
                     return idFromName === featIdLower ||
-                           nameLower === featIdLower ||
-                           nameLower.includes(featIdLower) ||
-                           featIdLower.includes(nameLower.replace(/\s+/g, ''));
+                        nameLower === featIdLower ||
+                        nameLower.includes(featIdLower) ||
+                        featIdLower.includes(nameLower.replace(/\s+/g, ''));
                 });
             }
             if (!featData) continue;
@@ -141,7 +141,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                 if (actionLevel > currentLevel) continue;
 
                 // Check if this action is already in the list (from feats)
-                const actionId = action.id || action.rawId || action.name.toLowerCase();
+                const actionId = action.id || action.name.toLowerCase();
                 if (selectedFeatIds.has(actionId)) continue;
 
                 // Extract elements from traits
@@ -170,10 +170,10 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                         level: actionLevel,
                         category: 'class' as const,
                         actionType: action.cost === 'reaction' ? 'reaction' :
-                                     action.cost === 'free' ? 'free' : 'action',
+                            action.cost === 'free' ? 'free' : 'action',
                         actionCost: action.cost === '1' ? 1 :
-                                    action.cost === '2' ? 2 :
-                                    action.cost === '3' ? 3 : null,
+                            action.cost === '2' ? 2 :
+                                action.cost === '3' ? 3 : null,
                         prerequisites: [],
                         rarity: 'common',
                         rules: undefined,
@@ -376,19 +376,19 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
 
                                     <div className="impulse-cost">
                                         <span className={`blast-mode-btn ${currentMode === 'one' ? 'active' : ''}`}
-                                              style={{marginRight: '4px', fontSize: '12px', padding: '2px 6px'}}
-                                              onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  toggleBlastMode(blastKey);
-                                              }}>
+                                            style={{ marginRight: '4px', fontSize: '12px', padding: '2px 6px' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleBlastMode(blastKey);
+                                            }}>
                                             {t('actions.oneActionShort') || '1a'}
                                         </span>
                                         <span className={`blast-mode-btn ${currentMode === 'two' ? 'active' : ''}`}
-                                              style={{fontSize: '12px', padding: '2px 6px'}}
-                                              onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  toggleBlastMode(blastKey);
-                                              }}>
+                                            style={{ fontSize: '12px', padding: '2px 6px' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleBlastMode(blastKey);
+                                            }}>
                                             {t('actions.twoActionsShort') || '2a'}
                                         </span>
                                     </div>
@@ -417,92 +417,92 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                     {Object.entries(impulsesByElement)
                         .sort(([, a], [, b]) => b.length - a.length)
                         .map(([element, impulses]) => (
-                        <div key={element} className="element-group">
-                            <div
-                                className="element-header"
-                                style={{ borderBottom: `2px solid ${getElementColor(element)}` }}
-                            >
-                                <span className="element-icon">{getElementIcon(element)}</span>
-                                <span className="element-name">
-                                    {t(`elements.${element}`) || element.charAt(0).toUpperCase() + element.slice(1)}
-                                </span>
-                                <span className="element-count">{impulses.length}</span>
-                            </div>
-                            <div className="impulse-grid">
-                                {impulses.map((impulse) => (
-                                    <div
-                                        key={impulse.feat.featId}
-                                        className="impulse-card clickable"
-                                        style={{
-                                            borderLeft: `4px solid ${getElementColor(element)}`
-                                        }}
-                                        onClick={() => setSelectedImpulse(impulse)}
-                                    >
-                                        <div className="impulse-header">
-                                            <span className="impulse-level">
-                                                {impulse.data.level}
-                                            </span>
-                                            <span className="impulse-name">
-                                                {impulse.data.name}
-                                            </span>
-                                        </div>
-
-                                        <div className="impulse-cost">
-                                            {impulse.data.altActionCosts && impulse.data.altActionCosts.length > 0 ? (
-                                                // Has alternative action costs (e.g., reaction OR 2-action)
-                                                <div className="multi-cost">
-                                                    {impulse.data.actionType === 'reaction' && (
-                                                        <span className="cost-option">
-                                                            <ActionIcon cost="reaction" />
-                                                            <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
-                                                        </span>
-                                                    )}
-                                                    {impulse.data.altActionCosts.map(cost => (
-                                                        <span key={cost} className="cost-option">
-                                                            <ActionIcon cost={String(cost) as '1' | '2' | '3'} />
-                                                            <span className="cost-label">{getActionCostLabel(String(cost))}</span>
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            ) : impulse.data.actionType === 'passive' ? (
-                                                <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
-                                            ) : impulse.data.actionType === 'free' ? (
-                                                <>
-                                                    <ActionIcon cost="free" />
-                                                    <span className="cost-label">{t('actions.free') || 'Free'}</span>
-                                                </>
-                                            ) : impulse.data.actionType === 'reaction' ? (
-                                                <>
-                                                    <ActionIcon cost="reaction" />
-                                                    <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
-                                                </>
-                                            ) : impulse.data.actionCost ? (
-                                                <>
-                                                    <ActionIcon cost={String(impulse.data.actionCost) as '1' | '2' | '3'} />
-                                                    <span className="cost-label">{getActionCostLabel(String(impulse.data.actionCost))}</span>
-                                                </>
-                                            ) : (
-                                                <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
-                                            )}
-                                        </div>
-
-                                        <div className="impulse-traits">
-                                            {impulse.data.traits.slice(0, 4).map(trait => (
-                                                <span key={trait} className="trait-badge">
-                                                    {t(`traits.${trait}`) || trait}
+                            <div key={element} className="element-group">
+                                <div
+                                    className="element-header"
+                                    style={{ borderBottom: `2px solid ${getElementColor(element)}` }}
+                                >
+                                    <span className="element-icon">{getElementIcon(element)}</span>
+                                    <span className="element-name">
+                                        {t(`elements.${element}`) || element.charAt(0).toUpperCase() + element.slice(1)}
+                                    </span>
+                                    <span className="element-count">{impulses.length}</span>
+                                </div>
+                                <div className="impulse-grid">
+                                    {impulses.map((impulse) => (
+                                        <div
+                                            key={impulse.feat.featId}
+                                            className="impulse-card clickable"
+                                            style={{
+                                                borderLeft: `4px solid ${getElementColor(element)}`
+                                            }}
+                                            onClick={() => setSelectedImpulse(impulse)}
+                                        >
+                                            <div className="impulse-header">
+                                                <span className="impulse-level">
+                                                    {impulse.data.level}
                                                 </span>
-                                            ))}
-                                            {impulse.data.traits.length > 4 && (
-                                                <span className="trait-badge">
-                                                    +{impulse.data.traits.length - 4}
+                                                <span className="impulse-name">
+                                                    {impulse.data.name}
                                                 </span>
-                                            )}
+                                            </div>
+
+                                            <div className="impulse-cost">
+                                                {impulse.data.altActionCosts && impulse.data.altActionCosts.length > 0 ? (
+                                                    // Has alternative action costs (e.g., reaction OR 2-action)
+                                                    <div className="multi-cost">
+                                                        {impulse.data.actionType === 'reaction' && (
+                                                            <span className="cost-option">
+                                                                <ActionIcon cost="reaction" />
+                                                                <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
+                                                            </span>
+                                                        )}
+                                                        {impulse.data.altActionCosts.map(cost => (
+                                                            <span key={cost} className="cost-option">
+                                                                <ActionIcon cost={String(cost) as '1' | '2' | '3'} />
+                                                                <span className="cost-label">{getActionCostLabel(String(cost))}</span>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : impulse.data.actionType === 'passive' ? (
+                                                    <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                ) : impulse.data.actionType === 'free' ? (
+                                                    <>
+                                                        <ActionIcon cost="free" />
+                                                        <span className="cost-label">{t('actions.free') || 'Free'}</span>
+                                                    </>
+                                                ) : impulse.data.actionType === 'reaction' ? (
+                                                    <>
+                                                        <ActionIcon cost="reaction" />
+                                                        <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
+                                                    </>
+                                                ) : impulse.data.actionCost ? (
+                                                    <>
+                                                        <ActionIcon cost={String(impulse.data.actionCost) as '1' | '2' | '3'} />
+                                                        <span className="cost-label">{getActionCostLabel(String(impulse.data.actionCost))}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                )}
+                                            </div>
+
+                                            <div className="impulse-traits">
+                                                {impulse.data.traits.slice(0, 4).map(trait => (
+                                                    <span key={trait} className="trait-badge">
+                                                        {t(`traits.${trait}`) || trait}
+                                                    </span>
+                                                ))}
+                                                {impulse.data.traits.length > 4 && (
+                                                    <span className="trait-badge">
+                                                        +{impulse.data.traits.length - 4}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
             )}
 

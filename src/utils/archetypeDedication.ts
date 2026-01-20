@@ -4,7 +4,7 @@
  * you must take 2 feats from that archetype before taking another dedication.
  */
 
-import { Character, CharacterFeat } from '../types';
+import { Character } from '../types';
 import { getFeats, LoadedFeat } from '../data/pf2e-loader';
 
 // Cache for the UUID to name-based ID mapping
@@ -20,7 +20,7 @@ function buildUuidToNameIdMap(): Record<string, string> {
     }
 
     const map: Record<string, string> = {};
-    const allFeats = getFeats();
+    const _allFeats = getFeats();
 
     // Also need to load the raw feat data to get UUIDs
     // We'll use the feat modules to build this map
@@ -34,12 +34,16 @@ function buildUuidToNameIdMap(): Record<string, string> {
         if (path.includes('_folders.json')) continue;
 
         const module = featModules[path];
-        const raw = (module as { default?: { _id: string; name: string; type: string } }).default || module;
+        const raw = (module as { default?: unknown }).default || module;
 
-        if (raw && raw.type === 'feat' && raw.name && raw._id) {
-            // Generate the name-based ID the same way transformFeat does
-            const nameId = raw.name.toLowerCase().replace(/\s+/g, '-');
-            map[raw._id] = nameId;
+        // Type guard to check if raw has the expected shape
+        if (raw && typeof raw === 'object' && 'type' in raw && 'name' in raw && '_id' in raw) {
+            const featData = raw as { type: string; name: string; _id: string };
+            if (featData.type === 'feat') {
+                // Generate the name-based ID the same way transformFeat does
+                const nameId = featData.name.toLowerCase().replace(/\s+/g, '-');
+                map[featData._id] = nameId;
+            }
         }
     }
 
@@ -319,7 +323,7 @@ export function removeDedicationAndArchetypeFeats(
 export function canSelectFeatWithDedicationConstraint(
     character: Character,
     feat: LoadedFeat,
-    featLevel: number
+    _featLevel: number
 ): { allowed: boolean; reason?: string } {
     const constraint = getActiveDedicationConstraint(character);
 

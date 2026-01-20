@@ -5,7 +5,6 @@
  * These items often grant additional skills that are needed for dedication feats.
  */
 
-import { LoadedFeat } from './pf2e-loader';
 
 export interface ClassFeature {
     id: string;

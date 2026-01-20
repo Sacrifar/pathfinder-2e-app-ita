@@ -23,15 +23,15 @@ export function getTactics(): LoadedTactic[] {
             return traits.includes('commander') && traits.includes('tactic');
         })
         .map(action => {
-            // Determina il tier dalla proprietà otherTags
-            const otherTags = action.otherTags || [];
+            // Determina il tier dai traits (Commander tactics have tier in traits)
+            const traits = action.traits || [];
             let tacticTier: LoadedTactic['tacticTier'] = 'basic';
 
-            if (otherTags.includes('commander-expert-tactic')) {
+            if (traits.includes('expert') || traits.some(t => t.includes('expert-tactic'))) {
                 tacticTier = 'expert';
-            } else if (otherTags.includes('commander-master-tactic')) {
+            } else if (traits.includes('master') || traits.some(t => t.includes('master-tactic'))) {
                 tacticTier = 'master';
-            } else if (otherTags.includes('commander-legendary-tactic')) {
+            } else if (traits.includes('legendary') || traits.some(t => t.includes('legendary-tactic'))) {
                 tacticTier = 'legendary';
             }
 

@@ -3,7 +3,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CharacterFeat } from '../../types';
 import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
 import { FeatActionIcon } from '../../utils/actionIcons';
-import { getKineticistElementFromGateId, getClassNameById } from '../../data/classSpecializations';
+
 
 interface FeatsPanelProps {
     character: Character;
@@ -87,11 +87,11 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
         });
 
         return [
-            { source: 'ancestry', label: t('feats.ancestry') || 'Ancestry Feats', feats: groups.ancestry },
-            { source: 'class', label: t('feats.class') || 'Class Feats', feats: groups.class },
-            { source: 'general', label: t('feats.general') || 'General Feats', feats: groups.general },
-            { source: 'skill', label: t('feats.skill') || 'Skill Feats', feats: groups.skill },
-            { source: 'bonus', label: t('feats.bonus') || 'Bonus Feats', feats: groups.bonus },
+            { source: 'ancestry' as const, label: t('feats.ancestry') || 'Ancestry Feats', feats: groups.ancestry },
+            { source: 'class' as const, label: t('feats.class') || 'Class Feats', feats: groups.class },
+            { source: 'general' as const, label: t('feats.general') || 'General Feats', feats: groups.general },
+            { source: 'skill' as const, label: t('feats.skill') || 'Skill Feats', feats: groups.skill },
+            { source: 'bonus' as const, label: t('feats.bonus') || 'Bonus Feats', feats: groups.bonus },
         ].filter(group => group.feats.length > 0);
     };
 

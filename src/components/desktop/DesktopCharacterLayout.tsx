@@ -26,7 +26,7 @@ const BuffBrowser = lazy(() => import('./BuffBrowser').then(m => ({ default: m.B
 const EquipmentBrowser = lazy(() => import('./EquipmentBrowser').then(m => ({ default: m.EquipmentBrowser })));
 const DeityBrowser = lazy(() => import('./DeityBrowser').then(m => ({ default: m.DeityBrowser })));
 const VariantRulesPanel = lazy(() => import('./VariantRulesPanel').then(m => ({ default: m.VariantRulesPanel })));
-const TacticBrowser = lazy(() => import('./TacticBrowser').then(m => ({ default: m.TacticBrowser })));
+// const TacticBrowser = lazy(() => import('./TacticBrowser').then(m => ({ default: m.TacticBrowser })));
 const TacticsPanel = lazy(() => import('./TacticsPanel').then(m => ({ default: m.TacticsPanel })));
 const SkillActionsModal = lazy(() => import('./SkillActionsModal').then(m => ({ default: m.SkillActionsModal })));
 
@@ -49,7 +49,7 @@ const LoadingFallback = () => (
 );
 import { LoadedCondition, LoadedGear, getFeats } from '../../data/pf2e-loader';
 import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
-import { Character, Proficiency, Buff, AbilityName } from '../../types';
+import { Character, Proficiency, Buff } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
 import { getSpecializationById, classHasSpecializations, getSpecializationsForClass, getKineticistElementFromGateId, type ClassSpecialization } from '../../data/classSpecializations';
 import {
@@ -59,7 +59,6 @@ import {
     getPerceptionPenalty,
 } from '../../utils/conditionModifiers';
 import {
-    calculateMaxHP,
     calculateACWithABP,
     ProficiencyRank,
     calculateProficiencyBonusWithVariant,
@@ -232,7 +231,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             return Math.max(0, intBoostsAtLevel - selectedAtLevel);
         };
 
-        const intBonusSkillsAvailable = calculateIntBonusSkillsAvailable();
+        const _intBonusSkillsAvailable = calculateIntBonusSkillsAvailable();
 
         // Get all feat slots using variant-aware function
         const allFeatSlots = getAllFeatSlotsUpToLevel(20, variantRules);
@@ -421,7 +420,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
             // Add INT bonus skills section (Remastered rule: 1 Trained skill per INT boost after level 1)
             // This appears at the level where INT was boosted
-            const intBonusSkillsAtLevel = getIntBonusSkillsAvailableAtLevel(level);
+            const _intBonusSkillsAtLevel = getIntBonusSkillsAvailableAtLevel(level);
             const hasIntBoostAtLevel = character.abilityBoosts?.levelUp?.[level]?.includes('int');
 
             if (level > 1 && hasIntBoostAtLevel) {
@@ -537,7 +536,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                 const tacticsInfo = tacticsLevels.find(t => t.level === level);
                 if (tacticsInfo) {
                     const knownTactics = character.tactics?.known || [];
-                    const tierTactics = knownTactics.filter(id => {
+                    const _tierTactics = knownTactics.filter(_id => {
                         // This would require loading tactic data to check tier
                         // For now, we'll just count total known tactics
                         return true;
@@ -756,14 +755,14 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     };
 
     // Tactics handlers
-    const handleAddTactic = (tactic: any) => {
+    const _handleAddTactic = (_tactic: any) => {
         const currentTactics = character.tactics || { known: [], prepared: [] };
-        const newKnown = [...currentTactics.known, tactic.id];
+        const newKnown = [...currentTactics.known, _tactic.id];
 
         // Auto-add to prepared if we have room
         let newPrepared = [...currentTactics.prepared];
-        if (newPrepared.length < 3 && !newPrepared.includes(tactic.id)) {
-            newPrepared.push(tactic.id);
+        if (newPrepared.length < 3 && !newPrepared.includes(_tactic.id)) {
+            newPrepared.push(_tactic.id);
         }
 
         onCharacterUpdate({
@@ -803,7 +802,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     };
 
     // Advance Round: decrement durations, handle frightened value decrease, remove expired effects
-    const handleAdvanceRound = () => {
+    const _handleAdvanceRound = () => {
         const currentConditions = character.conditions || [];
         const currentBuffs = character.buffs || [];
 
@@ -859,7 +858,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
     };
 
     // Helper for proficiency bonus
-    const getProficiencyBonus = (prof: Proficiency, level: number) => {
+    const _getProficiencyBonus = (prof: Proficiency, level: number) => {
         switch (prof) {
             case 'trained': return 2 + level;
             case 'expert': return 4 + level;
@@ -1140,8 +1139,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
             // Only the highest bonus of each type applies
             const totalBonus = Math.max(0, ...statusBonuses, 0) +
-                              Math.max(0, ...circumstanceBonuses, 0) +
-                              Math.max(0, ...itemBonuses, 0);
+                Math.max(0, ...circumstanceBonuses, 0) +
+                Math.max(0, ...itemBonuses, 0);
 
             // Penalties always stack (add together)
             const penalties = skillBuffs
@@ -1197,8 +1196,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
         // Only the highest bonus of each type applies
         const totalBonus = Math.max(0, ...statusBonuses, 0) +
-                          Math.max(0, ...circumstanceBonuses, 0) +
-                          Math.max(0, ...itemBonuses, 0);
+            Math.max(0, ...circumstanceBonuses, 0) +
+            Math.max(0, ...itemBonuses, 0);
 
         // Penalties always stack (add together)
         const penalties = initiativeBuffs

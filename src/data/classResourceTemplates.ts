@@ -35,7 +35,7 @@ export const classResourceTemplates: ClassResourceTemplate[] = [
     {
         name: 'Rage',
         nameIt: 'Furia',
-        maxUses: (level: number) => {
+        maxUses: (_level: number) => {
             // Barbarian rage uses: 3 + Con modifier (min 1)
             // Simplified - assume +2 Con for most builds
             return 3 + 2; // Will be calculated dynamically
@@ -106,7 +106,7 @@ export const classResourceTemplates: ClassResourceTemplate[] = [
     {
         name: 'Focus Points',
         nameIt: 'Punti Focus',
-        maxUses: (level: number) => {
+        maxUses: (_level: number) => {
             // Sorcerer focus points: Cha modifier + 1 (min 1)
             return Math.max(1, 3); // Simplified
         },

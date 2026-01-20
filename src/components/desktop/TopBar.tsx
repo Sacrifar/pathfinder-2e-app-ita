@@ -32,7 +32,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     speed = 25,
     abilityScores,
     onMenuClick,
-    onRestClick,
+    onRestClick: _onRestClick,
     onLevelChange,
     onNameChange,
 }) => {

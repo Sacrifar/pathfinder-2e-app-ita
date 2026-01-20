@@ -313,7 +313,7 @@ export function recalculateSkillsFromFeats(
                         // This choice doesn't have a corresponding ChoiceSet
                         // It might be an additional skill choice (additionalSkill, conditionalSkill_*)
                         // These are added at the end of the choices array
-                        const remainingChoiceCount = charFeat.choices.length - featChoices.length;
+                        const remainingChoiceCount = (charFeat.choices?.length ?? 0) - featChoices.length;
                         if (index >= featChoices.length && remainingChoiceCount > 0) {
                             // Calculate which additional skill choice this is
                             const additionalIndex = index - featChoices.length;
@@ -686,11 +686,11 @@ export function getChoiceOptions(
             let filteredFeats = allFeats;
 
             if (choice.filter) {
-                if (choice.filter.level !== undefined) {
-                    filteredFeats = filteredFeats.filter(f => f.level === choice.filter.level);
+                if (choice.filter?.level !== undefined) {
+                    filteredFeats = filteredFeats.filter(f => f.level === choice.filter!.level);
                 }
-                if (choice.filter.category) {
-                    filteredFeats = filteredFeats.filter(f => f.category === choice.filter.category);
+                if (choice.filter?.category) {
+                    filteredFeats = filteredFeats.filter(f => f.category === choice.filter!.category);
                 }
                 if (choice.filter.traits && choice.filter.traits.length > 0) {
                     filteredFeats = filteredFeats.filter(f =>
@@ -719,8 +719,10 @@ export function getChoiceOptions(
         case 'ability':
         case 'number':
             // For predefined options, return values
-            if (choice.options && Array.isArray(choice.options)) {
-                return choice.options.map(o => o.value);
+            // Use type assertion as TypeScript over-narrows due to switch exhaustiveness
+            const opts = choice.options as FeatChoiceOption[] | undefined;
+            if (opts && Array.isArray(opts)) {
+                return opts.map(o => o.value);
             }
             return [];
 
@@ -875,12 +877,12 @@ export function applySubfeaturesProficiencies(character: Character): Character {
                 }
             }
 
-            // Handle languages from subfeatures (e.g., Druid Dedication grants Wildsong)
-            if (feat.subfeatures?.languages?.granted && Array.isArray(feat.subfeatures.languages.granted)) {
+            const subfeaturesWithLang = feat.subfeatures as { languages?: { granted?: string[] } } | undefined;
+            if (subfeaturesWithLang?.languages?.granted && Array.isArray(subfeaturesWithLang.languages.granted)) {
                 if (!updated.languages) {
                     updated.languages = [];
                 }
-                for (const language of feat.subfeatures.languages.granted) {
+                for (const language of subfeaturesWithLang.languages.granted) {
                     if (!updated.languages.includes(language)) {
                         updated.languages.push(language);
                     }

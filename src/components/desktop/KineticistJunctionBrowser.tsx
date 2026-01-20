@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, CharacterFeat } from '../../types';
-import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
+import { Character } from '../../types';
+import { getFeats } from '../../data/pf2e-loader';
 import {
     getKineticistElementFromGateId,
     getSpecializationById,

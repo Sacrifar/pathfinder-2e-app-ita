@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character } from '../../types';
+import { Character, Proficiency } from '../../types';
 import { getSpells, LoadedSpell } from '../../data/pf2e-loader';
 
 interface SpellsPanelProps {
@@ -12,7 +12,7 @@ interface SpellsPanelProps {
 export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     character,
     onCastSpell,
-    onAddSpell,
+    onAddSpell: _onAddSpell,
 }) => {
     const { t } = useLanguage();
     const [showBrowser, setShowBrowser] = useState(false);
@@ -109,7 +109,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             const normalizedId = spellId.toLowerCase().replace(/\s+/g, '-');
             // Check if this ID exists in the actual spell database
             return validSpellIds.has(normalizedId) ||
-                   allSpells.some(s => s.id.toLowerCase() === normalizedId);
+                allSpells.some(s => s.id.toLowerCase() === normalizedId);
         });
     }, [spellcasting.knownSpells, validSpellIds, allSpells]);
 

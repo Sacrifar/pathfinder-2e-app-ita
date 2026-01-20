@@ -1,0 +1,135 @@
+src/components/common/DiceBox.tsx(81,11): error TS6133: 'rollDice' is declared but its value is never read.
+src/components/desktop/ArmorOptionsModal.tsx(22,5): error TS2339: Property '_character' does not exist on type 'ArmorOptionsModalProps'.
+src/components/desktop/ArmorOptionsModal.tsx(22,5): error TS6133: '_character' is declared but its value is never read.
+src/components/desktop/ArmorOptionsModal.tsx(162,35): error TS6133: '_runeData' is declared but its value is never read.
+src/components/desktop/CraftingPanel.tsx(152,15): error TS6133: '_goldCost' is declared but its value is never read.
+src/components/desktop/DefensePanel.tsx(18,5): error TS2339: Property '_ac' does not exist on type 'DefensePanelProps'.
+src/components/desktop/DefensePanel.tsx(18,5): error TS6133: '_ac' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(29,7): error TS6133: 'TacticBrowser' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(234,15): error TS6133: '_intBonusSkillsAvailable' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(423,19): error TS6133: '_intBonusSkillsAtLevel' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(539,27): error TS6133: '_tierTactics' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(758,11): error TS6133: '_handleAddTactic' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(805,11): error TS6133: '_handleAdvanceRound' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(861,11): error TS6133: '_getProficiencyBonus' is declared but its value is never read.
+src/components/desktop/DesktopCharacterLayout.tsx(1413,30): error TS2367: This comparison appears to be unintentional because the types 'TabId' and '"biography"' have no overlap.
+src/components/desktop/DesktopCharacterLayout.tsx(1428,30): error TS2367: This comparison appears to be unintentional because the types 'TabId' and '"notes"' have no overlap.
+src/components/desktop/FeatBrowser.tsx(8,42): error TS6133: 'getClassNameById' is declared but its value is never read.
+src/components/desktop/FeatBrowser.tsx(557,81): error TS2554: Expected 1 arguments, but got 2.
+src/components/desktop/FeatsPanel.tsx(6,1): error TS6192: All imports in import declaration are unused.
+src/components/desktop/FeatsPanel.tsx(89,9): error TS2322: Type '{ source: string; label: string; feats: CharacterFeat[]; }[]' is not assignable to type 'FeatGroup[]'.
+  Type '{ source: string; label: string; feats: CharacterFeat[]; }' is not assignable to type 'FeatGroup'.
+    Types of property 'source' are incompatible.
+      Type 'string' is not assignable to type '"ancestry" | "class" | "general" | "skill" | "bonus"'.
+src/components/desktop/ImpulsePanel.tsx(144,54): error TS2339: Property 'rawId' does not exist on type 'LoadedAction'.
+src/components/desktop/KineticistJunctionBrowser.tsx(3,21): error TS6133: 'CharacterFeat' is declared but its value is never read.
+src/components/desktop/KineticistJunctionBrowser.tsx(4,20): error TS6133: 'LoadedFeat' is declared but its value is never read.
+src/components/desktop/LevelSidebar.tsx(1,17): error TS6133: 'useMemo' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(23,16): error TS6133: 'language' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(24,12): error TS6133: 'selectedStaff' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(24,27): error TS6133: 'setSelectedStaff' is declared but its value is never read.
+src/components/desktop/MagicalItemsPanel.tsx(30,68): error TS2339: Property 'linkedSpells' does not exist on type 'EquippedItem'.
+src/components/desktop/MainMenu.tsx(1,17): error TS6133: 'useState' is declared but its value is never read.
+src/components/desktop/ResourcesPanel.tsx(4,38): error TS6133: 'ClassResourceTemplate' is declared but its value is never read.
+src/components/desktop/RestModal.tsx(76,30): error TS18048: 'updatedSpellcasting' is possibly 'undefined'.
+src/components/desktop/ShieldOptionsModal.tsx(109,11): error TS6133: 'reinforcingRuneData' is declared but its value is never read.
+src/components/desktop/ShieldOptionsModal.tsx(171,35): error TS6133: 'runeData' is declared but its value is never read.
+src/components/desktop/SpellsPanel.tsx(15,5): error TS6133: 'onAddSpell' is declared but its value is never read.
+src/components/desktop/SpellsPanel.tsx(80,40): error TS2304: Cannot find name 'Proficiency'.
+src/components/desktop/StatsHeader.tsx(67,15): error TS6133: 'badgeColor' is declared but its value is never read.
+src/components/desktop/TopBar.tsx(35,5): error TS6133: 'onRestClick' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(8,5): error TS6133: 'getMaxPropertyRunes' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(10,5): error TS6133: 'isValidPropertyRune' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(23,5): error TS6133: 'character' is declared but its value is never read.
+src/components/desktop/WeaponOptionsModal.tsx(32,82): error TS2339: Property 'potencyRune' does not exist on type 'WeaponRunes | ArmorRunes | ShieldRunes'.
+  Property 'potencyRune' does not exist on type 'ShieldRunes'.
+src/components/desktop/WeaponOptionsModal.tsx(33,102): error TS2339: Property 'strikingRune' does not exist on type 'WeaponRunes | ArmorRunes | ShieldRunes'.
+  Property 'strikingRune' does not exist on type 'ArmorRunes'.
+src/components/desktop/WeaponOptionsModal.tsx(36,105): error TS2339: Property 'material' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'material' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(37,83): error TS2339: Property 'isLarge' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'isLarge' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(38,104): error TS2339: Property 'bulkOverride' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'bulkOverride' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(46,36): error TS2554: Expected 0 arguments, but got 1.
+src/components/desktop/WeaponOptionsModal.tsx(50,39): error TS2339: Property 'attackAbilityOverride' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'attackAbilityOverride' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(53,102): error TS2339: Property 'bonusAttack' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'bonusAttack' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(54,102): error TS2339: Property 'bonusDamage' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'bonusDamage' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(55,100): error TS2339: Property 'customDamageType' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'customDamageType' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(58,39): error TS2339: Property 'criticalSpecialization' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'criticalSpecialization' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponOptionsModal.tsx(168,35): error TS6133: 'runeData' is declared but its value is never read.
+src/components/desktop/WeaponsPanel.tsx(191,11): error TS6133: 'preparedTactics' is declared but its value is never read.
+src/components/desktop/WeaponsPanel.tsx(294,94): error TS2345: Argument of type '{ weaponData: LoadedWeapon; isTwoHanded: boolean; id: string; name: string; bulk: number; invested?: boolean; worn?: boolean; wielded?: { hands: 1 | 2; }; containerId?: string; ... 5 more ...; customization?: WeaponCustomization | ArmorCustomization | ShieldCustomization; }' is not assignable to parameter of type '{ runes?: { strikingRune?: string | undefined; } | undefined; customization?: { bonusDamage?: number | undefined; customDamageType?: string | undefined; } | undefined; }'.
+  Types of property 'runes' are incompatible.
+    Type 'WeaponRunes | ArmorRunes | ShieldRunes | undefined' is not assignable to type '{ strikingRune?: string | undefined; } | undefined'.
+      Type 'ArmorRunes' has no properties in common with type '{ strikingRune?: string | undefined; }'.
+src/components/desktop/WeaponsPanel.tsx(375,100): error TS2339: Property 'customDamageType' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'customDamageType' does not exist on type 'ArmorCustomization'.
+src/components/desktop/WeaponsPanel.tsx(382,58): error TS2339: Property 'criticalSpecialization' does not exist on type 'WeaponCustomization | ArmorCustomization | ShieldCustomization'.
+  Property 'criticalSpecialization' does not exist on type 'ArmorCustomization'.
+src/contexts/ThemeContext.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/data/classFeatures.ts(8,1): error TS6133: 'LoadedFeat' is declared but its value is never read.
+src/data/classResourceTemplates.ts(38,19): error TS6133: 'level' is declared but its value is never read.
+src/data/classResourceTemplates.ts(109,19): error TS6133: 'level' is declared but its value is never read.
+src/data/classSpecializations.ts(7,1): error TS6133: 'LoadedClass' is declared but its value is never read.
+src/data/classSpecializations.ts(43,1): error TS6133: 'arcaneSchoolData' is declared but its value is never read.
+src/data/classSpecializations.ts(59,1): error TS6133: 'arcaneThesisData' is declared but its value is never read.
+src/data/classSpecializations.ts(1265,7): error TS6133: 'CLASSES_WITHOUT_SPECIALIZATIONS' is declared but its value is never read.
+src/data/pets.ts(402,37): error TS2353: Object literal may only specify known properties, and 'earth' does not exist in type 'Speed'.
+src/data/pets.ts(422,37): error TS2353: Object literal may only specify known properties, and 'incorporeal' does not exist in type 'Speed'.
+src/data/pets.ts(535,5): error TS2741: Property 'stage' is missing in type '{ size: "small" | "medium" | "large" | "tiny"; level: number; hitPoints: { current: number; max: number; }; armorClass: number; attacks: { attackBonus: number; name: string; actionCost: number | null; damage: string; damageType: string; traits?: string[]; }[]; ... 5 more ...; speed: Speed; }' but required in type 'Omit<AnimalCompanionData, "companionType">'.
+src/data/tactics.ts(27,38): error TS2339: Property 'otherTags' does not exist on type 'LoadedAction'.
+src/pages/BrowsePage.tsx(267,60): error TS2339: Property 'toUpperCase' does not exist on type 'never'.
+src/pages/CharacterBuilderPage.tsx(415,117): error TS2339: Property 'toUpperCase' does not exist on type 'never'.
+src/pages/CharacterSheetPage.tsx(21,107): error TS6133: 'Proficiency' is declared but its value is never read.
+src/pages/CharacterSheetPage.tsx(828,11): error TS6133: 'handleSelectKineticistImpulse' is declared but its value is never read.
+src/pages/CharacterSheetPage.tsx(908,40): error TS2339: Property 'gateId' does not exist on type '{ choice: "expand_the_portal" | "fork_the_path"; junctionIds?: string[] | undefined; newElementGateId?: string | undefined; newElementImpulseId?: string | undefined; }'.
+src/pages/CharacterSheetPage.tsx(909,122): error TS2339: Property 'gateId' does not exist on type '{ choice: "expand_the_portal" | "fork_the_path"; junctionIds?: string[] | undefined; newElementGateId?: string | undefined; newElementImpulseId?: string | undefined; }'.
+src/types/deity.ts(5,10): error TS2305: Module '"./character"' has no exported member 'Alignment'.
+src/utils/archetypeDedication.ts(7,21): error TS6133: 'CharacterFeat' is declared but its value is never read.
+src/utils/archetypeDedication.ts(23,11): error TS6133: 'allFeats' is declared but its value is never read.
+src/utils/archetypeDedication.ts(39,24): error TS2339: Property 'type' does not exist on type '{ default: unknown; } | { _id: string; name: string; type: string; }'.
+  Property 'type' does not exist on type '{ default: unknown; }'.
+src/utils/archetypeDedication.ts(39,47): error TS2339: Property 'name' does not exist on type '{ default: unknown; } | { _id: string; name: string; type: string; }'.
+  Property 'name' does not exist on type '{ default: unknown; }'.
+src/utils/archetypeDedication.ts(39,59): error TS2339: Property '_id' does not exist on type '{ default: unknown; } | { _id: string; name: string; type: string; }'.
+  Property '_id' does not exist on type '{ default: unknown; }'.
+src/utils/archetypeDedication.ts(41,32): error TS2339: Property 'name' does not exist on type '{ default: unknown; } | { _id: string; name: string; type: string; }'.
+  Property 'name' does not exist on type '{ default: unknown; }'.
+src/utils/archetypeDedication.ts(42,21): error TS2339: Property '_id' does not exist on type '{ default: unknown; } | { _id: string; name: string; type: string; }'.
+  Property '_id' does not exist on type '{ default: unknown; }'.
+src/utils/archetypeDedication.ts(322,5): error TS6133: 'featLevel' is declared but its value is never read.
+src/utils/bulkCalculator.ts(100,15): error TS6133: 'effectiveBulk' is declared but its value is never read.
+src/utils/characterRecalculator.ts(686,17): error TS2339: Property 'senses' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/characterRecalculator.ts(691,13): error TS2339: Property 'senses' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/characterRecalculator.ts(691,31): error TS2339: Property 'senses' does not exist on type 'TranslatedAncestry'.
+src/utils/characterRecalculator.ts(714,21): error TS2339: Property 'bonusLanguages' does not exist on type 'Background'.
+src/utils/characterRecalculator.ts(715,39): error TS2339: Property 'bonusLanguages' does not exist on type 'Background'.
+src/utils/characterRecalculator.ts(735,13): error TS2339: Property 'languages' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/conditionModifiers.ts(65,10): error TS6133: 'emptyModifier' is declared but its value is never read.
+src/utils/conditionModifiers.ts(145,10): error TS6133: 'applyStackingRules' is declared but its value is never read.
+src/utils/dedicationAnalyzer.ts(15,26): error TS6196: 'SkillProficiency' is declared but never used.
+src/utils/featChoices.ts(316,54): error TS18048: 'charFeat.choices' is possibly 'undefined'.
+src/utils/featChoices.ts(690,75): error TS18048: 'choice.filter' is possibly 'undefined'.
+src/utils/featChoices.ts(693,78): error TS18048: 'choice.filter' is possibly 'undefined'.
+src/utils/featChoices.ts(723,39): error TS2339: Property 'map' does not exist on type 'never'.
+src/utils/featChoices.ts(723,43): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/utils/featChoices.ts(879,35): error TS2339: Property 'languages' does not exist on type '{ proficiencies?: { [category: string]: { rank?: number | undefined; attribute?: string | undefined; }; } | undefined; }'.
+src/utils/featChoices.ts(879,88): error TS2339: Property 'languages' does not exist on type '{ proficiencies?: { [category: string]: { rank?: number | undefined; attribute?: string | undefined; }; } | undefined; }'.
+src/utils/featChoices.ts(880,30): error TS2339: Property 'languages' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/featChoices.ts(881,29): error TS2339: Property 'languages' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/featChoices.ts(883,57): error TS2339: Property 'languages' does not exist on type '{ proficiencies?: { [category: string]: { rank?: number | undefined; attribute?: string | undefined; }; } | undefined; }'.
+src/utils/featChoices.ts(884,34): error TS2339: Property 'languages' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/featChoices.ts(885,33): error TS2339: Property 'languages' does not exist on type '{ id: string; name: string; player?: string | undefined; ancestryId: string; heritageId?: string | undefined; backgroundId: string; classId: string; classSpecializationId?: string | string[] | undefined; ... 44 more ...; updatedAt: string; }'.
+src/utils/googleDriveSync.ts(161,19): error TS6133: 'fileId' is declared but its value is never read.
+src/utils/petStats.ts(89,5): error TS6133: 'master' is declared but its value is never read.
+src/utils/petStats.ts(120,32): error TS2339: Property 'actionCost' does not exist on type '{ name: string; damage: string; damageType: string; attackBonus?: number | undefined; }'.
+src/utils/petStats.ts(124,28): error TS2339: Property 'traits' does not exist on type '{ name: string; damage: string; damageType: string; attackBonus?: number | undefined; }'.
+src/utils/pf2e-math.ts(349,11): error TS6133: 'dexMod' is declared but its value is never read.
+src/utils/prereqValidator.ts(257,53): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.

@@ -4,7 +4,7 @@
  * Handles dice parsing, rolling, and visual feedback
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
 export interface DiceRoll {
@@ -52,7 +52,6 @@ export const DiceBox: React.FC<DiceBoxProps> = ({
         const diceRegex = /(\d+)d(\d+)/gi;
         const dice: Array<{ count: number; sides: number }> = [];
         let match;
-        let remainingFormula = cleanFormula;
 
         while ((match = diceRegex.exec(cleanFormula)) !== null) {
             dice.push({
@@ -79,12 +78,12 @@ export const DiceBox: React.FC<DiceBoxProps> = ({
     /**
      * Roll dice and calculate result
      */
-    const rollDice = (
+    const _rollDice = (
         formula: string,
         label: string = '',
         options?: { isCrit?: boolean; isCritFail?: boolean }
     ): DiceRoll => {
-        const { dice, modifier, extra } = parseFormula(formula);
+        const { dice, modifier } = parseFormula(formula);
 
         const rollResults: DiceRoll['rolls'] = [];
         let total = 0;

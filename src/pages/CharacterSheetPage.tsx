@@ -18,7 +18,7 @@ import {
     SkillOverlapBonusModal,
     IntBonusSkillModal,
 } from '../components/desktop';
-import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName, Proficiency } from '../types';
+import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName } from '../types';
 import { LoadedFeat, getClasses, getFeats, getSpells } from '../data/pf2e-loader';
 import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
 import { backgrounds, skills as skillsData } from '../data';
@@ -489,8 +489,8 @@ const CharacterSheetPage: React.FC = () => {
                         const existingSkill = updatedSkills.find(s => s.name.toLowerCase() === skillName.toLowerCase());
                         if (existingSkill && existingSkill.proficiency === 'trained') {
                             const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
-                                                backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
-                                                skillName.toLowerCase() === 'perception';
+                                backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                                skillName.toLowerCase() === 'perception';
 
                             if (!isAutoTrained) {
                                 existingSkill.proficiency = 'untrained';
@@ -783,8 +783,8 @@ const CharacterSheetPage: React.FC = () => {
                 updatedSkills = character.skills.map(skill => {
                     if (skillsToRemove.some(s => s.toLowerCase() === skill.name.toLowerCase()) && skill.proficiency === 'trained') {
                         const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skill.name.toLowerCase()) ||
-                                            backgroundSkills.some((s: string) => s.toLowerCase() === skill.name.toLowerCase()) ||
-                                            skill.name.toLowerCase() === 'perception';
+                            backgroundSkills.some((s: string) => s.toLowerCase() === skill.name.toLowerCase()) ||
+                            skill.name.toLowerCase() === 'perception';
 
                         if (!isAutoTrained) {
                             return { ...skill, proficiency: 'untrained' as const };
@@ -825,7 +825,7 @@ const CharacterSheetPage: React.FC = () => {
         setSelectionLevel(null);
     };
 
-    const handleSelectKineticistImpulse = (feats: CharacterFeat[]) => {
+    const _handleSelectKineticistImpulse = (feats: CharacterFeat[]) => {
         if (character) {
             const updated = recalculateCharacter({
                 ...character,
@@ -891,7 +891,8 @@ const CharacterSheetPage: React.FC = () => {
 
             // Add gateId to junctionData for Expand the Portal
             // Extract from junctionIds (e.g., "air_gate_skill_junction" -> "air-gate")
-            let junctionDataWithGateId = { ...junctionData };
+            type JunctionDataWithGateId = typeof junctionData & { gateId?: string | null };
+            let junctionDataWithGateId: JunctionDataWithGateId = { ...junctionData };
             if (junctionData.choice === 'expand_the_portal' && junctionData.junctionIds && junctionData.junctionIds.length > 0) {
                 const firstJunctionId = junctionData.junctionIds[0];
                 // Extract element from junctionId (e.g., "air_gate_skill_junction" -> "air")
@@ -1066,8 +1067,8 @@ const CharacterSheetPage: React.FC = () => {
                     }
 
                     const isAutoTrained = autoTrainedSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
-                                        backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
-                                        skillName.toLowerCase() === 'perception';
+                        backgroundSkills.some((s: string) => s.toLowerCase() === skillName.toLowerCase()) ||
+                        skillName.toLowerCase() === 'perception';
 
                     // Only downgrade to untrained if not auto-trained by class/background
                     if (!isAutoTrained) {

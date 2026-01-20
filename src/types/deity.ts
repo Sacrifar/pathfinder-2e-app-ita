@@ -2,7 +2,8 @@
  * Deity Types for Pathfinder 2e
  */
 
-import { Alignment } from './character';
+export type Alignment = 'LG' | 'NG' | 'CG' | 'LN' | 'N' | 'CN' | 'LE' | 'NE' | 'CE';
+
 
 export type DeityFont = 'heal' | 'harm' | 'both' | 'none';
 
