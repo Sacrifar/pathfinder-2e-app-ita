@@ -1,38 +1,137 @@
 /**
  * useDiceRoller Hook
- * Global state management for dice rolling system
+ * Global dice rolling state management
  */
 
-import { useState, useCallback, createContext, useContext } from 'react';
-import { DiceRoll } from '../components/common/DiceBox';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { DiceRoll, DiceConfig } from '../types/dice';
 
 interface DiceRollerContextType {
     rolls: DiceRoll[];
     addRoll: (roll: DiceRoll) => void;
     clearRolls: () => void;
-    rollDice: (formula: string, label?: string, options?: { isCrit?: boolean; isCritFail?: boolean }) => DiceRoll;
+    rollDice: (
+        formula: string,
+        label?: string,
+        options?: { isCrit?: boolean; isCritFail?: boolean }
+    ) => DiceRoll;
+    rollDiceWithResults: (
+        formula: string,
+        label?: string,
+        results?: number[]
+    ) => DiceRoll;
+    updateLastRollWith3DResults: (rollResult: unknown) => void;
+    config: DiceConfig;
+    updateConfig: (config: Partial<DiceConfig>) => void;
 }
 
-const DiceRollerContext = createContext<DiceRollerContextType | null>(null);
+const DiceRollerContext = createContext<DiceRollerContextType | undefined>(undefined);
 
-export function DiceRollerProvider({ children }: { children: React.ReactNode }) {
+export const useDiceRoller = () => {
+    const context = useContext(DiceRollerContext);
+    if (!context) {
+        throw new Error('useDiceRoller must be used within DiceRollerProvider');
+    }
+    return context;
+};
+
+interface DiceRollerProviderProps {
+    children: ReactNode;
+}
+
+export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children }) => {
     const [rolls, setRolls] = useState<DiceRoll[]>([]);
+    const [config, setConfig] = useState<DiceConfig>({
+        enable3D: true,
+        soundEnabled: false,
+        autoHide: true,
+        hideDelay: 3000
+    });
 
     const addRoll = useCallback((roll: DiceRoll) => {
-        setRolls(prev => {
-            const newRolls = [...prev, roll];
-            // Keep only last 20 rolls
-            return newRolls.slice(-20);
-        });
+        setRolls(prev => [...prev, roll]);
     }, []);
 
     const clearRolls = useCallback(() => {
         setRolls([]);
     }, []);
 
+    const updateConfig = useCallback((newConfig: Partial<DiceConfig>) => {
+        setConfig(prev => ({ ...prev, ...newConfig }));
+    }, []);
+
+    // Parse dice formula (e.g., "1d20+5", "2d8+4")
+    const parseFormula = useCallback((formula: string) => {
+        const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
+        const diceRegex = /(\d+)d(\d+)/gi;
+        const dice: Array<{ count: number; sides: number }> = [];
+        let match;
+
+        while ((match = diceRegex.exec(cleanFormula)) !== null) {
+            dice.push({
+                count: parseInt(match[1]),
+                sides: parseInt(match[2]),
+            });
+        }
+
+        let modifier = 0;
+        const withoutDice = cleanFormula.replace(diceRegex, '');
+        const modifierMatch = withoutDice.match(/[+-]?\d+/);
+        if (modifierMatch) {
+            modifier = parseInt(modifierMatch[0]);
+        }
+
+        return { dice, modifier };
+    }, []);
+
+    // Create roll with specific results (from 3D dice)
+    const createRollWithResults = useCallback((
+        formula: string,
+        label: string,
+        diceResults: Array<{ count: number; sides: number; results: number[] }>,
+        modifier: number
+    ): DiceRoll => {
+        let total = 0;
+
+        // Transform diceResults to include total for each die
+        const rollsWithTotal: DiceRoll['rolls'] = diceResults.map(die => {
+            const dieTotal = die.results.reduce((sum, r) => sum + r, 0);
+            total += dieTotal;
+            return {
+                ...die,
+                total: dieTotal
+            };
+        });
+
+        total += modifier;
+
+        // Check for natural crit success/failure on d20 rolls
+        let isCritSuccess = false;
+        let isCritFailure = false;
+
+        const d20Roll = rollsWithTotal.find(r => r.sides === 20);
+        if (d20Roll && d20Roll.results.length === 1) {
+            if (d20Roll.results[0] === 20) isCritSuccess = true;
+            if (d20Roll.results[0] === 1) isCritFailure = true;
+        }
+
+        const roll: DiceRoll = {
+            formula,
+            label: label || 'Roll',
+            total,
+            rolls: rollsWithTotal,
+            modifier,
+            isCritSuccess,
+            isCritFailure,
+            timestamp: Date.now(),
+        };
+
+        return roll;
+    }, []);
+
     const rollDice = useCallback((
         formula: string,
-        label?: string,
+        label = '',
         options?: { isCrit?: boolean; isCritFail?: boolean }
     ): DiceRoll => {
         const { dice, modifier } = parseFormula(formula);
@@ -62,10 +161,10 @@ export function DiceRollerProvider({ children }: { children: React.ReactNode }) 
 
         total += modifier;
 
+        // Check for natural crit success/failure on d20 rolls
         let isCritSuccess = options?.isCrit || false;
         let isCritFailure = options?.isCritFail || false;
 
-        // Auto-detect crits on d20 rolls
         const d20Roll = rollResults.find(r => r.sides === 20);
         if (d20Roll && d20Roll.results.length === 1) {
             if (d20Roll.results[0] === 20) isCritSuccess = true;
@@ -85,66 +184,133 @@ export function DiceRollerProvider({ children }: { children: React.ReactNode }) 
 
         addRoll(roll);
         return roll;
-    }, [addRoll]);
+    }, [parseFormula, addRoll]);
+
+    // New method to roll with predetermined results (from 3D dice)
+    const rollDiceWithResults = useCallback((
+        formula: string,
+        label = '',
+        results?: number[]
+    ): DiceRoll => {
+        const { dice, modifier } = parseFormula(formula);
+
+        // If specific results provided, use them; otherwise roll randomly
+        const rollResults: DiceRoll['rolls'] = [];
+
+        for (const die of dice) {
+            const results: number[] = [];
+            let dieTotal = 0;
+
+            for (let i = 0; i < die.count; i++) {
+                const result = results && results[i] ? results[i] : Math.floor(Math.random() * die.sides) + 1;
+                results.push(result);
+                dieTotal += result;
+            }
+
+            rollResults.push({
+                count: die.count,
+                sides: die.sides,
+                results,
+                total: dieTotal,
+            });
+        }
+
+        return createRollWithResults(formula, label || 'Roll', rollResults, modifier);
+    }, [parseFormula, createRollWithResults]);
+
+    // Update the last roll with 3D dice results
+    const updateLastRollWith3DResults = useCallback((
+        rollResult: unknown
+    ) => {
+        console.log('updateLastRollWith3DResults called with:', rollResult);
+        setRolls(prev => {
+            if (prev.length === 0) return prev;
+
+            const lastRoll = prev[prev.length - 1];
+            const { dice, modifier } = parseFormula(lastRoll.formula);
+
+            // Transform the 3D dice results into our format
+            const rollsWithTotal: DiceRoll['rolls'] = [];
+
+            // Check if this is an array of RollResult objects from DiceBox
+            if (Array.isArray(rollResult) && rollResult.length > 0) {
+                // Group results by die type (sides)
+                const dieGroups = new Map<number, number[]>();
+
+                for (const rollGroup of rollResult) {
+                    if (rollGroup && typeof rollGroup === 'object' && 'sides' in rollGroup && 'rolls' in rollGroup) {
+                        const sides = (rollGroup as any).sides;
+                        const rolls = (rollGroup as any).rolls;
+                        if (Array.isArray(rolls)) {
+                            for (const die of rolls) {
+                                if (die && typeof die === 'object' && 'value' in die) {
+                                    if (!dieGroups.has(sides)) {
+                                        dieGroups.set(sides, []);
+                                    }
+                                    dieGroups.get(sides)!.push((die as any).value);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Build roll results matching the original formula
+                let total = 0;
+                for (const die of dice) {
+                    const results = dieGroups.get(die.sides) || [];
+                    const actualResults = results.slice(0, die.count);
+                    const dieTotal = actualResults.reduce((sum, r) => sum + r, 0);
+                    total += dieTotal;
+                    rollsWithTotal.push({
+                        count: die.count,
+                        sides: die.sides,
+                        results: actualResults,
+                        total: dieTotal,
+                    });
+                }
+
+                total += modifier;
+
+                // Check for natural crit success/failure on d20 rolls
+                let isCritSuccess = false;
+                let isCritFailure = false;
+                const d20Roll = rollsWithTotal.find(r => r.sides === 20);
+                if (d20Roll && d20Roll.results.length === 1) {
+                    if (d20Roll.results[0] === 20) isCritSuccess = true;
+                    if (d20Roll.results[0] === 1) isCritFailure = true;
+                }
+
+                const updatedRoll: DiceRoll = {
+                    ...lastRoll,
+                    rolls: rollsWithTotal,
+                    total,
+                    isCritSuccess,
+                    isCritFailure,
+                };
+
+                return [...prev.slice(0, -1), updatedRoll];
+            }
+
+            // Fallback for other structures
+            console.error('Unexpected rollResult structure:', rollResult);
+            return prev;
+        });
+    }, [parseFormula]);
+
+    const contextValue: DiceRollerContextType = {
+        rolls,
+        addRoll,
+        clearRolls,
+        rollDice,
+        rollDiceWithResults,
+        updateLastRollWith3DResults,
+        config,
+        updateConfig,
+    };
 
     return (
-        <DiceRollerContext.Provider value={{ rolls, addRoll, clearRolls, rollDice }}>
+        <DiceRollerContext.Provider value={contextValue}>
             {children}
         </DiceRollerContext.Provider>
     );
-}
-
-export function useDiceRoller(): DiceRollerContextType {
-    const context = useContext(DiceRollerContext);
-    if (!context) {
-        throw new Error('useDiceRoller must be used within DiceRollerProvider');
-    }
-    return context;
-}
-
-/**
- * Parse dice formula into components
- */
-function parseFormula(formula: string): {
-    dice: Array<{ count: number; sides: number }>;
-    modifier: number;
-} {
-    const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
-    const diceRegex = /(\d+)d(\d+)/gi;
-    const dice: Array<{ count: number; sides: number }> = [];
-    let match;
-
-    while ((match = diceRegex.exec(cleanFormula)) !== null) {
-        dice.push({
-            count: parseInt(match[1]),
-            sides: parseInt(match[2]),
-        });
-    }
-
-    let modifier = 0;
-    const withoutDice = cleanFormula.replace(diceRegex, '');
-    const modifierMatch = withoutDice.match(/[+-]?\d+/);
-    if (modifierMatch) {
-        modifier = parseInt(modifierMatch[0]);
-    }
-
-    return { dice, modifier };
-}
-
-/**
- * Helper to roll with advantage (2d20, take higher)
- */
-export function rollAdvantage(baseModifier: number): number {
-    const roll1 = Math.floor(Math.random() * 20) + 1;
-    const roll2 = Math.floor(Math.random() * 20) + 1;
-    return Math.max(roll1, roll2) + baseModifier;
-}
-
-/**
- * Helper to roll with disadvantage (2d20, take lower)
- */
-export function rollDisadvantage(baseModifier: number): number {
-    const roll1 = Math.floor(Math.random() * 20) + 1;
-    const roll2 = Math.floor(Math.random() * 20) + 1;
-    return Math.min(roll1, roll2) + baseModifier;
-}
+};

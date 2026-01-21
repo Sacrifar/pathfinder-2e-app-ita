@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { SkillDefinition } from '../../data/skills';
 import { Proficiency } from '../../types';
 
@@ -19,6 +20,7 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
     onSkillClick,
 }) => {
     const { language } = useLanguage();
+    const { rollDice } = useDiceRoller();
 
     const formatModifier = (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
@@ -26,6 +28,13 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
 
     const getSkillName = (skill: SkillDisplay) => {
         return language === 'it' && skill.nameIt ? skill.nameIt : skill.name;
+    };
+
+    // Handle skill roll
+    const handleSkillRoll = (skill: SkillDisplay) => {
+        const formula = `1d20${skill.modifier >= 0 ? '+' : ''}${skill.modifier}`;
+        const label = `${getSkillName(skill)} ${language === 'it' ? '(Tiro Abilità)' : '(Skill Check)'}`;
+        rollDice(formula, label);
     };
 
     // Split skills into two columns
@@ -41,7 +50,12 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
                         <div
                             key={skill.id}
                             className={`skill-row ${skill.hasPenalty ? 'has-penalty' : ''}`}
-                            onClick={() => onSkillClick(skill)}
+                            onClick={() => {
+                                onSkillClick(skill);
+                                handleSkillRoll(skill);
+                            }}
+                            title="Click for details and dice roll"
+                            style={{ cursor: 'pointer' }}
                         >
                             <span className="skill-name">{getSkillName(skill)}</span>
                             <span className={`skill-modifier ${skill.hasPenalty ? 'penalty' : skill.modifier >= 0 ? 'positive' : 'negative'}`}>
@@ -55,7 +69,12 @@ export const SkillsPanel: React.FC<SkillsPanelProps> = ({
                         <div
                             key={skill.id}
                             className={`skill-row ${skill.hasPenalty ? 'has-penalty' : ''}`}
-                            onClick={() => onSkillClick(skill)}
+                            onClick={() => {
+                                onSkillClick(skill);
+                                handleSkillRoll(skill);
+                            }}
+                            title="Click for details and dice roll"
+                            style={{ cursor: 'pointer' }}
                         >
                             <span className="skill-name">{getSkillName(skill)}</span>
                             <span className={`skill-modifier ${skill.hasPenalty ? 'penalty' : skill.modifier >= 0 ? 'positive' : 'negative'}`}>

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, EquippedItem, WeaponCustomization } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
-import { calculateWeaponDamage } from '../../utils/pf2e-math';
+import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
 import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
@@ -17,6 +18,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
+    const { rollDice } = useDiceRoller();
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'simple' | 'martial' | 'advanced'>('all');
@@ -73,6 +75,56 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             }
             return newSet;
         });
+    };
+
+    // Calculate attack bonus for a weapon
+    const calculateAttackBonus = (weapon: LoadedWeapon, mapPenalty: number = 0): number => {
+        const strMod = getAbilityModifier(character.abilityScores.str);
+
+        // Get weapon proficiency rank as enum
+        const profRank = getWeaponProficiencyRank(character, weapon.category);
+
+        const profBonus = calculateProficiencyBonusWithVariant(
+            character.level,
+            profRank,
+            character.variantRules?.proficiencyWithoutLevel
+        );
+
+        // Check for potency rune bonus
+        let itemBonus = 0;
+        const equippedWeapon = character.equipment?.find(e => e.id === weapon.id);
+        if (equippedWeapon?.runes) {
+            const runes = equippedWeapon.runes as { potencyRune?: string };
+            if (runes.potencyRune === '+1') itemBonus = 1;
+            else if (runes.potencyRune === '+2') itemBonus = 2;
+            else if (runes.potencyRune === '+3') itemBonus = 3;
+            else if (runes.potencyRune === '+4 (Major)') itemBonus = 4;
+            else if (runes.potencyRune === '+5 (Greater)') itemBonus = 5;
+        }
+
+        // Check for custom attack bonus
+        const customBonus = (equippedWeapon?.customization as WeaponCustomization | undefined)?.bonusAttack || 0;
+
+        return strMod + profBonus + itemBonus + customBonus - mapPenalty;
+    };
+
+    // Handle attack roll
+    const handleAttackRoll = (weapon: LoadedWeapon, attackNumber: 1 | 2 | 3) => {
+        const mapPenalty = attackNumber > 1 ? (attackNumber - 1) * 5 : 0;
+        const attackBonus = calculateAttackBonus(weapon, mapPenalty);
+        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+
+        const label = `${t('weapons.attack') || 'Attack'}: ${weapon.name}${attackNumber > 1 ? ` (${attackNumber})` : ''}`;
+        rollDice(formula, label);
+    };
+
+    // Handle damage roll
+    const handleDamageRoll = (weapon: LoadedWeapon, isTwoHanded: boolean) => {
+        const damage = calculateWeaponDamage(character, weapon, isTwoHanded);
+        const formula = damage; // Damage formula is already calculated (e.g., "1d8+3")
+
+        const label = `${t('weapons.damageRoll') || 'Damage'}: ${weapon.name}`;
+        rollDice(formula, label);
     };
 
     // Add weapon to character's inventory
@@ -348,6 +400,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         {/* Main Attack Button - rolls dice */}
                                         <button
                                             className="attack-btn main-attack"
+                                            onClick={() => handleAttackRoll(weapon, 1)}
                                             title={t('weapons.rollAttack') || 'Roll Attack'}
                                         >
                                             🎲
@@ -357,12 +410,14 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         <div className="attack-buttons">
                                             <button
                                                 className="attack-btn map-attack"
+                                                onClick={() => handleAttackRoll(weapon, 2)}
                                                 title={t('weapons.secondAttack') || 'Second Attack (MAP)'}
                                             >
                                                 2
                                             </button>
                                             <button
                                                 className="attack-btn map-attack"
+                                                onClick={() => handleAttackRoll(weapon, 3)}
                                                 title={t('weapons.thirdAttack') || 'Third Attack (MAP)'}
                                             >
                                                 3
@@ -376,6 +431,13 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
                                         <span className="stat-value">{damage} {(item.customization as WeaponCustomization | undefined)?.customDamageType || weapon.damageType}</span>
+                                        <button
+                                            className="damage-roll-btn"
+                                            onClick={() => handleDamageRoll(weapon, isTwoHanded)}
+                                            title={`${t('dice.damageRoll') || 'Damage Roll'}: ${weapon.name}`}
+                                        >
+                                            🎲
+                                        </button>
                                     </div>
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.hands') || 'Hands'}:</span>

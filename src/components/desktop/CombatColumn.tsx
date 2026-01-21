@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { SkillDisplay } from './SkillsPanel';
 
 interface ClassDCDisplay {
@@ -58,10 +59,22 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
     onHeroPointChange,
 }) => {
     const { t } = useLanguage();
+    const { rollDice } = useDiceRoller();
 
     const formatModifier = useMemo(() => (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
     }, []);
+
+    // Handle dice rolls for perception and initiative
+    const handlePerceptionRoll = () => {
+        const formula = `1d20${perception >= 0 ? '+' : ''}${perception}`;
+        rollDice(formula, t('dice.perceptionCheck') || 'Perception Check');
+    };
+
+    const handleInitiativeRoll = () => {
+        const formula = `1d20${initiative >= 0 ? '+' : ''}${initiative}`;
+        rollDice(formula, t('dice.initiative') || 'Initiative');
+    };
 
     const getProficiencyIcon = useMemo(() => (proficiency: string) => {
         switch (proficiency) {
@@ -136,11 +149,21 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                         )}
                     </>
                 )}
-                <div className="perception-display">
+                <div
+                    className="perception-display rollable"
+                    onClick={handlePerceptionRoll}
+                    title={`${t('dice.roll') || 'Roll'} ${t('stats.perception') || 'Perception'}`}
+                    style={{ cursor: 'pointer' }}
+                >
                     <span className="status-label">{t('stats.perception') || 'Perception'}</span>
                     <span className="perception-value">{formatModifier(perception)}</span>
                 </div>
-                <div className="initiative-display">
+                <div
+                    className="initiative-display rollable"
+                    onClick={handleInitiativeRoll}
+                    title={`${t('dice.roll') || 'Roll'} ${t('stats.initiative') || 'Initiative'}`}
+                    style={{ cursor: 'pointer' }}
+                >
                     <span className="status-label">{t('stats.initiative') || 'Initiative'}</span>
                     <span className="initiative-value">{formatModifier(initiative)}</span>
                 </div>

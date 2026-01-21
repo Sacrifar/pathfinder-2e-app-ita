@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { StatTooltip } from './StatTooltip';
 
 interface StatsHeaderProps {
@@ -50,10 +51,16 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     speedModifiers = [],
 }) => {
     const { t } = useLanguage();
-    // const { theme } = useTheme();  // Reserved for styling enhancements
+    const { rollDice } = useDiceRoller();
 
     const formatModifier = (value: number) => {
         return value >= 0 ? `+${value}` : `${value}`;
+    };
+
+    // Handle dice roll for saves and perception
+    const handleRoll = (type: 'fortitude' | 'reflex' | 'will' | 'perception', value: number, label: string) => {
+        const formula = `1d20${value >= 0 ? '+' : ''}${value}`;
+        rollDice(formula, label);
     };
 
     const hasActiveModifiers = (modifiers: typeof acModifiers) => {
@@ -166,7 +173,12 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                     total={perceptionBreakdown.total}
                     label={t('stats.perception') || 'Perception Breakdown'}
                 >
-                    <div>
+                    <div
+                        className="rollable"
+                        onClick={() => handleRoll('perception', perception, t('dice.perceptionCheck') || 'Perception Check')}
+                        style={{ cursor: 'pointer' }}
+                        title={`${t('dice.roll') || 'Roll'} ${t('stats.perception') || 'Perception'}`}
+                    >
                         <span className="stat-box-label">{t('stats.perception') || 'Perception'}</span>
                         <span className="stat-box-value">{formatModifier(perception)}</span>
                         {hasActiveModifiers(perceptionModifiers) && getModifierBadges(perceptionModifiers)}
@@ -209,19 +221,34 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
             {(fortitude !== undefined || reflex !== undefined || will !== undefined) && (
                 <>
                     {fortitude !== undefined && (
-                        <div className="stat-box save-box">
+                        <div
+                            className="stat-box save-box rollable"
+                            onClick={() => handleRoll('fortitude', fortitude, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.fortitude') || 'Fortitude'}`)}
+                            title={`${t('dice.roll') || 'Roll'} ${t('stats.fortitude') || 'Fortitude'}`}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <span className="stat-box-label">{t('stats.fortitude') || 'Fort'}</span>
                             <span className="stat-box-value">{formatModifier(fortitude)}</span>
                         </div>
                     )}
                     {reflex !== undefined && (
-                        <div className="stat-box save-box">
+                        <div
+                            className="stat-box save-box rollable"
+                            onClick={() => handleRoll('reflex', reflex, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.reflex') || 'Reflex'}`)}
+                            title={`${t('dice.roll') || 'Roll'} ${t('stats.reflex') || 'Reflex'}`}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <span className="stat-box-label">{t('stats.reflex') || 'Ref'}</span>
                             <span className="stat-box-value">{formatModifier(reflex)}</span>
                         </div>
                     )}
                     {will !== undefined && (
-                        <div className="stat-box save-box">
+                        <div
+                            className="stat-box save-box rollable"
+                            onClick={() => handleRoll('will', will, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.will') || 'Will'}`)}
+                            title={`${t('dice.roll') || 'Roll'} ${t('stats.will') || 'Will'}`}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <span className="stat-box-label">{t('stats.will') || 'Will'}</span>
                             <span className="stat-box-value">{formatModifier(will)}</span>
                         </div>

@@ -539,6 +539,8 @@ const translations: Record<Language, Record<string, string>> = {
         'dice.perceptionCheck': 'Perception Check',
         'dice.initiative': 'Initiative',
         'dice.crit': 'Crit',
+        'dice.3dEnable': 'Enable 3D Dice',
+        'dice.3dDisable': 'Disable 3D Dice',
 
         // Biography & Appearance
         'biography.title': 'Biography & Appearance',
@@ -1198,6 +1200,8 @@ const translations: Record<Language, Record<string, string>> = {
         'dice.perceptionCheck': 'Tiro Percezione',
         'dice.initiative': 'Iniziativa',
         'dice.crit': 'Critico',
+        'dice.3dEnable': 'Attiva Dadi 3D',
+        'dice.3dDisable': 'Disattiva Dadi 3D',
 
         // Biography & Appearance
         'biography.title': 'Biografia & Aspetto',

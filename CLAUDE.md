@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Last Updated**: 2026-01-21
+**Last Commit**: 7dde53a9 Merge pull request #6 from Sacrifar/claude/init-project-setup-sBQNg
+
 ## Project Overview
 
 Pathfinder 2E character builder and sheet application with Italian translations. Built with React + TypeScript + Vite, featuring a desktop-focused UI for character creation and management.

@@ -235,7 +235,7 @@ export function ensureValidHP(character: Character): Character {
 /**
  * Get the proficiency rank for a specific weapon category
  */
-function getWeaponProficiencyRank(character: Character, weaponCategory: string): ProficiencyRank {
+export function getWeaponProficiencyRank(character: Character, weaponCategory: string): ProficiencyRank {
     const profEntry = character.weaponProficiencies?.find(
         p => p.category === weaponCategory || p.category === 'all'
     );

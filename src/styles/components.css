@@ -1782,6 +1782,67 @@
 }
 
 /* ===================================
+   3D DICE STYLES
+   =================================== */
+
+.dice-3d-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.dice-3d-container {
+    width: 90vw;
+    height: 90vh;
+    max-width: 1200px;
+    max-height: 800px;
+    background: radial-gradient(ellipse at center, #1a1a2e 0%, #0f0f1a 100%);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 0 60px rgba(139, 92, 246, 0.5), inset 0 0 100px rgba(139, 92, 246, 0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.dice-3d-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--accent);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Fantasy particle effects overlay */
+.dice-3d-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ===================================
    DICE LOG STYLES
    =================================== */
 
@@ -2617,6 +2678,581 @@
     min-height: 50px;
 }
 
+/* ===================================
+   3D DICE STYLES
+   =================================== */
+
+/* 3D Dice Overlay */
+.dice-3d-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 3D Dice Panel */
+.dice-3d-panel {
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    background: var(--bg-elevated);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    box-shadow: 0 0 60px rgba(139, 92, 246, 0.4), 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Roll Header */
+.dice-roll-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%);
+    border-bottom: 2px solid var(--accent);
+}
+
+.roll-info {
+    flex: 1;
+}
+
+.roll-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 4px;
+}
+
+.roll-formula {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+}
+
+.dice-close-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-primary);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dice-close-btn:hover {
+    background: rgba(239, 68, 68, 0.6);
+    border-color: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+/* Crit Banners */
+.dice-crit-banner {
+    padding: 12px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    animation: bounceIn 0.5s ease-out;
+}
+
+.dice-crit-banner.crit-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%);
+    border-bottom: 2px solid #10b981;
+    color: #10b981;
+}
+
+.dice-crit-banner.crit-failure {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+    border-bottom: 2px solid #ef4444;
+    color: #ef4444;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Natural 20 Banner - Special */
+.dice-nat20-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    background:
+        linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(139, 0, 0, 0.3) 50%, rgba(255, 140, 0, 0.15) 100%);
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%) 1;
+    border-radius: 16px;
+    box-shadow:
+        0 0 40px rgba(255, 215, 0, 0.6),
+        0 0 80px rgba(255, 140, 0, 0.4),
+        inset 0 0 30px rgba(255, 215, 0, 0.2);
+    animation: nat20BannerPulse 2s ease-in-out infinite;
+}
+
+.nat20-icon {
+    font-size: 56px;
+    filter: drop-shadow(0 0 20px #FFD700) drop-shadow(0 0 40px #FFA500);
+    animation: nat20IconSpin 3s ease-in-out infinite;
+}
+
+.nat20-text {
+    text-align: center;
+}
+
+.nat20-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #D4AF37;
+    text-shadow: 0 0 20px #D4AF37, 0 2px 4px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.1em;
+}
+
+.nat20-subtitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-top: 4px;
+}
+
+/* Natural 1 Banner - Critical Failure */
+.dice-nat1-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    background:
+        linear-gradient(135deg, rgba(50, 0, 0, 0.6) 0%, rgba(20, 0, 0, 0.5) 50%, rgba(50, 0, 0, 0.6) 100%);
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, #666 0%, #ff1744 50%, #666 100%) 1;
+    border-radius: 16px;
+    box-shadow:
+        0 0 40px rgba(255, 23, 68, 0.5),
+        0 0 80px rgba(0, 0, 0, 0.8),
+        inset 0 0 30px rgba(255, 23, 68, 0.1);
+    animation: nat1Shake 0.6s ease-in-out;
+}
+
+.nat1-icon {
+    font-size: 56px;
+    filter: drop-shadow(0 0 15px #ff1744) drop-shadow(0 0 30px #000);
+    animation: nat1Pulse 2s ease-in-out infinite;
+}
+
+.nat1-text {
+    text-align: center;
+}
+
+.nat1-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #ef4444;
+    text-shadow: 0 0 20px #ef4444, 0 2px 4px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.1em;
+}
+
+.nat1-subtitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #cccccc;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-top: 4px;
+}
+
+@keyframes nat20Pulse {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(212, 175, 55, 0.5), inset 0 0 20px rgba(212, 175, 55, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 50px rgba(212, 175, 55, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.3);
+    }
+}
+
+@keyframes nat20Spin {
+    0% {
+        transform: rotate(-10deg) scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: rotate(5deg) scale(1.2);
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes nat1Shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes nat1Pulse {
+    0%, 100% {
+        filter: grayscale(0.5) drop-shadow(0 0 10px #000);
+    }
+    50% {
+        filter: grayscale(0.3) drop-shadow(0 0 15px #ef4444);
+    }
+}
+
+/* 3D Dice Canvas */
+.dice-3d-canvas {
+    width: 100%;
+    height: 350px;
+    background: radial-gradient(ellipse at center, #1a1a2e 0%, #0f0f1a 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.dice-3d-container {
+    width: 100%;
+    height: 100%;
+}
+
+.dice-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+/* Result Display */
+.dice-result-display {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.result-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+}
+
+.total-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.total-value {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+    line-height: 1;
+}
+
+.total-value.crit-success {
+    color: #10b981;
+}
+
+.total-value.crit-failure {
+    color: #ef4444;
+}
+
+/* Roll Breakdown */
+.roll-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.breakdown-formula {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+}
+
+.breakdown-results {
+    display: flex;
+    gap: 4px;
+}
+
+.breakdown-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-secondary);
+    border-radius: 6px;
+    font-weight: 700;
+    font-family: var(--font-family-mono);
+    font-size: 14px;
+}
+
+.breakdown-result.max {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-color: #fbbf24;
+    color: white;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+.breakdown-result.min {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #ef4444;
+    color: white;
+}
+
+.breakdown-total {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.breakdown-modifier {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-family-mono);
+}
+
+.breakdown-modifier.positive {
+    color: #10b981;
+}
+
+.breakdown-modifier.negative {
+    color: #ef4444;
+}
+
+.roll-timestamp {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Manual Dice Section */
+.manual-dice-section {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.manual-dice-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.manual-dice-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.manual-dice-btn {
+    padding: 10px 8px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-family-mono);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.manual-dice-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.manual-dice-btn:active {
+    transform: translateY(0);
+}
+
+/* Roll History */
+.dice-history {
+    padding: 16px 20px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: 200px;
+}
+
+.history-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-hover);
+}
+
+.history-item.crit-success {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.history-item.crit-failure {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.history-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.history-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-result {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+}
+
+.history-item.crit-success .history-result {
+    color: #10b981;
+}
+
+.history-item.crit-failure .history-result {
+    color: #ef4444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dice-3d-panel {
+        max-height: 95vh;
+        border-radius: 12px;
+    }
+
+    .dice-3d-canvas {
+        height: 250px;
+    }
+
+    .total-value {
+        font-size: 36px;
+    }
+
+    .manual-dice-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .quick-stats-grid {
@@ -2631,4 +3267,750 @@
         flex-direction: column;
         text-align: center;
     }
+}
+
+/* ===================================
+   WEAPON DICE BUTTONS STYLES
+   =================================== */
+
+.weapon-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.attack-btn {
+    padding: 4px 10px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    color: var(--desktop-text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.attack-btn:hover {
+    background: var(--desktop-bg-hover);
+    border-color: var(--desktop-accent-blue);
+}
+
+.attack-btn:active {
+    transform: translateY(0);
+}
+
+.attack-btn.main-attack {
+    border-color: var(--desktop-accent-green);
+    font-weight: 600;
+}
+
+.attack-btn.main-attack:hover {
+    background: var(--desktop-accent-green);
+    color: white;
+}
+
+.attack-buttons {
+    display: flex;
+    gap: 3px;
+}
+
+.attack-btn.map-attack {
+    min-width: 28px;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border-color: var(--desktop-border);
+}
+
+.attack-btn.map-attack:hover {
+    border-color: var(--desktop-accent-blue);
+}
+
+.damage-roll-btn {
+    padding: 2px 6px;
+    background: transparent;
+    border: 1px solid var(--desktop-border);
+    border-radius: 3px;
+    color: var(--desktop-text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    justify-self: end;
+}
+
+.damage-roll-btn:hover {
+    background: var(--desktop-accent-green);
+    border-color: var(--desktop-accent-green);
+    color: white;
+}
+
+/* Rollable elements */
+.rollable {
+    transition: all 0.2s ease;
+}
+
+/* ===================================
+   DICE BOX (@3d-dice/dice-box) STYLES
+   =================================== */
+
+/* Dice Box Overlay */
+.dice-box-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(20, 10, 30, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+    backdrop-filter: blur(12px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: diceOverlayFadeIn 0.4s ease-out;
+}
+
+@keyframes diceOverlayFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Dice Box Panel */
+.dice-box-panel {
+    width: 100%;
+    max-width: 800px;
+    max-height: 92vh;
+    background: linear-gradient(145deg, #1a1a2e 0%, #16162a 50%, #0f0f1e 100%);
+    border: 2px solid;
+    border-image: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #8B0000 100%) 1;
+    border-radius: 20px;
+    box-shadow:
+        0 0 80px rgba(139, 0, 0, 0.5),
+        0 0 40px rgba(220, 20, 60, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 25px 80px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: panelSlideUp 0.4s ease-out;
+}
+
+@keyframes panelSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Close Button */
+.dice-box-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-primary);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.dice-box-close:hover {
+    background: rgba(239, 68, 68, 0.6);
+    border-color: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+/* Dice Box Canvas */
+.dice-box-canvas {
+    width: 100%;
+    height: 400px;
+    background: #1a1a2e;
+    position: relative;
+}
+
+.dice-box-canvas canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Dice Display Area */
+.dice-display-area {
+    width: 100%;
+    height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse at 50% 30%, rgba(139, 0, 0, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 70%, rgba(220, 20, 60, 0.1) 0%, transparent 50%),
+        linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.dice-display-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(139, 0, 0, 0.2) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(220, 20, 60, 0.15) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.dice-display-area::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139, 0, 0, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+#dice-canvas-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+#dice-canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    border-radius: 12px;
+}
+
+.dice-visual {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.die-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.die-shape {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.die-shape:hover {
+    transform: scale(1.1);
+}
+
+/* d20 - Icosaedro */
+.die-shape.d20 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 80% 75%, 20% 75%, 0% 25%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* d12 - Dodecaedro */
+.die-shape.d12 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(50% 0%, 100% 38%, 85% 85%, 50% 100%, 15% 85%, 0% 38%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* d10 - Tronco di piramide */
+.die-shape.d10 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 80% 75%, 20% 75%, 0% 25%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* d8 - Ottaedro */
+.die-shape.d8 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* d6 - Cubo */
+.die-shape.d6 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(25% 0%, 75% 0%, 75% 100%, 25% 100%, 10% 50%, 25% 0%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* d4 - Tetraedro */
+.die-shape.d4 {
+    background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+.die-face {
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    z-index: 1;
+}
+
+/* Crit success styling */
+.total-value.crit-success {
+    color: #FFD700;
+    font-size: 48px;
+    font-weight: 900;
+    text-shadow:
+        0 0 10px #FFD700,
+        0 0 20px #FFA500,
+        0 0 30px #FF8C00,
+        0 0 40px #FF6600;
+    animation: critSuccessGlow 1.5s ease-in-out infinite alternate;
+}
+
+/* Crit failure styling */
+.total-value.crit-failure {
+    color: #ff1744;
+    font-size: 48px;
+    font-weight: 900;
+    text-shadow:
+        0 0 10px #ff1744,
+        0 0 20px #d50000,
+        0 0 30px #b71c1c;
+    animation: critFailurePulse 0.8s ease-in-out infinite;
+}
+
+@keyframes critSuccessGlow {
+    0% {
+        text-shadow:
+            0 0 10px #FFD700,
+            0 0 20px #FFA500,
+            0 0 30px #FF8C00;
+        transform: scale(1);
+    }
+    100% {
+        text-shadow:
+            0 0 20px #FFD700,
+            0 0 40px #FFA500,
+            0 0 60px #FF8C00,
+            0 0 80px #FF6600;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes critFailurePulse {
+    0%, 100% {
+        text-shadow:
+            0 0 10px #ff1744,
+            0 0 20px #d50000;
+        transform: scale(1);
+    }
+    50% {
+        text-shadow:
+            0 0 20px #ff1744,
+            0 0 40px #d50000,
+            0 0 60px #b71c1c;
+        transform: scale(1.08);
+    }
+}
+
+/* Dice Box Info */
+.dice-box-info {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.roll-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.roll-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f59e0b;
+}
+
+.roll-formula {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+}
+
+/* Crit Banners */
+.dice-crit-banner {
+    padding: 12px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    animation: bounceIn 0.5s ease-out;
+    border-radius: 8px;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.dice-crit-banner.crit-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%);
+    border: 2px solid #10b981;
+    color: #10b981;
+}
+
+.dice-crit-banner.crit-failure {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+    border: 2px solid #ef4444;
+    color: #ef4444;
+}
+
+/* Dice Box Total */
+.dice-box-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+}
+
+.total-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.total-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+    line-height: 1;
+}
+
+.total-value.crit-success {
+    color: #10b981;
+}
+
+.total-value.crit-failure {
+    color: #ef4444;
+}
+
+/* Timestamp */
+.roll-timestamp {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Manual Dice Section */
+.manual-dice-section {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+}
+
+.manual-dice-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.manual-dice-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.manual-dice-btn {
+    padding: 10px 8px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-family-mono);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.manual-dice-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.manual-dice-btn:active {
+    transform: translateY(0);
+}
+
+/* Roll History */
+.dice-history {
+    padding: 16px 20px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 150px;
+}
+
+.history-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-hover);
+}
+
+.history-item.crit-success {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.history-item.crit-failure {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.history-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.history-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-result {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-family-mono);
+}
+
+.history-item.crit-success .history-result {
+    color: #10b981;
+}
+
+.history-item.crit-failure .history-result {
+    color: #ef444;
+}
+
+/* Responsive adjustments for Dice Box */
+@media (max-width: 768px) {
+    .dice-box-panel {
+        max-height: 95vh;
+        border-radius: 12px;
+    }
+
+    .dice-box-canvas {
+        height: 300px;
+    }
+
+    .total-value {
+        font-size: 28px;
+    }
+
+    .manual-dice-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.rollable:hover {
+    opacity: 0.8;
+}
+
+/* Dice Placeholder (for 2D fallback) */
+.dice-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.dice-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: rollDice 2s ease-in-out infinite;
+}
+
+@keyframes rollDice {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(90deg);
+    }
+    50% {
+        transform: rotate(180deg);
+    }
+    75% {
+        transform: rotate(270deg);
+    }
+}
+
+.dice-placeholder-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* Individual Dice Results */
+.dice-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.die-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    font-family: var(--font-family-mono);
+}
+
+.die-type {
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 60px;
+}
+
+.die-results {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.die-total {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modifier-result {
+    padding: 8px 12px;
+    background: var(--bg-hover);
+    border-radius: 6px;
+    font-weight: 600;
+    color: var(--accent);
+    text-align: center;
+}
+
+/* Clear All Button */
+.clear-all-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.clear-all-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
 }

@@ -21,7 +21,12 @@
       "Bash(git stash:*)",
       "Bash(xargs:*)",
       "Bash(start http://localhost:5173)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(git clone:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(xcopy:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
