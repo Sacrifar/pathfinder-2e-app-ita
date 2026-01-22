@@ -13,6 +13,7 @@ let uuidToNameIdMap: Record<string, string> | null = null;
 /**
  * Build a mapping from old UUID-based IDs to new name-based IDs
  * This is used for migrating characters that have feats stored with UUID IDs
+ * NOTE: Uses rawId from already-loaded feats instead of re-loading JSON files
  */
 function buildUuidToNameIdMap(): Record<string, string> {
     if (uuidToNameIdMap) {
@@ -20,30 +21,13 @@ function buildUuidToNameIdMap(): Record<string, string> {
     }
 
     const map: Record<string, string> = {};
-    const _allFeats = getFeats();
+    const allFeats = getFeats();
 
-    // Also need to load the raw feat data to get UUIDs
-    // We'll use the feat modules to build this map
-    // @ts-ignore - Vite glob import
-    const featModules = import.meta.glob<{ default: unknown }>(
-        '../data/pf2e/feats/**/*.json',
-        { eager: true }
-    );
-
-    for (const path in featModules) {
-        if (path.includes('_folders.json')) continue;
-
-        const module = featModules[path];
-        const raw = (module as { default?: unknown }).default || module;
-
-        // Type guard to check if raw has the expected shape
-        if (raw && typeof raw === 'object' && 'type' in raw && 'name' in raw && '_id' in raw) {
-            const featData = raw as { type: string; name: string; _id: string };
-            if (featData.type === 'feat') {
-                // Generate the name-based ID the same way transformFeat does
-                const nameId = featData.name.toLowerCase().replace(/\s+/g, '-');
-                map[featData._id] = nameId;
-            }
+    // Build map using the rawId property already available in loaded feats
+    // This avoids loading 5,800+ JSON files again
+    for (const feat of allFeats) {
+        if (feat.rawId) {
+            map[feat.rawId] = feat.id;
         }
     }
 

@@ -23,8 +23,23 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
+        manualChunks: (id) => {
+          // React core libraries
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          // PF2e data - separate into its own chunk for caching
+          if (id.includes('pf2e-loader') || id.includes('compiled-pf2e-data')) {
+            return 'pf2e-data';
+          }
+          // Class features and progressions
+          if (id.includes('classFeatures') || id.includes('classProgressions') || id.includes('classSpecializations')) {
+            return 'class-data';
+          }
+          // Translations
+          if (id.includes('translations')) {
+            return 'translations';
+          }
         }
       }
     }

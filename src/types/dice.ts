@@ -2,6 +2,27 @@
  * Dice types for the dice rolling system
  */
 
+export interface WeaponRollData {
+    weaponId: string;
+    weaponName: string;
+    damage: string;  // Damage formula (e.g., "1d8+3")
+    damageType: string;  // Damage type (e.g., "slashing")
+    attackBonus: number;  // Base attack bonus without MAP
+    isTwoHanded: boolean;  // Whether weapon is in two-handed mode
+    isAgile: boolean;  // Whether weapon has agile trait (reduced MAP)
+}
+
+export interface ImpulseRollData {
+    impulseType: 'blast' | 'attack' | 'damage';
+    impulseName: string;
+    element: string;  // For kineticist element (air, fire, earth, etc.)
+    attackBonus: number;  // Base attack bonus without MAP
+    damage: string;  // Damage formula
+    isAgile: boolean;  // Whether blast is agile
+    isMelee: boolean;  // Whether blast is melee (affects damage mod)
+    isTwoActions: boolean;  // For blast: whether it's 2-action version (affects damage mod)
+}
+
 export interface DiceRoll {
     formula: string;
     label: string;
@@ -17,6 +38,8 @@ export interface DiceRoll {
     isCritFailure: boolean;
     timestamp: number;
     element?: string;  // Optional: for kineticist elemental blasts (air, fire, earth, metal, water, wood)
+    weaponData?: WeaponRollData;  // Optional: weapon data for weapon-specific dicebox actions
+    impulseData?: ImpulseRollData;  // Optional: impulse data for impulse-specific dicebox actions
 }
 
 export interface DiceConfig {

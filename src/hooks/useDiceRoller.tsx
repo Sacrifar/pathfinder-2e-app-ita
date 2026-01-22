@@ -4,7 +4,15 @@
  */
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { DiceRoll, DiceConfig } from '../types/dice';
+import { DiceRoll, DiceConfig, WeaponRollData, ImpulseRollData } from '../types/dice';
+
+interface DiceRollOptions {
+    isCrit?: boolean;
+    isCritFail?: boolean;
+    element?: string;
+    weaponData?: WeaponRollData;
+    impulseData?: ImpulseRollData;
+}
 
 interface DiceRollerContextType {
     rolls: DiceRoll[];
@@ -13,7 +21,7 @@ interface DiceRollerContextType {
     rollDice: (
         formula: string,
         label?: string,
-        options?: { isCrit?: boolean; isCritFail?: boolean; element?: string }
+        options?: DiceRollOptions
     ) => DiceRoll;
     rollDiceWithResults: (
         formula: string,
@@ -136,7 +144,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
     const rollDice = useCallback((
         formula: string,
         label = '',
-        options?: { isCrit?: boolean; isCritFail?: boolean; element?: string }
+        options?: DiceRollOptions
     ): DiceRoll => {
         const { dice, modifier } = parseFormula(formula);
 
@@ -185,6 +193,8 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
             isCritFailure,
             timestamp: Date.now(),
             element: options?.element,  // Pass element for colored dice
+            weaponData: options?.weaponData,  // Pass weapon data for weapon-specific actions
+            impulseData: options?.impulseData,  // Pass impulse data for impulse-specific actions
         };
 
         addRoll(roll);

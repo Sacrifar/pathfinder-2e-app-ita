@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { useLanguage } from '../../hooks/useLanguage';
 import DiceBox from '@3d-dice/dice-box';
+import { WeaponRollData, ImpulseRollData } from '../../types/dice';
 
 /**
  * Helper function to extract element from traits for dice coloring
@@ -229,6 +230,66 @@ export function GlobalDiceDisplay() {
         rollDice(formula, label);
     };
 
+    // Parse damage formula and double it for critical damage
+    const doubleDamageFormula = (formula: string): string => {
+        const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
+        const diceRegex = /(\d+)d(\d+)/gi;
+
+        // Replace all dice notations with doubled count
+        return cleanFormula.replace(diceRegex, (_match, count, sides) => {
+            const newCount = parseInt(count, 10) * 2;
+            return `${newCount}d${sides}`;
+        });
+    };
+
+    // Handle weapon attack roll with MAP
+    const handleWeaponAttackRoll = (weaponData: WeaponRollData, attackNumber: 1 | 2 | 3) => {
+        // Agile weapons have reduced MAP: -4/-8 instead of -5/-10
+        let mapPenalty = 0;
+        if (attackNumber > 1) {
+            if (weaponData.isAgile) {
+                mapPenalty = attackNumber === 2 ? 4 : 8;
+            } else {
+                mapPenalty = (attackNumber - 1) * 5;
+            }
+        }
+        const attackBonus = weaponData.attackBonus - mapPenalty;
+        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+        const label = `${t('weapons.attack') || 'Attack'}: ${weaponData.weaponName}${attackNumber > 1 ? ` (${attackNumber})` : ''}`;
+        rollDice(formula, label, { weaponData });
+    };
+
+    // Handle weapon damage roll
+    const handleWeaponDamageRoll = (weaponData: WeaponRollData, doubleDamage: boolean = false) => {
+        const formula = doubleDamage ? doubleDamageFormula(weaponData.damage) : weaponData.damage;
+        const label = `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}${doubleDamage ? ' (Critical)' : ''}`;
+        rollDice(formula, label, { weaponData });
+    };
+
+    // Handle impulse attack roll with MAP
+    const handleImpulseAttackRoll = (impulseData: ImpulseRollData, attackNumber: 1 | 2 | 3) => {
+        // Agile impulses have reduced MAP: -4/-8 instead of -5/-10
+        let mapPenalty = 0;
+        if (attackNumber > 1) {
+            if (impulseData.isAgile) {
+                mapPenalty = attackNumber === 2 ? 4 : 8;
+            } else {
+                mapPenalty = (attackNumber - 1) * 5;
+            }
+        }
+        const attackBonus = impulseData.attackBonus - mapPenalty;
+        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+        const label = `${impulseData.impulseName}${attackNumber > 1 ? ` (${attackNumber})` : ''}`;
+        rollDice(formula, label, { impulseData, element: impulseData.element });
+    };
+
+    // Handle impulse damage roll
+    const handleImpulseDamageRoll = (impulseData: ImpulseRollData, doubleDamage: boolean = false) => {
+        const formula = doubleDamage ? doubleDamageFormula(impulseData.damage) : impulseData.damage;
+        const label = `${impulseData.impulseName}${doubleDamage ? ' (Critical)' : ''}`;
+        rollDice(formula, label, { impulseData, element: impulseData.element });
+    };
+
     return (
         <>
             {/* Dice Box Overlay */}
@@ -307,6 +368,114 @@ export function GlobalDiceDisplay() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Weapon Action Buttons */}
+                        {rolls.length > 0 && rolls[rolls.length - 1].weaponData && (() => {
+                            const weaponData = rolls[rolls.length - 1].weaponData!;
+                            return (
+                                <div className="weapon-actions-section">
+                                    <div className="weapon-actions-title">{weaponData.weaponName}</div>
+                                    <div className="weapon-actions-grid">
+                                        {/* Attack buttons with MAP */}
+                                        <button
+                                            className="weapon-action-btn attack-btn"
+                                            onClick={() => handleWeaponAttackRoll(weaponData, 1)}
+                                            title={`${t('weapons.attack') || 'Attack'} (1d20+${weaponData.attackBonus})`}
+                                        >
+                                            <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                            {t('weapons.attack') || 'Attack'}
+                                        </button>
+                                        <button
+                                            className="weapon-action-btn attack-btn"
+                                            onClick={() => handleWeaponAttackRoll(weaponData, 2)}
+                                            title={`${t('weapons.attack') || 'Attack'} 2 (MAP -${weaponData.isAgile ? 4 : 5})`}
+                                        >
+                                            <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                            {t('weapons.attack') || 'Attack'} -{weaponData.isAgile ? 4 : 5}
+                                        </button>
+                                        <button
+                                            className="weapon-action-btn attack-btn"
+                                            onClick={() => handleWeaponAttackRoll(weaponData, 3)}
+                                            title={`${t('weapons.attack') || 'Attack'} 3 (MAP -${weaponData.isAgile ? 8 : 10})`}
+                                        >
+                                            <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                            {t('weapons.attack') || 'Attack'} -{weaponData.isAgile ? 8 : 10}
+                                        </button>
+                                        {/* Damage buttons */}
+                                        <button
+                                            className="weapon-action-btn damage-btn"
+                                            onClick={() => handleWeaponDamageRoll(weaponData, false)}
+                                            title={`${t('weapons.damageRoll') || 'Damage'}: ${weaponData.damage} ${weaponData.damageType}`}
+                                        >
+                                            🎲 {t('weapons.damage') || 'Damage'}
+                                        </button>
+                                        <button
+                                            className="weapon-action-btn damage-btn crit-btn"
+                                            onClick={() => handleWeaponDamageRoll(weaponData, true)}
+                                            title={`${t('weapons.criticalDamage') || 'Critical Damage'}: 2× ${weaponData.damage} ${weaponData.damageType}`}
+                                        >
+                                            💥 {t('weapons.critical') || 'Crit'}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Impulse Action Buttons */}
+                        {rolls.length > 0 && rolls[rolls.length - 1].impulseData && (() => {
+                            const impulseData = rolls[rolls.length - 1].impulseData!;
+                            return (
+                                <div className="weapon-actions-section">
+                                    <div className="weapon-actions-title">{impulseData.impulseName}</div>
+                                    <div className="weapon-actions-grid">
+                                        {/* Attack buttons with MAP (only for blasts and attack impulses) */}
+                                        {(impulseData.impulseType === 'blast' || impulseData.impulseType === 'attack') && (
+                                            <>
+                                                <button
+                                                    className="weapon-action-btn attack-btn"
+                                                    onClick={() => handleImpulseAttackRoll(impulseData, 1)}
+                                                    title={`${t('weapons.attack') || 'Attack'} (1d20+${impulseData.attackBonus})`}
+                                                >
+                                                    <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                                    {t('weapons.attack') || 'Attack'}
+                                                </button>
+                                                <button
+                                                    className="weapon-action-btn attack-btn"
+                                                    onClick={() => handleImpulseAttackRoll(impulseData, 2)}
+                                                    title={`${t('weapons.attack') || 'Attack'} 2 (MAP -${impulseData.isAgile ? 4 : 5})`}
+                                                >
+                                                    <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                                    {t('weapons.attack') || 'Attack'} -{impulseData.isAgile ? 4 : 5}
+                                                </button>
+                                                <button
+                                                    className="weapon-action-btn attack-btn"
+                                                    onClick={() => handleImpulseAttackRoll(impulseData, 3)}
+                                                    title={`${t('weapons.attack') || 'Attack'} 3 (MAP -${impulseData.isAgile ? 8 : 10})`}
+                                                >
+                                                    <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                                    {t('weapons.attack') || 'Attack'} -{impulseData.isAgile ? 8 : 10}
+                                                </button>
+                                            </>
+                                        )}
+                                        {/* Damage buttons */}
+                                        <button
+                                            className="weapon-action-btn damage-btn"
+                                            onClick={() => handleImpulseDamageRoll(impulseData, false)}
+                                            title={`${t('weapons.damageRoll') || 'Damage'}: ${impulseData.damage}`}
+                                        >
+                                            🎲 {t('weapons.damage') || 'Damage'}
+                                        </button>
+                                        <button
+                                            className="weapon-action-btn damage-btn crit-btn"
+                                            onClick={() => handleImpulseDamageRoll(impulseData, true)}
+                                            title={`${t('weapons.criticalDamage') || 'Critical Damage'}: 2× ${impulseData.damage}`}
+                                        >
+                                            💥 {t('weapons.critical') || 'Crit'}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Manual Dice Buttons */}
                         <div className="manual-dice-section">

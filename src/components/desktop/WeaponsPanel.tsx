@@ -7,6 +7,7 @@ import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, ca
 import { WeaponOptionsModal } from './WeaponOptionsModal';
 import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
+import { WeaponRollData } from '../../types/dice';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -108,23 +109,49 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         return strMod + profBonus + itemBonus + customBonus - mapPenalty;
     };
 
-    // Handle attack roll
-    const handleAttackRoll = (weapon: LoadedWeapon, attackNumber: 1 | 2 | 3) => {
-        const mapPenalty = attackNumber > 1 ? (attackNumber - 1) * 5 : 0;
-        const attackBonus = calculateAttackBonus(weapon, mapPenalty);
-        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+    // Handle opening dicebox with weapon data
+    const handleOpenWeaponDiceBox = (weapon: LoadedWeapon, equippedItem: EquippedItem, isTwoHanded: boolean) => {
+        const weaponRunes = equippedItem.runes as { strikingRune?: string } | undefined;
+        const weaponCustomization = equippedItem.customization as WeaponCustomization | undefined;
+        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
+        const attackBonus = calculateAttackBonus(weapon, 0); // Base attack bonus without MAP
+        const isAgile = weapon.traits.includes('agile');
 
-        const label = `${t('weapons.attack') || 'Attack'}: ${weapon.name}${attackNumber > 1 ? ` (${attackNumber})` : ''}`;
-        rollDice(formula, label);
+        const weaponData: WeaponRollData = {
+            weaponId: weapon.id,
+            weaponName: weaponCustomization?.customName || weapon.name,
+            damage: damage,
+            damageType: weaponCustomization?.customDamageType || weapon.damageType,
+            attackBonus: attackBonus,
+            isTwoHanded: isTwoHanded,
+            isAgile: isAgile,
+        };
+
+        // Open dicebox with a placeholder roll that includes weapon data
+        rollDice('1d20', `${t('weapons.attack') || 'Attack'}: ${weapon.name}`, { weaponData });
     };
 
-    // Handle damage roll
+    // Handle damage roll - now opens dicebox with weapon data
     const handleDamageRoll = (weapon: LoadedWeapon, isTwoHanded: boolean) => {
-        const damage = calculateWeaponDamage(character, weapon, isTwoHanded);
-        const formula = damage; // Damage formula is already calculated (e.g., "1d8+3")
+        const weaponRunes = (character.equipment?.find(e => e.id === weapon.id))?.runes as { strikingRune?: string } | undefined;
+        const weaponCustomization = (character.equipment?.find(e => e.id === weapon.id))?.customization as WeaponCustomization | undefined;
+        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
+        const attackBonus = calculateAttackBonus(weapon, 0);
+        const isAgile = weapon.traits.includes('agile');
 
-        const label = `${t('weapons.damageRoll') || 'Damage'}: ${weapon.name}`;
-        rollDice(formula, label);
+        const weaponData: WeaponRollData = {
+            weaponId: weapon.id,
+            weaponName: weaponCustomization?.customName || weapon.name,
+            damage: damage,
+            damageType: weaponCustomization?.customDamageType || weapon.damageType,
+            attackBonus: attackBonus,
+            isTwoHanded: isTwoHanded,
+            isAgile: isAgile,
+        };
+
+        // Open dicebox with weapon data
+        const elementLabel = weaponCustomization?.customDamageType || weapon.damageType;
+        rollDice(damage, `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}`, { weaponData });
     };
 
     // Add weapon to character's inventory
@@ -397,32 +424,14 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                             </button>
                                         )}
 
-                                        {/* Main Attack Button - rolls dice */}
+                                        {/* Single Attack Button - opens dicebox with weapon actions */}
                                         <button
                                             className="attack-btn main-attack"
-                                            onClick={() => handleAttackRoll(weapon, 1)}
+                                            onClick={() => handleOpenWeaponDiceBox(weapon, item, isTwoHanded)}
                                             title={t('weapons.rollAttack') || 'Roll Attack'}
                                         >
                                             <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '20px', height: '20px' }} />
                                         </button>
-
-                                        {/* MAP Attack Buttons - show only numbers */}
-                                        <div className="attack-buttons">
-                                            <button
-                                                className="attack-btn map-attack"
-                                                onClick={() => handleAttackRoll(weapon, 2)}
-                                                title={t('weapons.secondAttack') || 'Second Attack (MAP)'}
-                                            >
-                                                2
-                                            </button>
-                                            <button
-                                                className="attack-btn map-attack"
-                                                onClick={() => handleAttackRoll(weapon, 3)}
-                                                title={t('weapons.thirdAttack') || 'Third Attack (MAP)'}
-                                            >
-                                                3
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
 

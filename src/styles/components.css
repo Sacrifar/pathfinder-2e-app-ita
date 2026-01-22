@@ -3150,6 +3150,84 @@
     transform: translateY(0);
 }
 
+/* Weapon Action Buttons */
+.weapon-actions-section {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.weapon-actions-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.weapon-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.weapon-action-btn {
+    padding: 10px 8px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.weapon-action-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.weapon-action-btn:active {
+    transform: translateY(0);
+}
+
+.weapon-action-btn.attack-btn {
+    border-color: rgba(255, 165, 0, 0.3);
+}
+
+.weapon-action-btn.attack-btn:hover {
+    border-color: rgba(255, 165, 0, 0.6);
+    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+}
+
+.weapon-action-btn.damage-btn {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.weapon-action-btn.damage-btn:hover {
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.weapon-action-btn.crit-btn {
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.weapon-action-btn.crit-btn:hover {
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+}
+
 /* Roll History */
 .dice-history {
     padding: 16px 20px;

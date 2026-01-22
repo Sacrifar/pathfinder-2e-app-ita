@@ -6,6 +6,7 @@ import { getFeats, getActions, LoadedAction, LoadedFeat, cleanDescriptionForDisp
 import { getKineticistElementFromGateId } from '../../data/classSpecializations';
 import { ActionIcon } from '../../utils/actionIcons';
 import { calculateProficiencyBonusWithVariant, ProficiencyRank, getAbilityModifier, extractDamageFromDescription, simplifyFoundryFormula } from '../../utils/pf2e-math';
+import { ImpulseRollData } from '../../types/dice';
 
 interface ImpulsePanelProps {
     character: Character;
@@ -442,9 +443,24 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         rollDice(formula, `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel}) - ${t('weapons.attack') || 'Attack'}`);
     };
 
-    // Handle Elemental Blast damage roll
+    // Handle Elemental Blast damage roll - opens dicebox with blast data
     const handleBlastDamageRoll = (element: string, isTwoActions: boolean, isMelee: boolean) => {
+        const attackBonus = getBlastAttackBonus();
         const damage = getBlastDamage(isTwoActions, isMelee, element);
+        const options = getBlastOptions(element, isTwoActions);
+        const isAgile = options.agile;
+
+        const impulseData: ImpulseRollData = {
+            impulseType: 'blast',
+            impulseName: `${t('impulse.elementalBlast') || 'Elemental Blast'} (${t(`elements.${element}`) || element})`,
+            element: element,
+            attackBonus: attackBonus,
+            damage: damage,
+            isAgile: isAgile,
+            isMelee: isMelee,
+            isTwoActions: isTwoActions,
+        };
+
         const elementLabel = t(`elements.${element}`) || element;
         const actionLabel = isTwoActions
             ? (t('actions.twoActionsShort') || '2a')
@@ -452,7 +468,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         const rangeLabel = isMelee
             ? (t('weapons.melee') || 'Melee')
             : (t('weapons.ranged') || 'Ranged');
-        rollDice(damage, `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel}) - ${actionLabel} - ${rangeLabel} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+        rollDice(damage, `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel}) - ${actionLabel} - ${rangeLabel} - ${t('weapons.damageRoll') || 'Damage'}`, { impulseData });
     };
 
     // Check if an impulse is an attack (has 'attack' trait)
@@ -473,30 +489,38 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         rollDice(formula, `${impulse.data.name} - ${t('weapons.attack') || 'Attack'}`);
     };
 
-    // Handle impulse damage roll - extracts damage from description
+    // Handle impulse damage roll - opens dicebox with impulse data
     const handleImpulseDamageRoll = (impulse: ImpulseFeatEntry) => {
-        // Try to extract damage from raw description using @Damage tags
-        const description = impulse.data.rawDescription || impulse.data.description;
-        const damages = extractDamageFromDescription(description);
+        const attackBonus = getBlastAttackBonus();
 
         // Get the primary element for this impulse (for colored dice)
-        // Use the first element from impulse.elements, or 'general' if none
         const element = impulse.elements.find(e =>
             ['air', 'earth', 'fire', 'water', 'wood', 'metal'].includes(e)
         ) || 'general';
 
-        if (damages && damages.length > 0) {
-            // Simplify each damage formula using character data
-            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+        // Extract damage formula
+        let damage = '';
+        const description = impulse.data.rawDescription || impulse.data.description;
+        const damages = extractDamageFromDescription(description);
 
-            if (simplifiedDamages.length === 1) {
-                // Single damage type - roll directly with element info
-                rollDice(simplifiedDamages[0], `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
-            } else {
-                // Multiple damage types - combine them
-                const combinedDamage = simplifiedDamages.join(' + ');
-                rollDice(combinedDamage, `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
-            }
+        if (damages && damages.length > 0) {
+            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+            damage = simplifiedDamages.length === 1 ? simplifiedDamages[0] : simplifiedDamages.join(' + ');
+        }
+
+        const impulseData: ImpulseRollData = {
+            impulseType: 'damage',
+            impulseName: impulse.data.name,
+            element: element,
+            attackBonus: attackBonus,
+            damage: damage,
+            isAgile: false,
+            isMelee: false,
+            isTwoActions: false,
+        };
+
+        if (damage) {
+            rollDice(damage, `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { impulseData });
         } else {
             // No damage found in description - prompt user
             const damagePrompt = prompt(
@@ -504,8 +528,67 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                 '2d8'
             );
             if (damagePrompt) {
-                rollDice(damagePrompt.trim(), `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+                rollDice(damagePrompt.trim(), `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { impulseData });
             }
+        }
+    };
+
+    // Handle opening dicebox with blast data
+    const handleOpenBlastDiceBox = (element: string, isTwoActions: boolean, isMelee: boolean, isAgile: boolean) => {
+        const attackBonus = getBlastAttackBonus();
+        const damage = getBlastDamage(isTwoActions, isMelee, element);
+
+        const impulseData: ImpulseRollData = {
+            impulseType: 'blast',
+            impulseName: `${t('impulse.elementalBlast') || 'Elemental Blast'} (${t(`elements.${element}`) || element})`,
+            element: element,
+            attackBonus: attackBonus,
+            damage: damage,
+            isAgile: isAgile,
+            isMelee: isMelee,
+            isTwoActions: isTwoActions,
+        };
+
+        const elementLabel = t(`elements.${element}`) || element;
+        rollDice('1d20', `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel})`, { impulseData });
+    };
+
+    // Handle opening dicebox with impulse data
+    const handleOpenImpulseDiceBox = (impulse: ImpulseFeatEntry) => {
+        const attackBonus = getBlastAttackBonus();
+        const isAttack = isAttackImpulse(impulse);
+        const hasDamage = isDamageImpulse(impulse);
+
+        // Get the primary element for this impulse
+        const element = impulse.elements.find(e =>
+            ['air', 'earth', 'fire', 'water', 'wood', 'metal'].includes(e)
+        ) || 'general';
+
+        // Extract damage formula
+        let damage = '';
+        const description = impulse.data.rawDescription || impulse.data.description;
+        const damages = extractDamageFromDescription(description);
+
+        if (damages && damages.length > 0) {
+            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+            damage = simplifiedDamages.length === 1 ? simplifiedDamages[0] : simplifiedDamages.join(' + ');
+        }
+
+        const impulseData: ImpulseRollData = {
+            impulseType: isAttack ? 'attack' : 'damage',
+            impulseName: impulse.data.name,
+            element: element,
+            attackBonus: attackBonus,
+            damage: damage,
+            isAgile: false,
+            isMelee: false,
+            isTwoActions: false,
+        };
+
+        if (isAttack) {
+            rollDice('1d20', `${impulse.data.name} - ${t('weapons.attack') || 'Attack'}`, { impulseData });
+        } else {
+            rollDice(damage || '1d6', `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { impulseData });
         }
     };
 
@@ -722,27 +805,17 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                             )}
                                         </div>
 
-                                        {/* Dice Roll Buttons for Blast */}
+                                        {/* Single Dice Roll Button for Blast */}
                                         <div className="blast-dice-buttons">
                                             <button
                                                 className="blast-dice-btn attack"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleBlastAttackRoll(element);
+                                                    handleOpenBlastDiceBox(element, isTwoActions, isMelee, isAgile);
                                                 }}
-                                                title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
+                                                title={`${t('weapons.attack') || 'Attack'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()} | ${t('weapons.damage') || 'Damage'}: ${getBlastDamage(isTwoActions, isMelee, element)}`}
                                             >
-                                                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} /> {t('weapons.attack') || 'Attack'}
-                                            </button>
-                                            <button
-                                                className="blast-dice-btn damage"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleBlastDamageRoll(element, isTwoActions, isMelee);
-                                                }}
-                                                title={`${t('weapons.damageRoll') || 'Damage Roll'}: ${getBlastDamage(isTwoActions, isMelee, element)}`}
-                                            >
-                                                🎲 {t('weapons.damage') || 'Damage'}
+                                                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} />
                                             </button>
                                         </div>
                                     </div>
@@ -847,30 +920,18 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                     )}
                                                 </div>
 
-                                                {/* Dice Roll Buttons for Attack and Damage Impulses */}
+                                                {/* Single Dice Roll Button for Attack and Damage Impulses */}
                                                 {(isAttack || hasDamage) && (
                                                     <div className="blast-dice-buttons">
-                                                        {isAttack && (
-                                                            <button
-                                                                className="blast-dice-btn attack"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleImpulseAttackRoll(impulse);
-                                                                }}
-                                                                title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
-                                                            >
-                                                                🎲 {t('weapons.attack') || 'Attack'}
-                                                            </button>
-                                                        )}
                                                         <button
-                                                            className="blast-dice-btn damage"
+                                                            className="blast-dice-btn attack"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleImpulseDamageRoll(impulse);
+                                                                handleOpenImpulseDiceBox(impulse);
                                                             }}
-                                                            title={t('weapons.damageRoll') || 'Damage Roll'}
+                                                            title={`${isAttack ? t('weapons.attack') || 'Attack' : ''}${isAttack && hasDamage ? ' | ' : ''}${hasDamage ? t('weapons.damage') || 'Damage' : ''}`}
                                                         >
-                                                            🎲 {t('weapons.damage') || 'Damage'}
+                                                            <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} />
                                                         </button>
                                                     </div>
                                                 )}
