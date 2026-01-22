@@ -17,7 +17,8 @@ function extractElementFromTraits(traits: string[]): string | undefined {
     const elementalTraits = [
         'air', 'fire', 'earth', 'metal', 'water', 'wood',  // Kineticist elements
         'electricity', 'cold', 'acid', 'poison', 'sonic',    // Spell damage traits
-        'force', 'vitality', 'void', 'chaos'                 // Other spell traits
+        'force', 'vitality', 'void', 'chaos',                // Other spell traits
+        'precision'                                          // Precision damage
     ];
     return traits.find(t => elementalTraits.includes(t.toLowerCase()));
 }
@@ -46,6 +47,9 @@ const ELEMENT_COLORS: Record<string, { primary: string; bonus: string }> = {
     vitality: { primary: '#F472B6', bonus: '#F9A8D4' },   // Pink + Light Pink
     void: { primary: '#1F2937', bonus: '#374151' },      // Dark Gray + Gray
     chaos: { primary: '#7C3AED', bonus: '#8B5CF6' },     // Violet + Purple
+
+    // Physical damage types
+    precision: { primary: '#14B8A6', bonus: '#5EEAD4' }, // Teal + Light Teal
 };
 
 /**
