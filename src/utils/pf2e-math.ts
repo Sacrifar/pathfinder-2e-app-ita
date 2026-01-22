@@ -515,3 +515,145 @@ export function calculateSavingThrow(
     return profBonus + abilityMod;
 }
 
+/**
+ * Extract damage formula from FoundryVTT-style description with @Damage tags
+ * @param description The HTML description containing @Damage[...] tags
+ * @returns Array of damage formulas or null if not found
+ */
+export function extractDamageFromDescription(description: string): string[] | null {
+    // Match @Damage[...] tags
+    const damageRegex = /@Damage\[([^\]]+)\]/g;
+    const matches = [...description.matchAll(damageRegex)];
+
+    if (matches.length === 0) return null;
+
+    // Extract damage formulas from matches
+    const damageFormulas: string[] = [];
+
+    for (const match of matches) {
+        const damageContent = match[1];
+
+        // First, remove any trailing options like |options:area-damage
+        const withoutOptions = damageContent.split('|')[0];
+
+        // Split by comma for multiple damage types (e.g., "2d4[slashing],2d4[piercing]")
+        // But handle the case where comma is inside brackets
+        const damageParts: string[] = [];
+        let currentPart = '';
+        let bracketDepth = 0;
+
+        for (let i = 0; i < withoutOptions.length; i++) {
+            const char = withoutOptions[i];
+
+            if (char === '[') {
+                bracketDepth++;
+                currentPart += char;
+            } else if (char === ']') {
+                bracketDepth--;
+                currentPart += char;
+            } else if (char === ',' && bracketDepth === 0) {
+                // Comma at top level = separator
+                if (currentPart.trim()) {
+                    damageParts.push(currentPart.trim());
+                }
+                currentPart = '';
+            } else {
+                currentPart += char;
+            }
+        }
+
+        // Add the last part
+        if (currentPart.trim()) {
+            damageParts.push(currentPart.trim());
+        }
+
+        // Clean each part: remove damage type brackets
+        for (const part of damageParts) {
+            const cleaned = part
+                .replace(/\[.*$/, '') // Remove damage type in brackets and everything after
+                .trim();
+
+            if (cleaned && !damageFormulas.includes(cleaned)) {
+                damageFormulas.push(cleaned);
+            }
+        }
+    }
+
+    return damageFormulas.length > 0 ? damageFormulas : null;
+}
+
+/**
+ * Simplify a FoundryVTT formula by replacing actor references with actual values
+ * @param formula The formula (e.g., "(floor((@actor.level -1)/2)+1)d4")
+ * @param character The character data
+ * @returns Simplified formula (e.g., "3d4")
+ */
+export function simplifyFoundryFormula(formula: string, character: Character): string {
+    const level = character.level || 1;
+
+    let result = formula;
+
+    // Handle floor expressions with addition/subtraction: floor((@actor.level - 1)/2) + 2
+    // Pattern 1: (floor((@actor.level X Y)/Z) ± W) - handles parenthesized expressions
+    // Pattern 2: floor((@actor.level X Y)/Z) ± W - handles non-parenthesized expressions
+    // Both patterns capture: floor((@actor.level ± num1) / div) ± num2
+
+    // First handle the parenthesized version: (floor((@actor.level X Y)/Z) ± W)
+    const floorWithMathParensRegex = /\(\s*floor\s*\(\s*\(\s*@actor\.level\s*([-+])\s*(\d+)\s*\)\s*\/\s*(\d+)\s*\)\s*([-+])\s*(\d+)\s*\)/gi;
+    result = result.replace(floorWithMathParensRegex, (_, op1, num1, divisor, op2, num2) => {
+        const n1 = parseInt(num1, 10);
+        const div = parseInt(divisor, 10);
+        const n2 = parseInt(num2, 10);
+
+        // Calculate floor((level ± num1) / divisor) ± num2
+        const innerLevel = op1 === '-' ? level - n1 : level + n1;
+        const floorResult = Math.floor(innerLevel / div);
+        const finalResult = op2 === '+' ? floorResult + n2 : floorResult - n2;
+
+        return String(finalResult);
+    });
+
+    // Then handle the non-parenthesized version: floor((@actor.level X Y)/Z) ± W
+    const floorMathNoParensRegex = /floor\s*\(\s*\(\s*@actor\.level\s*([-+])\s*(\d+)\s*\)\s*\/\s*(\d+)\s*\)\s*([-+])\s*(\d+)/gi;
+    result = result.replace(floorMathNoParensRegex, (_, op1, num1, divisor, op2, num2) => {
+        const n1 = parseInt(num1, 10);
+        const div = parseInt(divisor, 10);
+        const n2 = parseInt(num2, 10);
+
+        // Calculate floor((level ± num1) / divisor) ± num2
+        const innerLevel = op1 === '-' ? level - n1 : level + n1;
+        const floorResult = Math.floor(innerLevel / div);
+        const finalResult = op2 === '+' ? floorResult + n2 : floorResult - n2;
+
+        return String(finalResult);
+    });
+
+    // Handle simple floor expressions like: floor((@actor.level - 1)/2)
+    result = result.replace(/floor\s*\(\s*\(\s*@actor\.level\s*([-+])\s*(\d+)\s*\)\s*\/\s*(\d+)\s*\)/gi, (_, op, num, divisor) => {
+        const n = parseInt(num, 10);
+        const div = parseInt(divisor, 10);
+        const levelValue = op === '-' ? level - n : level + n;
+        return String(Math.floor(levelValue / div));
+    });
+
+    // Replace @actor.level
+    result = result.replace(/@actor\.level/gi, String(level));
+
+    // Replace ability modifiers
+    result = result.replace(/@actor\.abilities\.(str|dex|con|int|wis|cha)\.mod/gi, (match) => {
+        const ability = match.split('.')[2];
+        const score = character.abilityScores[ability as keyof typeof character.abilityScores] || 10;
+        return String(getAbilityModifier(score));
+    });
+
+    // Replace max(...) functions
+    result = result.replace(/max\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/gi, (_, a, b) => {
+        return String(Math.max(Number(a), Number(b)));
+    });
+
+    // Clean up whitespace but keep necessary spacing for readability
+    result = result.replace(/\s+/g, ' ').trim();
+
+    return result;
+}
+

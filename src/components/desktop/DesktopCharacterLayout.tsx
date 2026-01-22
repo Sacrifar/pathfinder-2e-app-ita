@@ -84,6 +84,7 @@ interface ActionData {
     name: string;
     cost: '1' | '2' | '3' | 'free' | 'reaction';
     description: string;
+    rawDescription?: string;
     traits: string[];
     skill?: string;
 }
@@ -1532,6 +1533,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 name={selectedAction.name}
                                 cost={selectedAction.cost}
                                 description={selectedAction.description}
+                                rawDescription={selectedAction.rawDescription}
                                 traits={selectedAction.traits}
                                 skill={selectedAction.skill}
                             />

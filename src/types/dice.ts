@@ -16,6 +16,7 @@ export interface DiceRoll {
     isCritSuccess: boolean;
     isCritFailure: boolean;
     timestamp: number;
+    element?: string;  // Optional: for kineticist elemental blasts (air, fire, earth, metal, water, wood)
 }
 
 export interface DiceConfig {

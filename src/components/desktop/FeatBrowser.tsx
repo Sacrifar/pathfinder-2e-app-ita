@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
+import { getFeats, LoadedFeat, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { CharacterFeat, Character } from '../../types';
 import { checkPrerequisites, extractSkillFromPrerequisites } from '../../utils/prereqValidator';
 import { skills as allSkills, getAncestryById, getClassById, heritages } from '../../data';
@@ -661,7 +661,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                                 </div>
                             )}
 
-                            <p className="detail-description">{selectedFeat.description}</p>
+                            <p className="detail-description">{cleanDescriptionForDisplay(selectedFeat.rawDescription || selectedFeat.description)}</p>
 
                             {/* Granted Feats Section */}
                             {grantedItems.length > 0 && (

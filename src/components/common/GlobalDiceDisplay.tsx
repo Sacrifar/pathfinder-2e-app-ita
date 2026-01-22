@@ -8,6 +8,107 @@ import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { useLanguage } from '../../hooks/useLanguage';
 import DiceBox from '@3d-dice/dice-box';
 
+/**
+ * Helper function to extract element from traits for dice coloring
+ * Returns the first matching elemental trait, or undefined if none found
+ */
+function extractElementFromTraits(traits: string[]): string | undefined {
+    const elementalTraits = [
+        'air', 'fire', 'earth', 'metal', 'water', 'wood',  // Kineticist elements
+        'electricity', 'cold', 'acid', 'poison', 'sonic',    // Spell damage traits
+        'force', 'vitality', 'void', 'chaos'                 // Other spell traits
+    ];
+    return traits.find(t => elementalTraits.includes(t.toLowerCase()));
+}
+
+/**
+ * Element color mapping for 3D dice
+ * Each element has a primary color (for base dice) and a bonus color (for extra damage dice)
+ * Includes both kineticist elements and spell damage traits
+ */
+const ELEMENT_COLORS: Record<string, { primary: string; bonus: string }> = {
+    // Kineticist elements
+    air: { primary: '#3B82F6', bonus: '#FBBF24' },      // Blue (base) + Yellow (electricity)
+    fire: { primary: '#EF4444', bonus: '#F97316' },     // Red (base) + Orange (bonus)
+    earth: { primary: '#78716C', bonus: '#22C55E' },    // Brown (base) + Green (bonus)
+    metal: { primary: '#6B7280', bonus: '#EAB308' },    // Gray (base) + Gold (bonus)
+    water: { primary: '#0EA5E9', bonus: '#06B6D4' },    // Light Blue (base) + Cyan (bonus)
+    wood: { primary: '#854D0E', bonus: '#DC2626' },     // Brown (base) + Red (fire bonus)
+
+    // Spell damage traits
+    electricity: { primary: '#FBBF24', bonus: '#FDE047' }, // Yellow + Light Yellow
+    cold: { primary: '#06B6D4', bonus: '#67E8F9' },      // Cyan + Light Cyan
+    acid: { primary: '#84CC16', bonus: '#A3E635' },      // Green + Light Green
+    poison: { primary: '#A855F7', bonus: '#C084FC' },     // Purple + Light Purple
+    sonic: { primary: '#F97316', bonus: '#FB923C' },      // Orange + Light Orange
+    force: { primary: '#E5E7EB', bonus: '#F3F4F6' },     // Gray + Light Gray
+    vitality: { primary: '#F472B6', bonus: '#F9A8D4' },   // Pink + Light Pink
+    void: { primary: '#1F2937', bonus: '#374151' },      // Dark Gray + Gray
+    chaos: { primary: '#7C3AED', bonus: '#8B5CF6' },     // Violet + Purple
+};
+
+/**
+ * Helper function to determine if a roll is a D20 check (attack, save, skill)
+ * vs a damage roll that happens to include d20 dice.
+ * D20 checks are typically: 1d20, 2d20 (for certain feats), possibly with modifiers
+ * Damage rolls have mixed dice types (d4, d6, d8, d12, etc.)
+ */
+function isD20CheckRoll(roll: { rolls: Array<{ sides: number; count: number }> }): boolean {
+    const d20Dice = roll.rolls.filter(r => r.sides === 20);
+    const nonD20Dice = roll.rolls.filter(r => r.sides !== 20);
+
+    // Pure d20 roll: only d20 dice, no other dice types
+    // Examples: 1d20, 2d20, 1d20+5
+    if (nonD20Dice.length === 0 && d20Dice.length > 0) {
+        return true;
+    }
+
+    // Mixed dice: this is a damage roll, not a d20 check
+    return false;
+}
+
+/**
+ * Helper function to roll multiple dice types using DiceBox's roll method.
+ * Supports Roll Objects with themeColor for elemental dice coloring.
+ * For "4d6+1d12+6", we extract dice notations and pass them as Roll Objects with colors.
+ */
+function rollWithDiceBox(diceBox: DiceBox, formula: string, element?: string) {
+    const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
+    const diceRegex = /(\d+)d(\d+)/gi;
+    const rollObjects: Array<{ qty: number; sides: number; themeColor?: string }> = [];
+    let match;
+
+    // Extract all dice notations (e.g., "4d6", "1d12")
+    while ((match = diceRegex.exec(cleanFormula)) !== null) {
+        const qty = parseInt(match[1], 10);
+        const sides = parseInt(match[2], 10);
+        rollObjects.push({ qty, sides });
+    }
+
+    if (rollObjects.length === 0) {
+        return;
+    }
+
+    // If we have element info, apply colors
+    // First group of dice gets primary color, subsequent groups get bonus color
+    if (element && ELEMENT_COLORS[element]) {
+        const colors = ELEMENT_COLORS[element];
+
+        rollObjects.forEach((obj, index) => {
+            if (index === 0) {
+                // Primary dice (base damage) - primary color
+                obj.themeColor = colors.primary;
+            } else {
+                // Bonus dice (extra damage from stances/feats) - bonus color
+                obj.themeColor = colors.bonus;
+            }
+        });
+    }
+
+    // Roll all dice at once using Roll Objects
+    diceBox.roll(rollObjects);
+}
+
 export function GlobalDiceDisplay() {
     const { t } = useLanguage();
     const { rolls, clearRolls, rollDice, updateLastRollWith3DResults } = useDiceRoller();
@@ -71,8 +172,9 @@ export function GlobalDiceDisplay() {
                 // Roll any pending dice after initialization
                 if (rolls.length > 0) {
                     const latestRoll = rolls[rolls.length - 1];
+                    console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula);
                     setTimeout(() => {
-                        diceBox.roll(latestRoll.formula);
+                        rollWithDiceBox(diceBox, latestRoll.formula, latestRoll.element);
                     }, 300);
                 }
             }).catch(err => {
@@ -95,7 +197,10 @@ export function GlobalDiceDisplay() {
                 // Roll 3D dice if initialized
                 if (diceBoxRef.current && isInitialized) {
                     setTimeout(() => {
-                        diceBoxRef.current?.roll(latestRoll.formula);
+                        console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula);
+                        if (diceBoxRef.current) {
+                            rollWithDiceBox(diceBoxRef.current, latestRoll.formula, latestRoll.element);
+                        }
                     }, 300);
                 }
             }
@@ -176,6 +281,15 @@ export function GlobalDiceDisplay() {
 
                                 {/* Total Result */}
                                 <div className="dice-box-total">
+                                    {/* Show D20 icon for d20 check rolls (attacks, saves, skills) */}
+                                    {isD20CheckRoll(rolls[rolls.length - 1]) && (
+                                        <img
+                                            src="/assets/icon_d20_orange_small.png"
+                                            alt="D20"
+                                            className="d20-icon"
+                                            style={{ width: '24px', height: '24px', marginRight: '8px' }}
+                                        />
+                                    )}
                                     <span className="total-label">{t('dice.total') || 'TOTAL'}</span>
                                     <span className={`total-value ${rolls[rolls.length - 1].isCritSuccess ? 'crit-success' : ''} ${rolls[rolls.length - 1].isCritFailure ? 'crit-failure' : ''}`}>
                                         {rolls[rolls.length - 1].total}
@@ -222,7 +336,17 @@ export function GlobalDiceDisplay() {
                                             className={`history-item ${roll.isCritSuccess ? 'crit-success' : ''} ${roll.isCritFailure ? 'crit-failure' : ''}`}
                                         >
                                             <div className="history-time">{formatTime(roll.timestamp)}</div>
-                                            <div className="history-label">{roll.label}</div>
+                                            <div className="history-label">
+                                                {isD20CheckRoll(roll) && (
+                                                    <img
+                                                        src="/assets/icon_d20_orange_small.png"
+                                                        alt="D20"
+                                                        className="d20-icon-small"
+                                                        style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }}
+                                                    />
+                                                )}
+                                                {roll.label}
+                                            </div>
                                             <div className="history-result">{roll.total}</div>
                                         </div>
                                     ))}

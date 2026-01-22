@@ -145,6 +145,7 @@ interface Action {
     cost: ActionCost;
     skill?: string;
     description: string;
+    rawDescription?: string;
     traits: string[];
     source: ActionSource;
     category?: string;
@@ -155,6 +156,7 @@ interface ActionData {
     name: string;
     cost: '1' | '2' | '3' | 'free' | 'reaction';
     description: string;
+    rawDescription?: string;
     traits: string[];
     skill?: string;
 }
@@ -269,6 +271,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                     cost: a.cost,
                     skill,
                     description: a.description,
+                    rawDescription: a.rawDescription,
                     traits: a.traits,
                     source,
                     category: a.category,
@@ -296,6 +299,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                         name: feat.name,
                         cost: cost,
                         description: feat.description,
+                        rawDescription: feat.rawDescription,
                         traits: feat.traits,
                         source: 'feat',
                         category: feat.category === 'class' ? 'class' : undefined,
@@ -529,6 +533,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
                                 name: action.name,
                                 cost: action.cost,
                                 description: action.description,
+                                rawDescription: action.rawDescription,
                                 traits: action.traits,
                                 skill: action.skill,
                             })}

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, CharacterFeat } from '../../types';
-import { getFeats, LoadedFeat } from '../../data/pf2e-loader';
+import { getFeats, LoadedFeat, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { FeatActionIcon } from '../../utils/actionIcons';
 
 
@@ -327,7 +327,7 @@ export const FeatsPanel: React.FC<FeatsPanelProps> = ({
                                         </div>
                                     )}
 
-                                    <p className="feat-description">{selectedFeat.description}</p>
+                                    <p className="feat-description">{cleanDescriptionForDisplay(selectedFeat.rawDescription || selectedFeat.description)}</p>
 
                                     <button
                                         className="add-feat-btn"

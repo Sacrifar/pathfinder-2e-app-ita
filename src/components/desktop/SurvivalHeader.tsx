@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 
 interface SurvivalHeaderProps {
     ac: number;
@@ -29,6 +30,7 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
     onHPChange,
 }) => {
     const { t } = useLanguage();
+    const { rollDice } = useDiceRoller();
     const [showHPControls, setShowHPControls] = useState(false);
     const [customHPValue, setCustomHPValue] = useState('');
     const [sliderValue, setSliderValue] = useState(0);
@@ -270,19 +272,40 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
 
             {/* Saving Throws */}
             <div className="survival-saves">
-                <div className="save-item">
+                <div
+                    className="save-item rollable"
+                    onClick={() => {
+                        const formula = `1d20${fortitude >= 0 ? '+' : ''}${fortitude}`;
+                        rollDice(formula, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.fortitude') || 'Fortitude'}`);
+                    }}
+                    title={`${t('dice.roll') || 'Roll'} ${t('stats.fortitude') || 'Fortitude'}`}
+                >
                     <span className="save-label">FORT</span>
                     <span className={`save-value ${fortitude >= 0 ? 'positive' : 'negative'}`}>
                         {fortitude >= 0 ? `+${fortitude}` : fortitude}
                     </span>
                 </div>
-                <div className="save-item">
+                <div
+                    className="save-item rollable"
+                    onClick={() => {
+                        const formula = `1d20${reflex >= 0 ? '+' : ''}${reflex}`;
+                        rollDice(formula, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.reflex') || 'Reflex'}`);
+                    }}
+                    title={`${t('dice.roll') || 'Roll'} ${t('stats.reflex') || 'Reflex'}`}
+                >
                     <span className="save-label">REF</span>
                     <span className={`save-value ${reflex >= 0 ? 'positive' : 'negative'}`}>
                         {reflex >= 0 ? `+${reflex}` : reflex}
                     </span>
                 </div>
-                <div className="save-item">
+                <div
+                    className="save-item rollable"
+                    onClick={() => {
+                        const formula = `1d20${will >= 0 ? '+' : ''}${will}`;
+                        rollDice(formula, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.will') || 'Will'}`);
+                    }}
+                    title={`${t('dice.roll') || 'Roll'} ${t('stats.will') || 'Will'}`}
+                >
                     <span className="save-label">WILL</span>
                     <span className={`save-value ${will >= 0 ? 'positive' : 'negative'}`}>
                         {will >= 0 ? `+${will}` : will}

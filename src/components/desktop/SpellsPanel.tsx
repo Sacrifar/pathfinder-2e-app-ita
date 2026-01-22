@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, Proficiency } from '../../types';
-import { getSpells, LoadedSpell } from '../../data/pf2e-loader';
+import { getSpells, LoadedSpell, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
+import { extractDamageFromDescription, simplifyFoundryFormula } from '../../utils/pf2e-math';
 
 interface SpellsPanelProps {
     character: Character;
@@ -15,6 +17,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     onAddSpell: _onAddSpell,
 }) => {
     const { t } = useLanguage();
+    const { rollDice } = useDiceRoller();
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState<number | 'all'>('all');
@@ -129,6 +132,46 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             const spellSlug = s.id.toLowerCase().replace(/\s+/g, '-');
             return spellSlug === slug.toLowerCase();
         });
+    };
+
+    // Extract element from spell traits for dice coloring
+    const extractElementFromTraits = (traits: string[]): string | undefined => {
+        const elementalTraits = [
+            'air', 'fire', 'earth', 'metal', 'water', 'wood',  // Kineticist elements
+            'electricity', 'cold', 'acid', 'poison', 'sonic',    // Spell damage traits
+            'force', 'vitality', 'void', 'chaos'                 // Other spell traits
+        ];
+        return traits.find(t => elementalTraits.includes(t.toLowerCase()));
+    };
+
+    // Handle spell casting with damage rolls
+    const handleSpellCast = (spellId: string) => {
+        const spell = getSpellFromSlug(spellId);
+        if (!spell) return;
+
+        // Call the original onCastSpell callback
+        onCastSpell(spellId);
+
+        // Extract damage from spell description if present
+        const description = spell.rawDescription || spell.description;
+        const damages = extractDamageFromDescription(description);
+
+        if (damages && damages.length > 0) {
+            // Simplify damage formulas using character data
+            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+
+            // Extract element from traits for colored dice
+            const element = extractElementFromTraits(spell.traits);
+
+            if (simplifiedDamages.length === 1) {
+                // Single damage type
+                rollDice(simplifiedDamages[0], `${spell.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+            } else {
+                // Multiple damage types - combine them
+                const combinedDamage = simplifiedDamages.join(' + ');
+                rollDice(combinedDamage, `${spell.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+            }
+        }
     };
 
     // Spell slots display
@@ -260,7 +303,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                                         </div>
                                     </div>
                                 )}
-                                <p className="spell-description">{selectedSpell.description}</p>
+                                <p className="spell-description">{cleanDescriptionForDisplay(selectedSpell.rawDescription || selectedSpell.description)}</p>
                                 <button className="add-spell-btn" onClick={() => {
                                     // TODO: Add spell to character
                                     setShowBrowser(false);
@@ -364,7 +407,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                                     <span className="spell-name">{spell?.name || getSpellNameFromSlug(spellId)}</span>
                                     <button
                                         className="spell-cast-btn"
-                                        onClick={() => onCastSpell(spellId)}
+                                        onClick={() => handleSpellCast(spellId)}
                                     >
                                         {t('actions.cast') || 'Cast'}
                                     </button>

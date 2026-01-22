@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { ActionIcon } from '../../utils/actionIcons';
+import { cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 
 interface DetailModalProps {
     isOpen: boolean;
@@ -59,6 +60,7 @@ interface ActionDetailProps {
     name: string;
     cost: '1' | '2' | '3' | 'free' | 'reaction';
     description: string;
+    rawDescription?: string;
     traits: string[];
     skill?: string;
 }
@@ -66,6 +68,7 @@ interface ActionDetailProps {
 export const ActionDetailContent: React.FC<ActionDetailProps> = ({
     cost,
     description,
+    rawDescription,
     traits,
     skill,
 }) => {
@@ -76,7 +79,7 @@ export const ActionDetailContent: React.FC<ActionDetailProps> = ({
             <div className="action-cost-display">
                 <span className="cost-icon"><ActionIcon cost={cost} /></span>
             </div>
-            <p className="action-full-description">{description}</p>
+            <p className="action-full-description">{cleanDescriptionForDisplay(rawDescription || description)}</p>
             {skill && (
                 <div className="action-skill-info">
                     <span className="skill-label">{t('filters.skill') || 'Skill'}:</span>

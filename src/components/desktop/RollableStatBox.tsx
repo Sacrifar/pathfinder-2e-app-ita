@@ -70,7 +70,7 @@ export const RollableStatBox: React.FC<RollableStatBoxProps> = ({
             <span className="stat-box-label">{label}</span>
             <span className="stat-box-value">{formatValue(value)}</span>
             {modifier !== undefined && (
-                <span className="stat-box-roll-hint">🎲</span>
+                <span className="stat-box-roll-hint"><img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', verticalAlign: 'middle' }} /></span>
             )}
         </div>
     );

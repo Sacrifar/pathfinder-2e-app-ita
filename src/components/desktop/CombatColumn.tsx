@@ -26,24 +26,36 @@ const SkillItem = React.memo<{
     getProficiencyIcon: (prof: string) => string;
     getProficiencyColor: (prof: string) => string;
     onSkillClick?: (skillName: string) => void;
-}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor, onSkillClick }) => (
-    <div
-        className={`skill-item ${onSkillClick ? 'clickable' : ''}`}
-        onClick={() => onSkillClick?.(skill.name)}
-        style={onSkillClick ? { cursor: 'pointer' } : undefined}
-    >
-        <span className="skill-name">
-            {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
-        </span>
-        <div className="skill-modifier-container">
-            <span
-                className="skill-proficiency"
-                style={{ color: getProficiencyColor(skill.proficiency) }}
-            >
-                {getProficiencyIcon(skill.proficiency)}
+    onSkillRoll?: (skill: SkillDisplay) => void;
+}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor, onSkillClick, onSkillRoll }) => (
+    <div className="skill-item-wrapper">
+        <div
+            className={`skill-item ${onSkillClick ? 'clickable' : ''}`}
+            onClick={() => onSkillClick?.(skill.name)}
+            style={onSkillClick ? { cursor: 'pointer' } : undefined}
+        >
+            <span className="skill-name">
+                {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
             </span>
-            <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
+            <div className="skill-modifier-container">
+                <span
+                    className="skill-proficiency"
+                    style={{ color: getProficiencyColor(skill.proficiency) }}
+                >
+                    {getProficiencyIcon(skill.proficiency)}
+                </span>
+                <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
+            </div>
         </div>
+        {onSkillRoll && (
+            <button
+                className="skill-dice-btn"
+                onClick={() => onSkillRoll(skill)}
+                title={`${t('dice.roll') || 'Roll'} ${t(`skills.${skill.name.toLowerCase()}`) || skill.name}`}
+            >
+                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '18px', height: '18px' }} />
+            </button>
+        )}
     </div>
 ));
 
@@ -74,6 +86,13 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
     const handleInitiativeRoll = () => {
         const formula = `1d20${initiative >= 0 ? '+' : ''}${initiative}`;
         rollDice(formula, t('dice.initiative') || 'Initiative');
+    };
+
+    // Handle skill roll
+    const handleSkillRoll = (skill: SkillDisplay) => {
+        const formula = `1d20${skill.modifier >= 0 ? '+' : ''}${skill.modifier}`;
+        const skillName = t(`skills.${skill.name.toLowerCase()}`) || skill.name;
+        rollDice(formula, `${skillName} ${t('dice.check') || 'Check'}`);
     };
 
     const getProficiencyIcon = useMemo(() => (proficiency: string) => {
@@ -182,6 +201,7 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                             getProficiencyIcon={getProficiencyIcon}
                             getProficiencyColor={getProficiencyColor}
                             onSkillClick={onSkillClick}
+                            onSkillRoll={handleSkillRoll}
                         />
                     ))}
                 </div>

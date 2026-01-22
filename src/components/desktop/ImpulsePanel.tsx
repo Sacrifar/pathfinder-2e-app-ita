@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, CharacterFeat } from '../../types';
-import { getFeats, getActions, LoadedAction, LoadedFeat } from '../../data/pf2e-loader';
+import { getFeats, getActions, LoadedAction, LoadedFeat, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { getKineticistElementFromGateId } from '../../data/classSpecializations';
 import { ActionIcon } from '../../utils/actionIcons';
+import { calculateProficiencyBonusWithVariant, ProficiencyRank, getAbilityModifier, extractDamageFromDescription, simplifyFoundryFormula } from '../../utils/pf2e-math';
 
 interface ImpulsePanelProps {
     character: Character;
@@ -24,9 +26,27 @@ interface ImpulseFeatEntry {
 
 export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
     const { t } = useLanguage();
-    const [selectedBlastMode, setSelectedBlastMode] = useState<Record<string, 'one' | 'two'>>({});
+    const { rollDice } = useDiceRoller();
     const [selectedImpulse, setSelectedImpulse] = useState<ImpulseFeatEntry | null>(null);
     const [selectedBlast, setSelectedBlast] = useState<ElementalBlastEntry | null>(null);
+
+    // Blast options: melee and agile flags for each element (separate for 1-action and 2-action)
+    const [blastOptions, setBlastOptions] = useState<Record<string, { melee: boolean; agile: boolean }>>({});
+
+    // Elemental stance options - tracks active bonuses for each element
+    // Air: Crowned in Tempest's Fury (1d12 electricity)
+    // Fire: Ignite the Sun (1d6 fire), Furnace Form (extra die)
+    // Earth: Rebirth in Living Stone (1d10)
+    // Metal: Alloy Flesh and Steel (extra die)
+    // Wood: Living Bonfire (variable fire damage based on level)
+    const [elementalStanceActive, setElementalStanceActive] = useState<Record<string, {
+        tempestFury?: boolean;        // Air: 1d12 electricity
+        igniteTheSun?: boolean;       // Fire: 1d6 fire
+        furnaceForm?: boolean;        // Fire: extra die
+        rebirthInStone?: boolean;     // Earth: 1d10
+        alloyFlesh?: boolean;         // Metal: extra die
+        livingBonfire?: boolean;      // Wood: variable fire damage
+    }>>({});
 
     // Load all data
     const allFeats = useMemo(() => getFeats(), []);
@@ -99,7 +119,6 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             if (!isImpulse) continue;
 
             // Debug: log impulse found
-            console.log('[ImpulsePanel] Found impulse:', featData.name, 'featId:', feat.featId, 'matched ID:', featData.id);
 
             // Extract elements from traits
             const elementTraits = featData.traits.filter(trait =>
@@ -187,10 +206,6 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
     }, [character.feats, allFeats, characterElements, character.level, character.classId, allActions]);
 
     // Debug: log character data
-    console.log('[ImpulsePanel] Character elements:', characterElements);
-    console.log('[ImpulsePanel] Total character.feats:', character.feats.length);
-    console.log('[ImpulsePanel] Impulse feats found:', impulseFeats.length);
-    console.log('[ImpulsePanel] Impulse feats:', impulseFeats.map(i => i.data.name));
 
     // Group impulses by element
     const impulsesByElement = useMemo(() => {
@@ -224,12 +239,24 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         return { baseActions, elementalBlastAction };
     }, [allActions]);
 
-    // Toggle blast mode between 1 and 2 actions
-    const toggleBlastMode = (key: string) => {
-        setSelectedBlastMode(prev => ({
-            ...prev,
-            [key]: prev[key] === 'one' ? 'two' : 'one'
-        }));
+    // Toggle blast options (melee/agile) for specific element-action key
+    const toggleBlastOption = (key: string, option: 'melee' | 'agile') => {
+        setBlastOptions(prev => {
+            const current = prev[key] || { melee: false, agile: false };
+            return {
+                ...prev,
+                [key]: {
+                    ...current,
+                    [option]: !current[option]
+                }
+            };
+        });
+    };
+
+    // Get options for element-action combination, initializing if needed
+    const getBlastOptions = (element: string, isTwoActions: boolean) => {
+        const key = `${element}-${isTwoActions ? 'two' : 'one'}`;
+        return blastOptions[key] || { melee: false, agile: false };
     };
 
     // Get element color for styling
@@ -276,18 +303,210 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         }
     };
 
-    // Strip HTML tags from description
-    const stripHtml = (html: string): string => {
-        return html
-            .replace(/<[^>]*>/g, '')
-            .replace(/&quot;/g, '"')
-            .replace(/&amp;/g, '&')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&ldquo;/g, '"')
-            .replace(/&rdquo;/g, '"')
-            .replace(/&rsquo;/g, "'")
-            .replace(/&#8217;/g, "'")
-            .trim();
+
+    // Check if character has Weapon Infusion (uses weapon for attack bonus)
+    const hasWeaponInfusion = useMemo(() => {
+        return character.feats?.some(feat => {
+            const featData = allFeats.find(f => f.id === feat.featId);
+            return featData?.name.toLowerCase().includes('weapon infusion');
+        });
+    }, [character.feats, allFeats]);
+
+    // Get equipped weapon for Weapon Infusion (only for attack ability, NOT for damage)
+    const getInfusedWeapon = () => {
+        if (!hasWeaponInfusion) return null;
+        // Find weapon in equipment
+        const weaponItem = character.equipment?.find(e => {
+            const itemData = allFeats.find(f => f.id === e.id);
+            return itemData?.traits?.includes('weapon');
+        });
+        if (!weaponItem) return null;
+        return allFeats.find(f => f.id === weaponItem.id);
+    };
+
+    // Calculate Elemental Blast attack bonus
+    const getBlastAttackBonus = (): number => {
+        const conMod = getAbilityModifier(character.abilityScores.con);
+        const level = character.level || 1;
+        const profBonus = calculateProficiencyBonusWithVariant(
+            level,
+            ProficiencyRank.Trained,
+            character.variantRules?.proficiencyWithoutLevel
+        );
+
+        // If using Weapon Infusion, use weapon's attack ability score for attack
+        const infusedWeapon = getInfusedWeapon();
+        if (infusedWeapon) {
+            // Check for weapon customization override
+            const weaponItem = character.equipment?.find(e => e.id === infusedWeapon.id);
+            const customAbility = (weaponItem?.customization as any)?.attackAbilityOverride;
+            const weaponAbility = (infusedWeapon as any).attackAbility || 'con';
+
+            const weaponAbilityMod = customAbility
+                ? getAbilityModifier(character.abilityScores[customAbility as keyof typeof character.abilityScores] || 10)
+                : getAbilityModifier(character.abilityScores[weaponAbility as keyof typeof character.abilityScores] || 10);
+
+            return weaponAbilityMod + profBonus;
+        }
+
+        return conMod + profBonus;
+    };
+
+    // Calculate Elemental Blast damage
+    // Uses the isMelee parameter from checkbox instead of feat detection
+    // Weapon Infusion does NOT change damage dice - blast always uses its own damage
+    const getBlastDamage = (isTwoActions: boolean, isMelee: boolean, element: string): string => {
+        const conMod = getAbilityModifier(character.abilityScores.con);
+        const strMod = getAbilityModifier(character.abilityScores.str);
+        const level = character.level || 1;
+
+        // Base damage dice increases with level
+        let diceCount = 1;
+        if (level >= 4) diceCount = 2;
+        if (level >= 10) diceCount = 3;
+        if (level >= 16) diceCount = 4;
+
+        // Determine die size based on element
+        // Air, Fire: d6 | Earth, Metal, Water, Wood: d8
+        const elementLower = element.toLowerCase();
+        const dieSize = ['air', 'fire'].includes(elementLower) ? 6 : 8;
+        const damageDice = `${diceCount}d${dieSize}`;
+
+        // Calculate damage modifier based on actions and melee/ranged from checkbox
+        let damageMod = 0;
+
+        if (isTwoActions) {
+            // Two-action blast: CON + STR (if melee) or just CON (if ranged)
+            damageMod = conMod + (isMelee ? strMod : 0);
+        } else {
+            // One-action blast: only STR (if melee) or nothing (if ranged)
+            damageMod = isMelee ? strMod : 0;
+        }
+
+        // Build base damage string
+        let damageString = damageDice;
+        let totalModifier = damageMod;
+
+        // Check for elemental stance bonuses
+        const elementStances = elementalStanceActive[elementLower] || {};
+
+        // Air: Crowned in Tempest's Fury (+1d12 electricity)
+        if (elementLower === 'air' && elementStances.tempestFury) {
+            damageString += '+1d12';
+        }
+
+        // Fire: Ignite the Sun (+1d6 fire)
+        if (elementLower === 'fire' && elementStances.igniteTheSun) {
+            damageString += '+1d6';
+        }
+
+        // Fire: Furnace Form (adds an extra die of damage)
+        if (elementLower === 'fire' && elementStances.furnaceForm) {
+            // Add one more die of the same size (e.g., 4d6 becomes 5d6)
+            damageString = damageString.replace(damageDice, `${diceCount + 1}d${dieSize}`);
+        }
+
+        // Earth: Rebirth in Living Stone (+1d10 of normal type)
+        if (elementLower === 'earth' && elementStances.rebirthInStone) {
+            damageString += '+1d10';
+        }
+
+        // Metal: Alloy Flesh and Steel (adds an extra die of damage)
+        if (elementLower === 'metal' && elementStances.alloyFlesh) {
+            damageString = damageString.replace(damageDice, `${diceCount + 1}d${dieSize}`);
+        }
+
+        // Wood: Living Bonfire (+variable fire damage based on level)
+        // Formula: (floor((@actor.level -4)/5)+1)d6[fire]
+        if (elementLower === 'wood' && elementStances.livingBonfire) {
+            const level = character.level || 1;
+            const bonfireDice = Math.floor((level - 4) / 5) + 1;
+            if (bonfireDice > 0) {
+                damageString += `+${bonfireDice}d6`;
+            }
+        }
+
+        // Add modifier at the end (after all dice)
+        if (totalModifier > 0) {
+            damageString += `+${totalModifier}`;
+        }
+
+        return damageString;
+    };
+
+    // Handle Elemental Blast attack roll
+    const handleBlastAttackRoll = (element: string) => {
+        const attackBonus = getBlastAttackBonus();
+        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+        const elementLabel = t(`elements.${element}`) || element;
+        rollDice(formula, `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel}) - ${t('weapons.attack') || 'Attack'}`);
+    };
+
+    // Handle Elemental Blast damage roll
+    const handleBlastDamageRoll = (element: string, isTwoActions: boolean, isMelee: boolean) => {
+        const damage = getBlastDamage(isTwoActions, isMelee, element);
+        const elementLabel = t(`elements.${element}`) || element;
+        const actionLabel = isTwoActions
+            ? (t('actions.twoActionsShort') || '2a')
+            : (t('actions.oneActionShort') || '1a');
+        const rangeLabel = isMelee
+            ? (t('weapons.melee') || 'Melee')
+            : (t('weapons.ranged') || 'Ranged');
+        rollDice(damage, `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel}) - ${actionLabel} - ${rangeLabel} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+    };
+
+    // Check if an impulse is an attack (has 'attack' trait)
+    const isAttackImpulse = (impulse: ImpulseFeatEntry): boolean => {
+        return impulse.data.traits.includes('attack');
+    };
+
+    // Check if an impulse deals damage (has @Damage tag in description)
+    const isDamageImpulse = (impulse: ImpulseFeatEntry): boolean => {
+        const description = impulse.data.rawDescription || impulse.data.description;
+        return description.includes('@Damage');
+    };
+
+    // Handle impulse attack roll (uses same bonus as Elemental Blast)
+    const handleImpulseAttackRoll = (impulse: ImpulseFeatEntry) => {
+        const attackBonus = getBlastAttackBonus();
+        const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+        rollDice(formula, `${impulse.data.name} - ${t('weapons.attack') || 'Attack'}`);
+    };
+
+    // Handle impulse damage roll - extracts damage from description
+    const handleImpulseDamageRoll = (impulse: ImpulseFeatEntry) => {
+        // Try to extract damage from raw description using @Damage tags
+        const description = impulse.data.rawDescription || impulse.data.description;
+        const damages = extractDamageFromDescription(description);
+
+        // Get the primary element for this impulse (for colored dice)
+        // Use the first element from impulse.elements, or 'general' if none
+        const element = impulse.elements.find(e =>
+            ['air', 'earth', 'fire', 'water', 'wood', 'metal'].includes(e)
+        ) || 'general';
+
+        if (damages && damages.length > 0) {
+            // Simplify each damage formula using character data
+            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+
+            if (simplifiedDamages.length === 1) {
+                // Single damage type - roll directly with element info
+                rollDice(simplifiedDamages[0], `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+            } else {
+                // Multiple damage types - combine them
+                const combinedDamage = simplifiedDamages.join(' + ');
+                rollDice(combinedDamage, `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+            }
+        } else {
+            // No damage found in description - prompt user
+            const damagePrompt = prompt(
+                `${t('impulse.enterDamageFormula') || 'Enter damage formula (e.g., 4d6+2, 2d8+4)'}:\n${impulse.data.name}`,
+                '2d8'
+            );
+            if (damagePrompt) {
+                rollDice(damagePrompt.trim(), `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+            }
+        }
     };
 
     return (
@@ -345,64 +564,190 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                             </div>
                         ))}
 
-                        {/* Elemental Blast - shows all character elements */}
-                        {baseKineticistActions.elementalBlastAction && characterElements.map((element) => {
-                            const blastKey = `elemental-blast-${element}`;
-                            const currentMode = selectedBlastMode[blastKey] || 'one';
+                        {/* Elemental Blast - two separate cards per element (1-action and 2-action) */}
+                        {baseKineticistActions.elementalBlastAction && characterElements.flatMap((element) => {
+                            // Create two separate cards: one for 1-action, one for 2-action
+                            return [false, true].map((isTwoActions) => {
+                                const blastKey = `${element}-${isTwoActions ? 'two' : 'one'}`;
+                                const options = getBlastOptions(element, isTwoActions);
+                                const isMelee = options.melee;
+                                const isAgile = options.agile;
 
-                            return (
-                                <div
-                                    key={blastKey}
-                                    className="impulse-card blast-card clickable"
-                                    style={{
-                                        borderLeft: `4px solid ${getElementColor(element)}`
-                                    }}
-                                    onClick={() => setSelectedBlast({
-                                        action: baseKineticistActions.elementalBlastAction!,
-                                        oneActionVersion: baseKineticistActions.elementalBlastAction!,
-                                        twoActionVersion: baseKineticistActions.elementalBlastAction!,
-                                        element,
-                                    })}
-                                >
-                                    <div className="impulse-header">
-                                        <span className="impulse-element-icon">
-                                            {getElementIcon(element)}
-                                        </span>
-                                        <span className="impulse-name">
-                                            {baseKineticistActions.elementalBlastAction!.name}
-                                        </span>
-                                        <span className="impulse-element-badge">{element}</span>
-                                    </div>
+                                return (
+                                    <div
+                                        key={blastKey}
+                                        className="impulse-card blast-card"
+                                        style={{
+                                            borderLeft: `4px solid ${getElementColor(element)}`
+                                        }}
+                                    >
+                                        <div className="blast-card-header" onClick={() => setSelectedBlast({
+                                            action: baseKineticistActions.elementalBlastAction!,
+                                            oneActionVersion: baseKineticistActions.elementalBlastAction!,
+                                            twoActionVersion: baseKineticistActions.elementalBlastAction!,
+                                            element,
+                                        })}>
+                                            <div className="impulse-header">
+                                                <span className="impulse-element-icon">
+                                                    {getElementIcon(element)}
+                                                </span>
+                                                <span className="impulse-name">
+                                                    {baseKineticistActions.elementalBlastAction!.name}
+                                                </span>
+                                            </div>
 
-                                    <div className="impulse-cost">
-                                        <span className={`blast-mode-btn ${currentMode === 'one' ? 'active' : ''}`}
-                                            style={{ marginRight: '4px', fontSize: '12px', padding: '2px 6px' }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleBlastMode(blastKey);
-                                            }}>
-                                            {t('actions.oneActionShort') || '1a'}
-                                        </span>
-                                        <span className={`blast-mode-btn ${currentMode === 'two' ? 'active' : ''}`}
-                                            style={{ fontSize: '12px', padding: '2px 6px' }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleBlastMode(blastKey);
-                                            }}>
-                                            {t('actions.twoActionsShort') || '2a'}
-                                        </span>
-                                    </div>
+                                            <div className="impulse-cost">
+                                                <ActionIcon cost={isTwoActions ? '2' : '1'} />
+                                                <span className="cost-label">{getActionCostLabel(isTwoActions ? '2' : '1')}</span>
+                                            </div>
 
-                                    <div className="impulse-traits">
-                                        <span className="trait-badge">{element}</span>
-                                        {baseKineticistActions.elementalBlastAction!.traits.slice(0, 3).map(trait => (
-                                            <span key={trait} className="trait-badge">
-                                                {t(`traits.${trait}`) || trait}
-                                            </span>
-                                        ))}
+                                            <div className="impulse-traits">
+                                                <span className="trait-badge">{element}</span>
+                                                {baseKineticistActions.elementalBlastAction!.traits.slice(0, 3).map(trait => (
+                                                    <span key={trait} className="trait-badge">
+                                                        {t(`traits.${trait}`) || trait}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Blast Options: Melee and Agile checkboxes */}
+                                        <div className="blast-options">
+                                            <label className="blast-option-checkbox">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isMelee}
+                                                    onChange={() => toggleBlastOption(blastKey, 'melee')}
+                                                />
+                                                <span>{t('weapons.melee') || 'Melee'}</span>
+                                            </label>
+                                            <label className="blast-option-checkbox">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isAgile}
+                                                    onChange={() => toggleBlastOption(blastKey, 'agile')}
+                                                />
+                                                <span>{t('weapons.agile') || 'Agile'}</span>
+                                            </label>
+                                            {/* Elemental Stance Bonuses */}
+                                            {element === 'air' && (
+                                                <label className="blast-option-checkbox" title="Crowned in Tempest's Fury: +1d12 electricity damage">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={elementalStanceActive['air']?.tempestFury || false}
+                                                        onChange={() => {
+                                                            setElementalStanceActive(prev => ({
+                                                                ...prev,
+                                                                'air': { ...prev['air'], tempestFury: !prev['air']?.tempestFury }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span>⚡ Tempest's Fury</span>
+                                                </label>
+                                            )}
+                                            {element === 'fire' && (
+                                                <>
+                                                    <label className="blast-option-checkbox" title="Ignite the Sun: +1d6 fire damage">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={elementalStanceActive['fire']?.igniteTheSun || false}
+                                                            onChange={() => {
+                                                                setElementalStanceActive(prev => ({
+                                                                    ...prev,
+                                                                    'fire': { ...prev['fire'], igniteTheSun: !prev['fire']?.igniteTheSun }
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <span>☀️ Ignite the Sun</span>
+                                                    </label>
+                                                    <label className="blast-option-checkbox" title="Furnace Form: +1 die damage">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={elementalStanceActive['fire']?.furnaceForm || false}
+                                                            onChange={() => {
+                                                                setElementalStanceActive(prev => ({
+                                                                    ...prev,
+                                                                    'fire': { ...prev['fire'], furnaceForm: !prev['fire']?.furnaceForm }
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <span>🔥 Furnace Form</span>
+                                                    </label>
+                                                </>
+                                            )}
+                                            {element === 'earth' && (
+                                                <label className="blast-option-checkbox" title="Rebirth in Living Stone: +1d10 damage">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={elementalStanceActive['earth']?.rebirthInStone || false}
+                                                        onChange={() => {
+                                                            setElementalStanceActive(prev => ({
+                                                                ...prev,
+                                                                'earth': { ...prev['earth'], rebirthInStone: !prev['earth']?.rebirthInStone }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span>🪨 Rebirth in Stone</span>
+                                                </label>
+                                            )}
+                                            {element === 'metal' && (
+                                                <label className="blast-option-checkbox" title="Alloy Flesh and Steel: +1 die damage">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={elementalStanceActive['metal']?.alloyFlesh || false}
+                                                        onChange={() => {
+                                                            setElementalStanceActive(prev => ({
+                                                                ...prev,
+                                                                'metal': { ...prev['metal'], alloyFlesh: !prev['metal']?.alloyFlesh }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span>⚙️ Alloy Flesh</span>
+                                                </label>
+                                            )}
+                                            {element === 'wood' && (
+                                                <label className="blast-option-checkbox" title="Living Bonfire: +variable fire damage">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={elementalStanceActive['wood']?.livingBonfire || false}
+                                                        onChange={() => {
+                                                            setElementalStanceActive(prev => ({
+                                                                ...prev,
+                                                                'wood': { ...prev['wood'], livingBonfire: !prev['wood']?.livingBonfire }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span>🪵 Living Bonfire</span>
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        {/* Dice Roll Buttons for Blast */}
+                                        <div className="blast-dice-buttons">
+                                            <button
+                                                className="blast-dice-btn attack"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleBlastAttackRoll(element);
+                                                }}
+                                                title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
+                                            >
+                                                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} /> {t('weapons.attack') || 'Attack'}
+                                            </button>
+                                            <button
+                                                className="blast-dice-btn damage"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleBlastDamageRoll(element, isTwoActions, isMelee);
+                                                }}
+                                                title={`${t('weapons.damageRoll') || 'Damage Roll'}: ${getBlastDamage(isTwoActions, isMelee, element)}`}
+                                            >
+                                                🎲 {t('weapons.damage') || 'Damage'}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
+                                );
+                            });
                         })}
                     </div>
                 </div>
@@ -429,77 +774,109 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                     <span className="element-count">{impulses.length}</span>
                                 </div>
                                 <div className="impulse-grid">
-                                    {impulses.map((impulse) => (
-                                        <div
-                                            key={impulse.feat.featId}
-                                            className="impulse-card clickable"
-                                            style={{
-                                                borderLeft: `4px solid ${getElementColor(element)}`
-                                            }}
-                                            onClick={() => setSelectedImpulse(impulse)}
-                                        >
-                                            <div className="impulse-header">
-                                                <span className="impulse-level">
-                                                    {impulse.data.level}
-                                                </span>
-                                                <span className="impulse-name">
-                                                    {impulse.data.name}
-                                                </span>
-                                            </div>
+                                    {impulses.map((impulse) => {
+                                        const isAttack = isAttackImpulse(impulse);
+                                        const hasDamage = isDamageImpulse(impulse);
+                                        return (
+                                            <div
+                                                key={impulse.feat.featId}
+                                                className={`impulse-card ${isAttack || hasDamage ? 'blast-card' : 'clickable'}`}
+                                                style={{
+                                                    borderLeft: `4px solid ${getElementColor(element)}`
+                                                }}
+                                                onClick={() => setSelectedImpulse(impulse)}
+                                            >
+                                                <div className="impulse-header">
+                                                    <span className="impulse-level">
+                                                        {impulse.data.level}
+                                                    </span>
+                                                    <span className="impulse-name">
+                                                        {impulse.data.name}
+                                                    </span>
+                                                </div>
 
-                                            <div className="impulse-cost">
-                                                {impulse.data.altActionCosts && impulse.data.altActionCosts.length > 0 ? (
-                                                    // Has alternative action costs (e.g., reaction OR 2-action)
-                                                    <div className="multi-cost">
-                                                        {impulse.data.actionType === 'reaction' && (
-                                                            <span className="cost-option">
-                                                                <ActionIcon cost="reaction" />
-                                                                <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
-                                                            </span>
+                                                <div className="impulse-cost">
+                                                    {impulse.data.altActionCosts && impulse.data.altActionCosts.length > 0 ? (
+                                                        // Has alternative action costs (e.g., reaction OR 2-action)
+                                                        <div className="multi-cost">
+                                                            {impulse.data.actionType === 'reaction' && (
+                                                                <span className="cost-option">
+                                                                    <ActionIcon cost="reaction" />
+                                                                    <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
+                                                                </span>
+                                                            )}
+                                                            {impulse.data.altActionCosts.map(cost => (
+                                                                <span key={cost} className="cost-option">
+                                                                    <ActionIcon cost={String(cost) as '1' | '2' | '3'} />
+                                                                    <span className="cost-label">{getActionCostLabel(String(cost))}</span>
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : impulse.data.actionType === 'passive' ? (
+                                                        <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                    ) : impulse.data.actionType === 'free' ? (
+                                                        <>
+                                                            <ActionIcon cost="free" />
+                                                            <span className="cost-label">{t('actions.free') || 'Free'}</span>
+                                                        </>
+                                                    ) : impulse.data.actionType === 'reaction' ? (
+                                                        <>
+                                                            <ActionIcon cost="reaction" />
+                                                            <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
+                                                        </>
+                                                    ) : impulse.data.actionCost ? (
+                                                        <>
+                                                            <ActionIcon cost={String(impulse.data.actionCost) as '1' | '2' | '3'} />
+                                                            <span className="cost-label">{getActionCostLabel(String(impulse.data.actionCost))}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="impulse-traits">
+                                                    {impulse.data.traits.slice(0, 4).map(trait => (
+                                                        <span key={trait} className="trait-badge">
+                                                            {t(`traits.${trait}`) || trait}
+                                                        </span>
+                                                    ))}
+                                                    {impulse.data.traits.length > 4 && (
+                                                        <span className="trait-badge">
+                                                            +{impulse.data.traits.length - 4}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Dice Roll Buttons for Attack and Damage Impulses */}
+                                                {(isAttack || hasDamage) && (
+                                                    <div className="blast-dice-buttons">
+                                                        {isAttack && (
+                                                            <button
+                                                                className="blast-dice-btn attack"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleImpulseAttackRoll(impulse);
+                                                                }}
+                                                                title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
+                                                            >
+                                                                🎲 {t('weapons.attack') || 'Attack'}
+                                                            </button>
                                                         )}
-                                                        {impulse.data.altActionCosts.map(cost => (
-                                                            <span key={cost} className="cost-option">
-                                                                <ActionIcon cost={String(cost) as '1' | '2' | '3'} />
-                                                                <span className="cost-label">{getActionCostLabel(String(cost))}</span>
-                                                            </span>
-                                                        ))}
+                                                        <button
+                                                            className="blast-dice-btn damage"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleImpulseDamageRoll(impulse);
+                                                            }}
+                                                            title={t('weapons.damageRoll') || 'Damage Roll'}
+                                                        >
+                                                            🎲 {t('weapons.damage') || 'Damage'}
+                                                        </button>
                                                     </div>
-                                                ) : impulse.data.actionType === 'passive' ? (
-                                                    <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
-                                                ) : impulse.data.actionType === 'free' ? (
-                                                    <>
-                                                        <ActionIcon cost="free" />
-                                                        <span className="cost-label">{t('actions.free') || 'Free'}</span>
-                                                    </>
-                                                ) : impulse.data.actionType === 'reaction' ? (
-                                                    <>
-                                                        <ActionIcon cost="reaction" />
-                                                        <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
-                                                    </>
-                                                ) : impulse.data.actionCost ? (
-                                                    <>
-                                                        <ActionIcon cost={String(impulse.data.actionCost) as '1' | '2' | '3'} />
-                                                        <span className="cost-label">{getActionCostLabel(String(impulse.data.actionCost))}</span>
-                                                    </>
-                                                ) : (
-                                                    <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
                                                 )}
                                             </div>
-
-                                            <div className="impulse-traits">
-                                                {impulse.data.traits.slice(0, 4).map(trait => (
-                                                    <span key={trait} className="trait-badge">
-                                                        {t(`traits.${trait}`) || trait}
-                                                    </span>
-                                                ))}
-                                                {impulse.data.traits.length > 4 && (
-                                                    <span className="trait-badge">
-                                                        +{impulse.data.traits.length - 4}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))}
@@ -568,7 +945,134 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                 </div>
 
                                 <div className="modal-description">
-                                    {stripHtml(selectedBlast.action.description)}
+                                    {cleanDescriptionForDisplay(selectedBlast.action.rawDescription || selectedBlast.action.description)}
+                                </div>
+
+                                {/* Blast Options in Modal */}
+                                <div className="blast-options" style={{ marginTop: '12px' }}>
+                                    {selectedBlast.element === 'air' && (
+                                        <label className="blast-option-checkbox" title="Crowned in Tempest's Fury: +1d12 electricity damage">
+                                            <input
+                                                type="checkbox"
+                                                checked={elementalStanceActive['air']?.tempestFury || false}
+                                                onChange={() => {
+                                                    setElementalStanceActive(prev => ({
+                                                        ...prev,
+                                                        'air': { ...prev['air'], tempestFury: !prev['air']?.tempestFury }
+                                                    }));
+                                                }}
+                                            />
+                                            <span>⚡ Tempest's Fury</span>
+                                        </label>
+                                    )}
+                                    {selectedBlast.element === 'fire' && (
+                                        <>
+                                            <label className="blast-option-checkbox" title="Ignite the Sun: +1d6 fire damage">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={elementalStanceActive['fire']?.igniteTheSun || false}
+                                                    onChange={() => {
+                                                        setElementalStanceActive(prev => ({
+                                                            ...prev,
+                                                            'fire': { ...prev['fire'], igniteTheSun: !prev['fire']?.igniteTheSun }
+                                                        }));
+                                                    }}
+                                                />
+                                                <span>☀️ Ignite the Sun</span>
+                                            </label>
+                                            <label className="blast-option-checkbox" title="Furnace Form: +1 die damage">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={elementalStanceActive['fire']?.furnaceForm || false}
+                                                    onChange={() => {
+                                                        setElementalStanceActive(prev => ({
+                                                            ...prev,
+                                                            'fire': { ...prev['fire'], furnaceForm: !prev['fire']?.furnaceForm }
+                                                        }));
+                                                    }}
+                                                />
+                                                <span>🔥 Furnace Form</span>
+                                            </label>
+                                        </>
+                                    )}
+                                    {selectedBlast.element === 'earth' && (
+                                        <label className="blast-option-checkbox" title="Rebirth in Living Stone: +1d10 damage">
+                                            <input
+                                                type="checkbox"
+                                                checked={elementalStanceActive['earth']?.rebirthInStone || false}
+                                                onChange={() => {
+                                                    setElementalStanceActive(prev => ({
+                                                        ...prev,
+                                                        'earth': { ...prev['earth'], rebirthInStone: !prev['earth']?.rebirthInStone }
+                                                    }));
+                                                }}
+                                            />
+                                            <span>🪨 Rebirth in Stone</span>
+                                        </label>
+                                    )}
+                                    {selectedBlast.element === 'metal' && (
+                                        <label className="blast-option-checkbox" title="Alloy Flesh and Steel: +1 die damage">
+                                            <input
+                                                type="checkbox"
+                                                checked={elementalStanceActive['metal']?.alloyFlesh || false}
+                                                onChange={() => {
+                                                    setElementalStanceActive(prev => ({
+                                                        ...prev,
+                                                        'metal': { ...prev['metal'], alloyFlesh: !prev['metal']?.alloyFlesh }
+                                                    }));
+                                                }}
+                                            />
+                                            <span>⚙️ Alloy Flesh</span>
+                                        </label>
+                                    )}
+                                    {selectedBlast.element === 'wood' && (
+                                        <label className="blast-option-checkbox" title="Living Bonfire: +variable fire damage">
+                                            <input
+                                                type="checkbox"
+                                                checked={elementalStanceActive['wood']?.livingBonfire || false}
+                                                onChange={() => {
+                                                    setElementalStanceActive(prev => ({
+                                                        ...prev,
+                                                        'wood': { ...prev['wood'], livingBonfire: !prev['wood']?.livingBonfire }
+                                                    }));
+                                                }}
+                                            />
+                                            <span>🪵 Living Bonfire</span>
+                                        </label>
+                                    )}
+                                </div>
+
+                                {/* Dice Roll Buttons for Blast Modal */}
+                                <div className="modal-dice-buttons" style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        className="blast-dice-btn attack"
+                                        onClick={() => handleBlastAttackRoll(selectedBlast.element)}
+                                        title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
+                                    >
+                                        🎲 {t('weapons.attack') || 'Attack'}
+                                    </button>
+                                    {/* 1-action blast damage */}
+                                    <button
+                                        className="blast-dice-btn damage"
+                                        onClick={() => {
+                                            const options = getBlastOptions(selectedBlast.element, false);
+                                            handleBlastDamageRoll(selectedBlast.element, false, options.melee);
+                                        }}
+                                        title={`1a ${t('weapons.damageRoll') || 'Damage'}`}
+                                    >
+                                        🎲 1a {t('weapons.damage') || 'Damage'}
+                                    </button>
+                                    {/* 2-action blast damage */}
+                                    <button
+                                        className="blast-dice-btn damage"
+                                        onClick={() => {
+                                            const options = getBlastOptions(selectedBlast.element, true);
+                                            handleBlastDamageRoll(selectedBlast.element, true, options.melee);
+                                        }}
+                                        title={`2a ${t('weapons.damageRoll') || 'Damage'}`}
+                                    >
+                                        🎲 2a {t('weapons.damage') || 'Damage'}
+                                    </button>
                                 </div>
                             </>
                         )}
@@ -639,8 +1143,34 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                 </div>
 
                                 <div className="modal-description">
-                                    {stripHtml(selectedImpulse.data.description)}
+                                    {cleanDescriptionForDisplay(selectedImpulse.data.rawDescription || selectedImpulse.data.description)}
                                 </div>
+
+                                {/* Dice Roll Buttons in Modal */}
+                                {(() => {
+                                    const isAttack = isAttackImpulse(selectedImpulse);
+                                    const hasDamage = isDamageImpulse(selectedImpulse);
+                                    return (isAttack || hasDamage) && (
+                                        <div className="modal-dice-buttons" style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                                            {isAttack && (
+                                                <button
+                                                    className="blast-dice-btn attack"
+                                                    onClick={() => handleImpulseAttackRoll(selectedImpulse)}
+                                                    title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
+                                                >
+                                                    🎲 {t('weapons.attack') || 'Attack'}
+                                                </button>
+                                            )}
+                                            <button
+                                                className="blast-dice-btn damage"
+                                                onClick={() => handleImpulseDamageRoll(selectedImpulse)}
+                                                title={t('weapons.damageRoll') || 'Damage Roll'}
+                                            >
+                                                🎲 {t('weapons.damage') || 'Damage'}
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
                             </>
                         )}
                     </div>

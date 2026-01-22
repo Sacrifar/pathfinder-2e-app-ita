@@ -403,7 +403,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                             onClick={() => handleAttackRoll(weapon, 1)}
                                             title={t('weapons.rollAttack') || 'Roll Attack'}
                                         >
-                                            🎲
+                                            <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '20px', height: '20px' }} />
                                         </button>
 
                                         {/* MAP Attack Buttons - show only numbers */}

@@ -243,6 +243,7 @@ export interface LoadedAction {
     category: string;
     traits: string[];
     description: string;
+    rawDescription?: string; // Raw description with FoundryVTT tags like @Damage[...], @Check[...], etc.
     filePath: string;  // Path to the JSON file (e.g., './pf2e/actions/class/alchemist/quick-alchemy.json')
 }
 
@@ -260,6 +261,7 @@ export interface LoadedSpell {
     damage: string | null;
     save: string | null;
     description: string;
+    rawDescription?: string;
 }
 
 export interface LoadedFeat {
@@ -275,6 +277,7 @@ export interface LoadedFeat {
     rarity: string;
     prerequisites: string[];
     description: string;
+    rawDescription?: string; // Raw description with FoundryVTT tags like @Damage[...], @Check[...], etc.
     rules?: any[];
     subfeatures?: {
         proficiencies?: {
@@ -333,6 +336,7 @@ export interface LoadedArmor {
     traits: string[];
     rarity: string;
     description: string;
+    rawDescription?: string;
 }
 
 export interface LoadedShield {
@@ -349,6 +353,7 @@ export interface LoadedShield {
     traits: string[];
     rarity: string;
     description: string;
+    rawDescription?: string;
 }
 
 export interface LoadedAncestry {
@@ -427,6 +432,7 @@ export interface LoadedGear {
     traits: string[];
     rarity: string;
     description: string;
+    rawDescription?: string;
     category: 'equipment' | 'consumable' | 'treasure' | 'backpack' | 'kit';
     qty?: number;
 }
@@ -468,6 +474,7 @@ function transformAction(raw: RawPF2eItem, filePath: string): LoadedAction | nul
     if (raw.type !== 'action') return null;
 
     const sys = raw.system as unknown as RawActionSystem;
+    const description = sys.description?.value || '';
 
     let cost: LoadedAction['cost'] = '1';
     if (sys.actionType?.value === 'free') cost = 'free';
@@ -482,7 +489,8 @@ function transformAction(raw: RawPF2eItem, filePath: string): LoadedAction | nul
         cost,
         category: sys.category || 'basic',
         traits: sys.traits?.value || [],
-        description: stripHtml(sys.description?.value || ''),
+        description: stripHtml(description),
+        rawDescription: description, // Keep original HTML with all FoundryVTT tags
         filePath,
     };
 }
@@ -527,6 +535,7 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
         damage,
         save,
         description: stripHtml(sys.description?.value || ''),
+        rawDescription: sys.description?.value || '', // Keep original HTML with all FoundryVTT tags
     };
 }
 
@@ -644,7 +653,8 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
         traits: sys.traits?.value || [],
         rarity: sys.traits?.rarity || 'common',
         prerequisites,
-        description: stripHtml(description),
+        description: stripHtml(description), // For display purposes
+        rawDescription: description, // Keep original HTML with all FoundryVTT tags
         rules: sys.rules,
         subfeatures: sys.subfeatures,
     };
@@ -731,6 +741,7 @@ function transformArmor(raw: RawPF2eItem): LoadedArmor | null {
         traits: sys.traits?.value || [],
         rarity: sys.traits?.rarity || 'common',
         description: stripHtml(sys.description?.value || ''),
+        rawDescription: sys.description?.value || '',
     };
 }
 
@@ -755,6 +766,7 @@ function transformShield(raw: RawPF2eItem): LoadedShield | null {
         traits: sys.traits?.value || [],
         rarity: sys.traits?.rarity || 'common',
         description: stripHtml(sys.description?.value || ''),
+        rawDescription: sys.description?.value || '',
     };
 }
 
@@ -1051,6 +1063,51 @@ function stripHtml(html: string): string {
         .trim();
 }
 
+/**
+ * Clean HTML but preserve FoundryVTT game mechanic tags like @Damage[...], @Check[...], etc.
+ * This is for display purposes - removes HTML formatting but keeps game data intact
+ * @param html The HTML string with FoundryVTT tags
+ * @returns Cleaned text with game mechanic tags preserved
+ */
+export function cleanDescriptionForDisplay(html: string): string {
+    if (!html) return '';
+
+    // Remove HTML tags but preserve FoundryVTT special tags by temporarily replacing them
+    const replacements: Record<string, string> = {};
+    let tempCounter = 0;
+
+    // Protect FoundryVTT tags
+    const tempHtml = html.replace(/@(?:Damage|Check|Template|UUID|Localize|Action|Condition)\[([^\]]+)\]/gi, (match) => {
+        const placeholder = `__FOUNDRYVT_TAG_${tempCounter}__`;
+        replacements[placeholder] = match;
+        tempCounter++;
+        return placeholder;
+    });
+
+    // Now remove HTML tags
+    let cleaned = tempHtml.replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&ldquo;/g, '"')
+        .replace(/&rdquo;/g, '"')
+        .replace(/&lsquo;/g, "'")
+        .replace(/&rsquo;/g, "'")
+        .replace(/&#8217;/g, "'")
+        .replace(/\\n/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Restore FoundryVTT tags
+    Object.entries(replacements).forEach(([placeholder, original]) => {
+        cleaned = cleaned.replace(placeholder, original);
+    });
+
+    return cleaned;
+}
+
 function transformGear(raw: RawPF2eItem): LoadedGear | null {
     // Filter for gear types only (exclude weapon, armor, shield)
     const validTypes = ['equipment', 'consumable', 'treasure', 'backpack', 'kit'];
@@ -1078,6 +1135,7 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
         traits: sys.traits?.value || [],
         rarity: sys.traits?.rarity || 'common',
         description: stripHtml(sys.description?.value || ''),
+        rawDescription: sys.description?.value || '',
         category,
         qty: sys.quantity ?? sys.uses?.value ?? 1,
     };

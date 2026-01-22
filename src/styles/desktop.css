@@ -461,6 +461,12 @@
     min-height: 0;
 }
 
+.skill-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .skill-item {
     display: flex;
     justify-content: space-between;
@@ -469,11 +475,32 @@
     background: var(--desktop-bg);
     border-radius: 4px;
     font-size: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.skill-dice-btn {
+    padding: 4px 6px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.skill-dice-btn:hover {
+    background: var(--desktop-accent-green);
+    border-color: var(--desktop-accent-green);
 }
 
 .skill-name {
     font-weight: 500;
     color: var(--desktop-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .skill-modifier-container {
@@ -961,6 +988,17 @@
     background: var(--desktop-bg);
     border-radius: 4px;
     min-width: 50px;
+}
+
+.save-item.rollable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.save-item.rollable:hover {
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-accent-blue);
+    transform: translateY(-1px);
 }
 
 .save-label {
@@ -1529,6 +1567,30 @@
 
 .stat-box.ac .stat-box-value {
     color: var(--desktop-accent-blue);
+}
+
+/* Saving Throws */
+.stat-box.save-box {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stat-box.save-box:hover {
+    background: var(--desktop-bg-hover);
+    border-color: var(--desktop-accent-blue);
+    transform: translateY(-1px);
+}
+
+.stat-box.save-box .stat-box-value {
+    color: var(--desktop-accent-green);
+}
+
+.stat-box.save-box:hover .stat-box-value {
+    color: var(--desktop-accent-blue);
+}
+
+.stat-box.ability-box .stat-box-value {
+    font-size: 16px;
 }
 
 .stats-header-right {
@@ -6659,6 +6721,95 @@
 
 .blast-card {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.03));
+}
+
+.blast-card-header {
+    cursor: pointer;
+}
+
+.blast-dice-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--desktop-border);
+}
+
+.blast-dice-btn {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 4px;
+    color: var(--desktop-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.blast-dice-btn:hover {
+    background: var(--desktop-bg-secondary, rgba(255, 255, 255, 0.08));
+    border-color: var(--desktop-accent-blue);
+}
+
+.blast-dice-btn.attack:hover {
+    background: var(--desktop-accent-green);
+    border-color: var(--desktop-accent-green);
+    color: white;
+}
+
+.blast-dice-btn.damage:hover {
+    background: var(--desktop-accent-red);
+    border-color: var(--desktop-accent-red);
+    color: white;
+}
+
+/* Blast Options: Melee and Agile checkboxes */
+.blast-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.03));
+    border-radius: 4px;
+}
+
+.blast-option-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    user-select: none;
+}
+
+.blast-option-checkbox input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--desktop-accent-blue, #3b82f6);
+}
+
+.blast-option-checkbox:hover {
+    color: var(--desktop-text);
+}
+
+.blast-option-checkbox input[type="checkbox"]:checked + span {
+    color: var(--desktop-accent-blue, #3b82f6);
+    font-weight: 500;
+}
+
+/* Blast action badge (1a/2a) */
+.blast-action-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--desktop-accent-blue, #3b82f6);
+    background: rgba(59, 130, 246, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
 }
 
 .impulse-header {

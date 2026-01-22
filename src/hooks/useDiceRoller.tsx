@@ -13,7 +13,7 @@ interface DiceRollerContextType {
     rollDice: (
         formula: string,
         label?: string,
-        options?: { isCrit?: boolean; isCritFail?: boolean }
+        options?: { isCrit?: boolean; isCritFail?: boolean; element?: string }
     ) => DiceRoll;
     rollDiceWithResults: (
         formula: string,
@@ -60,7 +60,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
         setConfig(prev => ({ ...prev, ...newConfig }));
     }, []);
 
-    // Parse dice formula (e.g., "1d20+5", "2d8+4")
+    // Parse dice formula (e.g., "1d20+5", "2d8+4", "4d6+6+1d12")
     const parseFormula = useCallback((formula: string) => {
         const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
         const diceRegex = /(\d+)d(\d+)/gi;
@@ -74,11 +74,15 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
             });
         }
 
+        // Sum all modifiers (handles multiple +X or -Y in formula like "4d6+6+1d12")
         let modifier = 0;
         const withoutDice = cleanFormula.replace(diceRegex, '');
-        const modifierMatch = withoutDice.match(/[+-]?\d+/);
-        if (modifierMatch) {
-            modifier = parseInt(modifierMatch[0]);
+
+        // Find all modifiers (both +X and -Y) and sum them
+        const modifierRegex = /[+-]?\d+/g;
+        const modifierMatches = withoutDice.match(modifierRegex);
+        if (modifierMatches) {
+            modifier = modifierMatches.reduce((sum, m) => sum + parseInt(m), 0);
         }
 
         return { dice, modifier };
@@ -132,7 +136,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
     const rollDice = useCallback((
         formula: string,
         label = '',
-        options?: { isCrit?: boolean; isCritFail?: boolean }
+        options?: { isCrit?: boolean; isCritFail?: boolean; element?: string }
     ): DiceRoll => {
         const { dice, modifier } = parseFormula(formula);
 
@@ -180,6 +184,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
             isCritSuccess,
             isCritFailure,
             timestamp: Date.now(),
+            element: options?.element,  // Pass element for colored dice
         };
 
         addRoll(roll);
@@ -222,7 +227,6 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
     const updateLastRollWith3DResults = useCallback((
         rollResult: unknown
     ) => {
-        console.log('updateLastRollWith3DResults called with:', rollResult);
         setRolls(prev => {
             if (prev.length === 0) return prev;
 

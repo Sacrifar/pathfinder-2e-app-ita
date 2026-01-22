@@ -295,7 +295,7 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
 
                                     <div
                                         className="feat-description"
-                                        dangerouslySetInnerHTML={{ __html: (activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.description || '' }}
+                                        dangerouslySetInnerHTML={{ __html: (activeTab === 'armor' ? selectedArmor?.rawDescription : activeTab === 'shield' ? selectedShield?.rawDescription : selectedGear?.rawDescription) || '' }}
                                     />
 
                                     <div className="feat-actions">
