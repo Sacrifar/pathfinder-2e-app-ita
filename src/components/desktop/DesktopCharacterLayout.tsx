@@ -58,6 +58,7 @@ import {
     getACPenalty,
     getPerceptionPenalty,
 } from '../../utils/conditionModifiers';
+import { deductCurrency } from '../../utils/currency';
 import {
     calculateACWithABP,
     ProficiencyRank,
@@ -858,6 +859,28 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
         setShowEquipmentBrowser(false);
     };
 
+    const handleBuyGear = (gear: LoadedGear) => {
+        const newCurrency = deductCurrency(character, gear.priceGp);
+        if (!newCurrency) {
+            alert(t('errors.insufficientFunds') || 'Insufficient funds');
+            return;
+        }
+        const currentEquipment = character.equipment || [];
+        const newEquipmentItem = {
+            id: gear.id,
+            name: gear.name,
+            bulk: gear.bulk,
+            invested: false,
+            worn: false,
+        };
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
+            equipment: [...currentEquipment, newEquipmentItem],
+        });
+        setShowEquipmentBrowser(false);
+    };
+
     // Helper for proficiency bonus
     const _getProficiencyBonus = (prof: Proficiency, level: number) => {
         switch (prof) {
@@ -1575,6 +1598,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             onEquipArmor={() => { }}
                             onEquipShield={() => { }}
                             onEquipGear={handleEquipGear}
+                            onBuyGear={handleBuyGear}
+                            character={character}
                             initialTab="gear"
                         />
                     </Suspense>

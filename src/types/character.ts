@@ -86,7 +86,15 @@ export type ResilientRune = 1 | 2 | 3;
 
 export type ReinforcingRune = 1 | 2 | 3 | 4 | 5 | 6;
 
-export type SpecialMaterial = 'coldIron' | 'silver' | 'adamantine' | 'orichalcum' | 'mithral';
+export type SpecialMaterial =
+    | 'none'
+    // Precious metals
+    | 'silver' | 'gold' | 'platinum'
+    // Special materials
+    | 'coldIron' | 'adamantine' | 'mithral' | 'orichalcum' | 'darkwood' | 'dragonscale'
+    // Alchemical materials
+    | 'aboundedum' | 'abysium' | 'baarrhal' | 'djezet' | 'inubrix' | 'katapesh'
+    | 'noqual' | 'orcblood' | 'siccatiteHot' | 'siccatiteCold' | 'skymetal';
 
 export type AbilityOverride = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' | 'auto';
 

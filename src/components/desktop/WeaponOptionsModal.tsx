@@ -1,14 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, EquippedItem, StrikingRune, SpecialMaterial, AbilityOverride, WeaponRunes, WeaponCustomization } from '../../types';
 import { LoadedWeapon } from '../../data/pf2e-loader';
 import {
     FUNDAMENTAL_RUNES,
     PROPERTY_RUNES,
-    getMaxPropertyRunes as getMaxPropertyRunesFromPotency,
-    getAvailablePropertyRunes,
-    PropertyRuneData,
+    getMaxPropertyRunes,
 } from '../../data/weaponRunes';
+import { getAllMaterials } from '../../data/weaponMaterials';
+import { canAfford, formatCurrency } from '../../utils/currency';
+import { getEnhancedWeaponName } from '../../utils/weaponName';
+
+// Sort runes by level and name
+const sortedPropertyRunes = Object.values(PROPERTY_RUNES).sort((a, b) => {
+    if (a.level !== b.level) return a.level - b.level;
+    return (a.nameIt || a.name).localeCompare(b.nameIt || b.name);
+});
 
 interface WeaponOptionsModalProps {
     character: Character;
@@ -16,16 +23,18 @@ interface WeaponOptionsModalProps {
     equippedWeapon: EquippedItem;
     onClose: () => void;
     onSave: (updatedItem: EquippedItem) => void;
+    onBuyRunes?: (updatedItem: EquippedItem, costGp: number) => void;
 }
 
 export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
-    character: _character,
+    character,
     weapon,
     equippedWeapon,
     onClose,
     onSave,
+    onBuyRunes,
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     // Cast runes and customization to weapon-specific types
     const weaponRunes = equippedWeapon.runes as WeaponRunes | undefined;
@@ -40,14 +49,101 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
     const [isLarge, setIsLarge] = useState<boolean>(weaponCustomization?.isLarge || false);
     const [bulkOverride, setBulkOverride] = useState<number | undefined>(weaponCustomization?.bulkOverride);
 
-    // Calculate available property runes
-    const availablePropertyRunes = useMemo(() => {
-        return getAvailablePropertyRunes(potencyRune);
-    }, [potencyRune]);
+    // Sync state with props when equippedWeapon changes
+    useEffect(() => {
+        const newWeaponRunes = equippedWeapon.runes as WeaponRunes | undefined;
+        setPotencyRune(newWeaponRunes?.potencyRune || 0);
+        setStrikingRune(newWeaponRunes?.strikingRune);
+        setPropertyRunes(newWeaponRunes?.propertyRunes || []);
+    }, [equippedWeapon.runes]);
+
+    useEffect(() => {
+        const newWeaponCustomization = equippedWeapon.customization as WeaponCustomization | undefined;
+        setMaterial(newWeaponCustomization?.material);
+        setIsLarge(newWeaponCustomization?.isLarge || false);
+        setBulkOverride(newWeaponCustomization?.bulkOverride);
+    }, [equippedWeapon.customization]);
+
+    // Calculate cost of new runes
+    const runeCost = useMemo(() => {
+        let cost = 0;
+
+        // Potency rune cost
+        const oldPotency = weaponRunes?.potencyRune || 0;
+        if (potencyRune > oldPotency) {
+            const potencyRuneData = FUNDAMENTAL_RUNES.potency.find(r => r.value === potencyRune);
+            const oldPotencyRuneData = FUNDAMENTAL_RUNES.potency.find(r => r.value === oldPotency);
+            if (potencyRuneData) {
+                cost += potencyRuneData.price - (oldPotencyRuneData?.price || 0);
+            }
+        }
+
+        // Striking rune cost
+        const strikingRuneOrder = ['striking', 'greaterStriking', 'majorStriking'];
+        const oldStrikingIndex = weaponRunes?.strikingRune ? strikingRuneOrder.indexOf(weaponRunes.strikingRune) : -1;
+        const newStrikingIndex = strikingRune ? strikingRuneOrder.indexOf(strikingRune) : -1;
+        if (newStrikingIndex > oldStrikingIndex) {
+            const strikingRuneData = FUNDAMENTAL_RUNES.striking.find(r => r.value === strikingRune);
+            const oldStrikingRuneData = weaponRunes?.strikingRune ? FUNDAMENTAL_RUNES.striking.find(r => r.value === weaponRunes.strikingRune) : null;
+            if (strikingRuneData) {
+                cost += strikingRuneData.price - (oldStrikingRuneData?.price || 0);
+            }
+        }
+
+        // Property runes cost (newly added ones only)
+        const oldPropertyRunes = weaponRunes?.propertyRunes || [];
+        const newPropertyRunes = propertyRunes.filter(r => !oldPropertyRunes.includes(r));
+        for (const runeId of newPropertyRunes) {
+            const rune = PROPERTY_RUNES[runeId];
+            if (rune) cost += rune.price;
+        }
+
+        return cost;
+    }, [potencyRune, strikingRune, propertyRunes, weaponRunes]);
+
+    // Get all property runes sorted by level
+    const allPropertyRunes = useMemo(() => {
+        return Object.values(PROPERTY_RUNES).sort((a, b) => {
+            if (a.level !== b.level) return a.level - b.level;
+            return (a.nameIt || a.name).localeCompare(b.nameIt || b.name);
+        });
+    }, []);
 
     const maxPropertyRunes = useMemo(() => {
-        return getMaxPropertyRunesFromPotency(potencyRune);
+        return getMaxPropertyRunes(potencyRune);
     }, [potencyRune]);
+
+    // Toggle property rune selection
+    const togglePropertyRune = (runeId: string) => {
+        const isSelected = propertyRunes.includes(runeId);
+        if (isSelected) {
+            // Remove the rune
+            setPropertyRunes(propertyRunes.filter(id => id !== runeId));
+        } else {
+            // Add the rune if under limit
+            if (propertyRunes.length < maxPropertyRunes) {
+                setPropertyRunes([...propertyRunes, runeId]);
+            }
+        }
+    };
+
+    // Filter runes by search
+    const [runeSearch, setRuneSearch] = useState('');
+    const filteredRunes = useMemo(() => {
+        if (!runeSearch) return allPropertyRunes;
+        const search = runeSearch.toLowerCase();
+        return allPropertyRunes.filter(rune =>
+            rune.name.toLowerCase().includes(search) ||
+            (rune.nameIt && rune.nameIt.toLowerCase().includes(search)) ||
+            (rune.description && rune.description.toLowerCase().includes(search)) ||
+            (rune.descriptionIt && rune.descriptionIt.toLowerCase().includes(search))
+        );
+    }, [allPropertyRunes, runeSearch]);
+
+    // Get all available materials sorted by level
+    const availableMaterials = useMemo(() => {
+        return getAllMaterials();
+    }, []);
 
     const [attackAbilityOverride, setAttackAbilityOverride] = useState<AbilityOverride>(
         weaponCustomization?.attackAbilityOverride || 'auto'
@@ -61,36 +157,26 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
         weaponCustomization?.criticalSpecialization || false
     );
 
-    // Calculate max property runes based on potency rune
-    const _getMaxPropertyRunes = () => {
-        if (potencyRune >= 3) return 3;
-        if (potencyRune >= 2) return 2;
-        if (potencyRune >= 1) return 1;
-        return 0;
-    };
+    // Calculate dynamic weapon name that updates as user modifies runes
+    const dynamicWeaponName = useMemo(() => {
+        // If user has set a custom name, use it
+        if (customName) return customName;
 
-    const handleAddPropertyRune = () => {
-        if (propertyRunes.length < maxPropertyRunes && availablePropertyRunes.length > 0) {
-            // Add the first available rune that's not already equipped
-            const existingRuneIds = new Set(propertyRunes);
-            const availableRune = availablePropertyRunes.find(r => !existingRuneIds.has(r.id));
-            if (availableRune) {
-                setPropertyRunes([...propertyRunes, availableRune.id]);
-            }
-        }
-    };
+        // Otherwise, generate enhanced name with current rune selections
+        const currentRunes: WeaponRunes = {
+            potencyRune: potencyRune > 0 ? potencyRune : undefined,
+            strikingRune: strikingRune,
+            propertyRunes: propertyRunes.length > 0 ? propertyRunes : undefined,
+        };
 
-    const handlePropertyRuneChange = (index: number, newRuneId: string) => {
-        const newRunes = [...propertyRunes];
-        newRunes[index] = newRuneId;
-        setPropertyRunes(newRunes);
-    };
+        const currentCustomization: WeaponCustomization = {
+            material: material,
+        };
 
-    const getPropertyRuneData = (runeId: string): PropertyRuneData | undefined => {
-        return PROPERTY_RUNES[runeId];
-    };
+        return getEnhancedWeaponName(weapon.name, currentRunes, currentCustomization, { language });
+    }, [customName, weapon.name, potencyRune, strikingRune, propertyRunes, material, language]);
 
-    const handleSave = () => {
+    const handleSaveGive = () => {
         const updatedItem: EquippedItem = {
             ...equippedWeapon,
             runes: {
@@ -114,12 +200,48 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
         onClose();
     };
 
+    const handleSaveBuy = () => {
+        // Check if character can afford the runes
+        if (!canAfford(character, runeCost)) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}: ${formatCurrency(character.currency)} < ${runeCost} gp`);
+            return;
+        }
+
+        const updatedItem: EquippedItem = {
+            ...equippedWeapon,
+            runes: {
+                potencyRune: potencyRune > 0 ? potencyRune : undefined,
+                strikingRune: strikingRune,
+                propertyRunes: propertyRunes.length > 0 ? propertyRunes : undefined,
+            },
+            customization: {
+                material,
+                isLarge: isLarge || undefined,
+                bulkOverride: bulkOverride,
+                attackAbilityOverride: attackAbilityOverride !== 'auto' ? attackAbilityOverride : undefined,
+                customName: customName || undefined,
+                bonusAttack: bonusAttack,
+                bonusDamage: bonusDamage,
+                customDamageType: customDamageType || undefined,
+                criticalSpecialization: criticalSpecialization || undefined,
+            },
+        };
+
+        // Use the onBuyRunes callback if available, otherwise fall back to onSave
+        if (onBuyRunes) {
+            onBuyRunes(updatedItem, runeCost);
+        } else {
+            onSave(updatedItem);
+        }
+        onClose();
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="weapon-options-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>
-                        {customName || weapon.name} - {t('weapons.options') || 'Weapon Options'}
+                        {dynamicWeaponName} - {t('weapons.options') || 'Weapon Options'}
                     </h2>
                     <button className="modal-close" onClick={onClose}>×</button>
                 </div>
@@ -155,7 +277,7 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                                 <option value="none">{t('weapons.none') || 'None'}</option>
                                 {FUNDAMENTAL_RUNES.striking.map(rune => (
                                     <option key={rune.value} value={rune.value}>
-                                        {rune.nameIt || rune.name} (+{rune.diceBonus} die - Lvl {rune.level}, {rune.price} gp)
+                                        {language === 'it' && rune.nameIt ? rune.nameIt : rune.name} (+{rune.diceBonus} die - Lvl {rune.level}, {rune.price} gp)
                                     </option>
                                 ))}
                             </select>
@@ -167,53 +289,89 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                         <h3>
                             {t('weapons.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
                         </h3>
-                        {propertyRunes.map((runeId, index) => {
-                            return (
-                                <div key={index} className="option-row property-rune-row">
-                                    <select
-                                        value={runeId}
-                                        onChange={(e) => handlePropertyRuneChange(index, e.target.value)}
-                                        className="option-select"
-                                    >
-                                        <option value="">{t('weapons.none') || 'None'}</option>
-                                        {availablePropertyRunes.map(rune => (
-                                            <option key={rune.id} value={rune.id}>
-                                                {rune.nameIt || rune.name} (Lvl {rune.level}, {rune.price} gp)
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        className="remove-rune-btn"
-                                        onClick={() => {
-                                            const newRunes = propertyRunes.filter((_, i) => i !== index);
-                                            setPropertyRunes(newRunes);
-                                        }}
-                                        title={t('actions.remove') || 'Remove'}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {propertyRunes.length < maxPropertyRunes && availablePropertyRunes.length > propertyRunes.length && (
-                            <button
-                                className="add-rune-btn"
-                                onClick={handleAddPropertyRune}
-                            >
-                                + {t('weapons.addPropertyRune') || 'Add Property Rune'}
-                            </button>
-                        )}
+
+                        {/* Selected Runes Summary */}
                         {propertyRunes.length > 0 && (
-                            <div className="rune-total-price">
-                                <span className="rune-price-label">{t('weapons.totalPrice') || 'Total Price'}: </span>
-                                <span className="rune-price-value">
-                                    {propertyRunes.reduce((sum, runeId) => {
-                                        const rune = getPropertyRuneData(runeId);
-                                        return sum + (rune?.price || 0);
-                                    }, 0)} gp
-                                </span>
+                            <div className="selected-runes-summary">
+                                <strong>{t('weapons.selected') || 'Selected'}:</strong>
+                                {propertyRunes.map(runeId => {
+                                    const rune = PROPERTY_RUNES[runeId];
+                                    if (!rune) return null;
+                                    return (
+                                        <span key={runeId} className="selected-rune-tag">
+                                            {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
+                                            <button
+                                                className="remove-tag-btn"
+                                                onClick={() => togglePropertyRune(runeId)}
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    );
+                                })}
+                                <div className="rune-total-price">
+                                    {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                </div>
                             </div>
                         )}
+
+                        {/* Search */}
+                        <input
+                            type="text"
+                            value={runeSearch}
+                            onChange={(e) => setRuneSearch(e.target.value)}
+                            placeholder={t('weapons.searchRunes') || 'Search runes...'}
+                            className="rune-search-input"
+                        />
+
+                        {/* Rune List */}
+                        <div className="property-runes-list">
+                            {filteredRunes.map(rune => {
+                                const isSelected = propertyRunes.includes(rune.id);
+                                const canSelect = !isSelected && propertyRunes.length >= maxPropertyRunes;
+
+                                return (
+                                    <div
+                                        key={rune.id}
+                                        className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
+                                        onClick={() => !canSelect && togglePropertyRune(rune.id)}
+                                    >
+                                        <div className="rune-card-header">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => togglePropertyRune(rune.id)}
+                                                disabled={canSelect}
+                                            />
+                                            <div className="rune-name-info">
+                                                <span className="rune-name">
+                                                    {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
+                                                </span>
+                                                <span className="rune-meta">
+                                                    Lvl {rune.level} • {rune.price} gp • {rune.rarity}
+                                                    {rune.damage && ` • ${rune.damage.dice} ${rune.damage.type}`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="rune-description">
+                                            {language === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
+                                        </div>
+                                        {rune.traits && rune.traits.length > 0 && (
+                                            <div className="rune-traits">
+                                                {rune.traits.map(trait => (
+                                                    <span key={trait} className="trait-tag">{trait}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {filteredRunes.length === 0 && (
+                                <div className="no-runes-found">
+                                    {t('weapons.noRunesFound') || 'No runes found'}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Material & Physical Properties */}
@@ -228,11 +386,11 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                                 className="option-select"
                             >
                                 <option value="none">{t('weapons.none') || 'None'}</option>
-                                <option value="coldIron">{t('materials.coldIron') || 'Cold Iron'}</option>
-                                <option value="silver">{t('materials.silver') || 'Silver'}</option>
-                                <option value="adamantine">{t('materials.adamantine') || 'Adamantine'}</option>
-                                <option value="orichalcum">{t('materials.orichalcum') || 'Orichalcum'}</option>
-                                <option value="mithral">{t('materials.mithral') || 'Mithral'}</option>
+                                {availableMaterials.map(mat => (
+                                    <option key={mat.id} value={mat.id}>
+                                        {language === 'it' && mat.nameIt ? mat.nameIt : mat.name} {mat.price > 0 ? `(Lvl ${mat.level}, ${mat.price} gp)` : `(Standard)`}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -343,8 +501,16 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                         <button className="cancel-btn" onClick={onClose}>
                             {t('actions.cancel') || 'Cancel'}
                         </button>
-                        <button className="save-btn" onClick={handleSave}>
-                            {t('actions.save') || 'Save'}
+                        <button className="give-btn" onClick={handleSaveGive}>
+                            🎁 {t('actions.give') || 'Give'}
+                        </button>
+                        <button
+                            className="buy-btn"
+                            onClick={handleSaveBuy}
+                            disabled={runeCost === 0 || !canAfford(character, runeCost)}
+                            title={runeCost > 0 ? `${t('actions.buy') || 'Buy'}: ${runeCost} gp` : t('actions.noNewRunes') || 'No new runes to buy'}
+                        >
+                            💰 {t('actions.buy') || 'Buy'} ({runeCost} gp)
                         </button>
                     </div>
                 </div>

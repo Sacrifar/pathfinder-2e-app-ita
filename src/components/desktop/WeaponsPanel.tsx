@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
-import { Character, EquippedItem, WeaponCustomization } from '../../types';
+import { Character, EquippedItem, WeaponCustomization, WeaponRunes } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
 import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant, ProficiencyRank } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
+import { getEnhancedWeaponName } from '../../utils/weaponName';
 import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
 import { WeaponRollData } from '../../types/dice';
+import { canAfford, deductCurrency, formatCurrency } from '../../utils/currency';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -18,7 +20,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     character,
     onCharacterUpdate,
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { rollDice } = useDiceRoller();
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -154,8 +156,8 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         rollDice(damage, `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}`, { weaponData });
     };
 
-    // Add weapon to character's inventory
-    const handleAddWeapon = (weapon: LoadedWeapon) => {
+    // Add weapon to character's inventory (Give - free)
+    const handleGiveWeapon = (weapon: LoadedWeapon) => {
         const currentEquipment = character.equipment || [];
 
         // Check if weapon already exists in equipment
@@ -181,9 +183,64 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                 wielded: { hands: weapon.hands as 1 | 2 },
             };
 
-            // Add the weapon to equipment
+            // Add the weapon to equipment (free, no currency deduction)
             onCharacterUpdate({
                 ...character,
+                equipment: [...currentEquipment, newEquipmentItem],
+            });
+        }
+
+        setShowBrowser(false);
+        setSelectedWeapon(null);
+    };
+
+    // Buy weapon (deduct currency)
+    const handleBuyWeapon = (weapon: LoadedWeapon) => {
+        const costGp = weapon.priceGp;
+
+        // Check if character can afford it
+        if (!canAfford(character, costGp)) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}: ${formatCurrency(character.currency)} < ${costGp} gp`);
+            return;
+        }
+
+        // Deduct currency
+        const newCurrency = deductCurrency(character, costGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+
+        const currentEquipment = character.equipment || [];
+
+        // Check if weapon already exists in equipment
+        const existingWeapon = currentEquipment.find(item => item.id === weapon.id);
+        if (existingWeapon) {
+            // Weapon already exists, just wield it
+            onCharacterUpdate({
+                ...character,
+                currency: newCurrency,
+                equipment: currentEquipment.map(item =>
+                    item.id === weapon.id
+                        ? { ...item, wielded: { hands: weapon.hands as 1 | 2 } }
+                        : item
+                ),
+            });
+        } else {
+            // Create new equipment item from LoadedWeapon
+            const newEquipmentItem = {
+                id: weapon.id,
+                name: weapon.name,
+                bulk: weapon.bulk,
+                invested: false,
+                worn: false,
+                wielded: { hands: weapon.hands as 1 | 2 },
+            };
+
+            // Add the weapon to equipment and deduct currency
+            onCharacterUpdate({
+                ...character,
+                currency: newCurrency,
                 equipment: [...currentEquipment, newEquipmentItem],
             });
         }
@@ -212,6 +269,23 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         const currentEquipment = character.equipment || [];
         onCharacterUpdate({
             ...character,
+            equipment: currentEquipment.map(item =>
+                item.id === updatedItem.id ? updatedItem : item
+            ),
+        });
+    };
+
+    // Buy weapon runes (with currency deduction)
+    const handleBuyRunes = (updatedItem: EquippedItem, costGp: number) => {
+        const newCurrency = deductCurrency(character, costGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+        const currentEquipment = character.equipment || [];
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
             equipment: currentEquipment.map(item =>
                 item.id === updatedItem.id ? updatedItem : item
             ),
@@ -428,22 +502,23 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 
                         // Calculate damage with equipped weapon data (runes, customization)
                         // Cast runes and customization to weapon-specific types
-                        const weaponRunes = item.runes as { strikingRune?: string } | undefined;
+                        const weaponRunes = item.runes as WeaponRunes | undefined;
                         const weaponCustomization = item.customization as WeaponCustomization | undefined;
                         const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
 
                         // Check if has two-hand trait
                         const hasTwoHand = hasTwoHandTrait(weapon);
 
-                        // Get custom name if set
-                        const displayName = weaponCustomization?.customName || weapon.name;
+                        // Get custom name if set, otherwise generate enhanced name with runes and materials
+                        const displayName = weaponCustomization?.customName ||
+                            getEnhancedWeaponName(weapon.name, weaponRunes, weaponCustomization, { language });
 
                         return (
                             <div key={item.id} className="weapon-card">
                                 {/* Header with name, options button, and remove button */}
                                 <div className="weapon-header">
                                     <div className="weapon-title-section">
-                                        <span className="weapon-name">{displayName}</span>
+                                        <span className="weapon-name" title={weapon.name}>{displayName}</span>
                                         <button
                                             className="weapon-options-btn"
                                             onClick={() => handleOpenOptions(weapon, item)}
@@ -633,9 +708,23 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         </div>
                                     )}
                                     <p className="weapon-description">{selectedWeapon.description}</p>
-                                    <button className="add-weapon-btn" onClick={() => handleAddWeapon(selectedWeapon)}>
-                                        + {t('actions.addToInventory') || 'Add to Inventory'}
-                                    </button>
+                                    <div className="weapon-action-buttons">
+                                        <button
+                                            className="buy-weapon-btn"
+                                            onClick={() => handleBuyWeapon(selectedWeapon)}
+                                            disabled={!canAfford(character, selectedWeapon.priceGp)}
+                                            title={`${t('actions.buy') || 'Buy'}: ${selectedWeapon.priceGp} gp`}
+                                        >
+                                            💰 {t('actions.buy') || 'Buy'} ({selectedWeapon.priceGp} gp)
+                                        </button>
+                                        <button
+                                            className="give-weapon-btn"
+                                            onClick={() => handleGiveWeapon(selectedWeapon)}
+                                            title={t('actions.give') || 'Give (Free)'}
+                                        >
+                                            🎁 {t('actions.give') || 'Give'}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -651,6 +740,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                     equippedWeapon={selectedEquippedWeapon.equippedItem}
                     onClose={() => setShowOptionsModal(false)}
                     onSave={handleSaveWeaponOptions}
+                    onBuyRunes={handleBuyRunes}
                 />
             )}
         </div>

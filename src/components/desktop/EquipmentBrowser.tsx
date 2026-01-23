@@ -1,18 +1,34 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { LoadedArmor, LoadedShield, LoadedGear, getArmor, getShields, getGear } from '../../data/pf2e-loader';
+import { Character } from '../../types';
+import { canAfford, formatCurrency } from '../../utils/currency';
 
 interface EquipmentBrowserProps {
     onClose: () => void;
     onEquipArmor: (armor: LoadedArmor) => void;
     onEquipShield: (shield: LoadedShield) => void;
     onEquipGear: (gear: LoadedGear) => void;
+    onBuyArmor?: (armor: LoadedArmor) => void;
+    onBuyShield?: (shield: LoadedShield) => void;
+    onBuyGear?: (gear: LoadedGear) => void;
+    character: Character;
     initialTab?: 'armor' | 'shield' | 'gear';
 }
 
 type Tab = 'armor' | 'shield' | 'gear';
 
-export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onEquipArmor, onEquipShield, onEquipGear, initialTab = 'armor' }) => {
+export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
+    onClose,
+    onEquipArmor,
+    onEquipShield,
+    onEquipGear,
+    onBuyArmor,
+    onBuyShield,
+    onBuyGear,
+    character,
+    initialTab = 'armor'
+}) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +74,7 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
         }
     }, [activeTab, searchQuery, categoryFilter, levelFilter, allArmor, allShields, allGear]);
 
-    const handleEquip = () => {
+    const handleGive = () => {
         if (activeTab === 'armor' && selectedArmor) {
             onEquipArmor(selectedArmor);
             onClose();
@@ -67,6 +83,41 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
             onClose();
         } else if (activeTab === 'gear' && selectedGear) {
             onEquipGear(selectedGear);
+            onClose();
+        }
+    };
+
+    const handleBuy = () => {
+        const selectedItem = activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear;
+        if (!selectedItem) return;
+
+        const costGp = selectedItem.priceGp;
+
+        // Check if character can afford it
+        if (!canAfford(character, costGp)) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}: ${formatCurrency(character.currency)} < ${costGp} gp`);
+            return;
+        }
+
+        // Call the appropriate buy handler (parent component handles currency deduction)
+        if (activeTab === 'armor' && selectedArmor && onBuyArmor) {
+            onBuyArmor(selectedArmor);
+            onClose();
+        } else if (activeTab === 'shield' && selectedShield && onBuyShield) {
+            onBuyShield(selectedShield);
+            onClose();
+        } else if (activeTab === 'gear' && selectedGear && onBuyGear) {
+            onBuyGear(selectedGear);
+            onClose();
+        } else {
+            // Fallback to equip if no buy handler provided (for Give mode)
+            if (activeTab === 'armor' && selectedArmor) {
+                onEquipArmor(selectedArmor);
+            } else if (activeTab === 'shield' && selectedShield) {
+                onEquipShield(selectedShield);
+            } else if (activeTab === 'gear' && selectedGear) {
+                onEquipGear(selectedGear);
+            }
             onClose();
         }
     };
@@ -299,8 +350,15 @@ export const EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({ onClose, onE
                                     />
 
                                     <div className="feat-actions">
-                                        <button className="add-feat-btn" onClick={handleEquip}>
-                                            {t('actions.equip') || 'Equip'}
+                                        <button
+                                            className="buy-btn"
+                                            onClick={handleBuy}
+                                            disabled={!canAfford(character, (activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.priceGp || 0)}
+                                        >
+                                            💰 {t('actions.buy') || 'Buy'} ({(activeTab === 'armor' ? selectedArmor : activeTab === 'shield' ? selectedShield : selectedGear)?.priceGp || 0} gp)
+                                        </button>
+                                        <button className="give-btn" onClick={handleGive}>
+                                            🎁 {t('actions.give') || 'Give'}
                                         </button>
                                     </div>
                                 </div>

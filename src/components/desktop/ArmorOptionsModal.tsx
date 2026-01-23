@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, EquippedItem, ResilientRune, ArmorCustomization } from '../../types';
 import { LoadedArmor } from '../../data/pf2e-loader';
@@ -9,6 +9,7 @@ import {
     getAvailableArmorPropertyRunes,
     ArmorPropertyRuneData,
 } from '../../data/armorRunes';
+import { canAfford, formatCurrency } from '../../utils/currency';
 
 interface ArmorOptionsModalProps {
     character: Character;
@@ -16,14 +17,16 @@ interface ArmorOptionsModalProps {
     equippedArmor: EquippedItem;
     onClose: () => void;
     onSave: (updatedItem: EquippedItem) => void;
+    onBuyRunes?: (updatedItem: EquippedItem, costGp: number) => void;
 }
 
 export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
-    character: _character,
+    character,
     armor,
     equippedArmor,
     onClose,
     onSave,
+    onBuyRunes,
 }) => {
     const { t } = useLanguage();
 
@@ -54,6 +57,58 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
         (equippedArmor.customization as ArmorCustomization)?.dexCapOverride
     );
 
+    // Sync state with props when equippedArmor changes
+    useEffect(() => {
+        const newRunes = equippedArmor.runes as { potencyRune?: number; resilientRune?: ResilientRune; propertyRunes?: string[] } | undefined;
+        setPotencyRune(newRunes?.potencyRune || 0);
+        setResilientRune(newRunes?.resilientRune);
+        setPropertyRunes(newRunes?.propertyRunes || []);
+    }, [equippedArmor.runes]);
+
+    useEffect(() => {
+        const newCustomization = equippedArmor.customization as ArmorCustomization | undefined;
+        setCustomName(newCustomization?.customName || '');
+        setBonusAC(newCustomization?.bonusAC);
+        setCheckPenaltyOverride(newCustomization?.checkPenaltyOverride);
+        setSpeedPenaltyOverride(newCustomization?.speedPenaltyOverride);
+        setDexCapOverride(newCustomization?.dexCapOverride);
+    }, [equippedArmor.customization]);
+
+    // Calculate cost of new runes
+    const runeCost = useMemo(() => {
+        let cost = 0;
+
+        // Potency rune cost
+        const oldPotency = (equippedArmor.runes as { potencyRune?: number })?.potencyRune || 0;
+        if (potencyRune > oldPotency) {
+            const potencyRuneData = ARMOR_FUNDAMENTAL_RUNES.potency.find(r => r.value === potencyRune);
+            const oldPotencyRuneData = ARMOR_FUNDAMENTAL_RUNES.potency.find(r => r.value === oldPotency);
+            if (potencyRuneData) {
+                cost += potencyRuneData.price - (oldPotencyRuneData?.price || 0);
+            }
+        }
+
+        // Resilient rune cost
+        const oldResilient = (equippedArmor.runes as { resilientRune?: ResilientRune })?.resilientRune;
+        if (resilientRune && oldResilient !== resilientRune) {
+            const resilientRuneData = ARMOR_FUNDAMENTAL_RUNES.resilient.find(r => r.value === resilientRune);
+            const oldResilientRuneData = oldResilient ? ARMOR_FUNDAMENTAL_RUNES.resilient.find(r => r.value === oldResilient) : null;
+            if (resilientRuneData) {
+                cost += resilientRuneData.price - (oldResilientRuneData?.price || 0);
+            }
+        }
+
+        // Property runes cost (newly added ones only)
+        const oldPropertyRunes = (equippedArmor.runes as { propertyRunes?: string[] })?.propertyRunes || [];
+        const newPropertyRunes = propertyRunes.filter(r => !oldPropertyRunes.includes(r));
+        for (const runeId of newPropertyRunes) {
+            const rune = ARMOR_PROPERTY_RUNES[runeId];
+            if (rune) cost += rune.price;
+        }
+
+        return cost;
+    }, [potencyRune, resilientRune, propertyRunes, equippedArmor.runes]);
+
     // Calculate available property runes
     const availablePropertyRunes = useMemo(() => {
         return getAvailableArmorPropertyRunes(potencyRune);
@@ -83,7 +138,7 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
         return ARMOR_PROPERTY_RUNES[runeId];
     };
 
-    const handleSave = () => {
+    const handleSaveGive = () => {
         const updatedItem: EquippedItem = {
             ...equippedArmor,
             runes: {
@@ -100,6 +155,38 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
             },
         };
         onSave(updatedItem);
+        onClose();
+    };
+
+    const handleSaveBuy = () => {
+        // Check if character can afford the runes
+        if (!canAfford(character, runeCost)) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}: ${formatCurrency(character.currency)} < ${runeCost} gp`);
+            return;
+        }
+
+        const updatedItem: EquippedItem = {
+            ...equippedArmor,
+            runes: {
+                potencyRune: potencyRune > 0 ? potencyRune : undefined,
+                resilientRune: resilientRune,
+                propertyRunes: propertyRunes.length > 0 ? propertyRunes : undefined,
+            },
+            customization: {
+                customName: customName || undefined,
+                bonusAC: bonusAC,
+                checkPenaltyOverride: checkPenaltyOverride,
+                speedPenaltyOverride: speedPenaltyOverride,
+                dexCapOverride: dexCapOverride,
+            },
+        };
+
+        // Use the onBuyRunes callback if available, otherwise fall back to onSave
+        if (onBuyRunes) {
+            onBuyRunes(updatedItem, runeCost);
+        } else {
+            onSave(updatedItem);
+        }
         onClose();
     };
 
@@ -272,8 +359,16 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
                         <button className="cancel-btn" onClick={onClose}>
                             {t('actions.cancel') || 'Cancel'}
                         </button>
-                        <button className="save-btn" onClick={handleSave}>
-                            {t('actions.save') || 'Save'}
+                        <button className="give-btn" onClick={handleSaveGive}>
+                            🎁 {t('actions.give') || 'Give'}
+                        </button>
+                        <button
+                            className="buy-btn"
+                            onClick={handleSaveBuy}
+                            disabled={runeCost === 0 || !canAfford(character, runeCost)}
+                            title={runeCost > 0 ? `${t('actions.buy') || 'Buy'}: ${runeCost} gp` : t('actions.noNewRunes') || 'No new runes to buy'}
+                        >
+                            💰 {t('actions.buy') || 'Buy'} ({runeCost} gp)
                         </button>
                     </div>
                 </div>

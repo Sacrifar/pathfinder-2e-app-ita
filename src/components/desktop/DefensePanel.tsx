@@ -6,6 +6,7 @@ import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e
 import { ArmorOptionsModal } from './ArmorOptionsModal';
 import { ShieldOptionsModal } from './ShieldOptionsModal';
 import { EquipmentIcon } from '../../utils/actionIcons';
+import { deductCurrency } from '../../utils/currency';
 
 interface DefensePanelProps {
     character: Character;
@@ -90,6 +91,44 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         setShowBrowser(false);
     };
 
+    const handleBuyArmor = (armor: LoadedArmor) => {
+        const newCurrency = deductCurrency(character, armor.priceGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
+            equippedArmor: armor.id,
+            armorClass: {
+                ...character.armorClass,
+                acBonus: armor.acBonus,
+                itemBonus: 0,
+                dexCap: armor.dexCap,
+            }
+        });
+        setShowBrowser(false);
+    };
+
+    const handleBuyShield = (shield: LoadedShield) => {
+        const newCurrency = deductCurrency(character, shield.priceGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
+            equippedShield: shield.id,
+            shieldState: {
+                currentHp: shield.hp,
+                raised: false
+            }
+        });
+        setShowBrowser(false);
+    };
+
     const handleUnequipArmor = () => {
         onCharacterUpdate({
             ...character,
@@ -131,6 +170,23 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         setShowArmorOptionsModal(false);
     };
 
+    const handleBuyArmorRunes = (updatedItem: EquippedItem, costGp: number) => {
+        const newCurrency = deductCurrency(character, costGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+        const updatedEquipment = character.equipment.map(item =>
+            item.id === updatedItem.id ? updatedItem : item
+        );
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
+            equipment: updatedEquipment
+        });
+        setShowArmorOptionsModal(false);
+    };
+
     const handleOpenShieldOptions = () => {
         const equippedItem = getShieldEquippedItem();
         if (equippedShield && equippedItem) {
@@ -145,6 +201,23 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         );
         onCharacterUpdate({
             ...character,
+            equipment: updatedEquipment
+        });
+        setShowShieldOptionsModal(false);
+    };
+
+    const handleBuyShieldRunes = (updatedItem: EquippedItem, costGp: number) => {
+        const newCurrency = deductCurrency(character, costGp);
+        if (!newCurrency) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
+            return;
+        }
+        const updatedEquipment = character.equipment.map(item =>
+            item.id === updatedItem.id ? updatedItem : item
+        );
+        onCharacterUpdate({
+            ...character,
+            currency: newCurrency,
             equipment: updatedEquipment
         });
         setShowShieldOptionsModal(false);
@@ -644,6 +717,9 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                         onEquipArmor={handleEquipArmor}
                         onEquipShield={handleEquipShield}
                         onEquipGear={() => { }}
+                        onBuyArmor={handleBuyArmor}
+                        onBuyShield={handleBuyShield}
+                        character={character}
                         initialTab={browserTab}
                     />
                 )
@@ -657,6 +733,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     equippedArmor={selectedArmorItem}
                     onClose={() => setShowArmorOptionsModal(false)}
                     onSave={handleSaveArmorOptions}
+                    onBuyRunes={handleBuyArmorRunes}
                 />
             )}
 
@@ -668,6 +745,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                     equippedShield={selectedShieldItem}
                     onClose={() => setShowShieldOptionsModal(false)}
                     onSave={handleSaveShieldOptions}
+                    onBuyRunes={handleBuyShieldRunes}
                 />
             )}
         </div >

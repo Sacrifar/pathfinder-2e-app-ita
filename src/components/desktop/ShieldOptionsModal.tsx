@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, EquippedItem, ReinforcingRune, ShieldCustomization } from '../../types';
 import { LoadedShield } from '../../data/pf2e-loader';
@@ -9,6 +9,7 @@ import {
     getAvailableShieldPropertyRunes,
     ShieldPropertyRuneData,
 } from '../../data/shieldRunes';
+import { canAfford, formatCurrency } from '../../utils/currency';
 
 interface ShieldOptionsModalProps {
     character: Character;
@@ -16,6 +17,7 @@ interface ShieldOptionsModalProps {
     equippedShield: EquippedItem;
     onClose: () => void;
     onSave: (updatedItem: EquippedItem) => void;
+    onBuyRunes?: (updatedItem: EquippedItem, costGp: number) => void;
 }
 
 export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
@@ -24,6 +26,7 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
     equippedShield,
     onClose,
     onSave,
+    onBuyRunes,
 }) => {
     const { t } = useLanguage();
 
@@ -50,6 +53,47 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
     const [broken, setBroken] = useState<boolean>(
         (equippedShield.customization as ShieldCustomization)?.broken || false
     );
+
+    // Sync state with props when equippedShield changes
+    useEffect(() => {
+        const newRunes = equippedShield.runes as { reinforcingRune?: ReinforcingRune; propertyRunes?: string[] } | undefined;
+        setReinforcingRune(newRunes?.reinforcingRune);
+        setPropertyRunes(newRunes?.propertyRunes || []);
+    }, [equippedShield.runes]);
+
+    useEffect(() => {
+        const newCustomization = equippedShield.customization as ShieldCustomization | undefined;
+        setCustomName(newCustomization?.customName || '');
+        setHardnessOverride(newCustomization?.hardnessOverride);
+        setMaxHPOverride(newCustomization?.maxHPOverride);
+        setCurrentHP(newCustomization?.currentHP ?? shield.hp);
+        setBroken(newCustomization?.broken || false);
+    }, [equippedShield.customization, shield.hp]);
+
+    // Calculate cost of new runes
+    const runeCost = useMemo(() => {
+        let cost = 0;
+
+        // Reinforcing rune cost
+        const oldReinforcing = (equippedShield.runes as { reinforcingRune?: ReinforcingRune })?.reinforcingRune;
+        if (reinforcingRune && oldReinforcing !== reinforcingRune) {
+            const reinforcingRuneData = SHIELD_FUNDAMENTAL_RUNES.reinforcing.find(r => r.value === reinforcingRune);
+            const oldReinforcingRuneData = oldReinforcing ? SHIELD_FUNDAMENTAL_RUNES.reinforcing.find(r => r.value === oldReinforcing) : null;
+            if (reinforcingRuneData) {
+                cost += reinforcingRuneData.price - (oldReinforcingRuneData?.price || 0);
+            }
+        }
+
+        // Property runes cost (newly added ones only)
+        const oldPropertyRunes = (equippedShield.runes as { propertyRunes?: string[] })?.propertyRunes || [];
+        const newPropertyRunes = propertyRunes.filter(r => !oldPropertyRunes.includes(r));
+        for (const runeId of newPropertyRunes) {
+            const rune = SHIELD_PROPERTY_RUNES[runeId];
+            if (rune) cost += rune.price;
+        }
+
+        return cost;
+    }, [reinforcingRune, propertyRunes, equippedShield.runes]);
 
     // Calculate shield stats with reinforcing rune
     const shieldStats = useMemo(() => {
@@ -87,7 +131,7 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
         return SHIELD_PROPERTY_RUNES[runeId];
     };
 
-    const handleSave = () => {
+    const handleSaveGive = () => {
         const updatedItem: EquippedItem = {
             ...equippedShield,
             runes: {
@@ -103,6 +147,37 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
             },
         };
         onSave(updatedItem);
+        onClose();
+    };
+
+    const handleSaveBuy = () => {
+        // Check if character can afford the runes
+        if (!canAfford(character, runeCost)) {
+            alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}: ${formatCurrency(character.currency)} < ${runeCost} gp`);
+            return;
+        }
+
+        const updatedItem: EquippedItem = {
+            ...equippedShield,
+            runes: {
+                reinforcingRune: reinforcingRune,
+                propertyRunes: propertyRunes.length > 0 ? propertyRunes : undefined,
+            },
+            customization: {
+                customName: customName || undefined,
+                hardnessOverride: hardnessOverride,
+                maxHPOverride: maxHPOverride,
+                currentHP: currentHP,
+                broken: broken,
+            },
+        };
+
+        // Use the onBuyRunes callback if available, otherwise fall back to onSave
+        if (onBuyRunes) {
+            onBuyRunes(updatedItem, runeCost);
+        } else {
+            onSave(updatedItem);
+        }
         onClose();
     };
 
@@ -281,8 +356,16 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
                         <button className="cancel-btn" onClick={onClose}>
                             {t('actions.cancel') || 'Cancel'}
                         </button>
-                        <button className="save-btn" onClick={handleSave}>
-                            {t('actions.save') || 'Save'}
+                        <button className="give-btn" onClick={handleSaveGive}>
+                            🎁 {t('actions.give') || 'Give'}
+                        </button>
+                        <button
+                            className="buy-btn"
+                            onClick={handleSaveBuy}
+                            disabled={runeCost === 0 || !canAfford(character, runeCost)}
+                            title={runeCost > 0 ? `${t('actions.buy') || 'Buy'}: ${runeCost} gp` : t('actions.noNewRunes') || 'No new runes to buy'}
+                        >
+                            💰 {t('actions.buy') || 'Buy'} ({runeCost} gp)
                         </button>
                     </div>
                 </div>
