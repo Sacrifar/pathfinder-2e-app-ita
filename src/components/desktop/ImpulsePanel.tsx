@@ -292,6 +292,49 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         return icons[element] || '⭐';
     };
 
+    // Format modifier (e.g., -2, +5)
+    const formatModifier = (value: number) => {
+        return value >= 0 ? `+${value}` : `${value}`;
+    };
+
+    // Get Impulse Attack proficiency based on Kineticist level
+    const getImpulseProficiency = () => {
+        const level = character.level || 1;
+        let profRank = ProficiencyRank.Trained;
+
+        // Kineticist impulse attack progression:
+        // Level 1-6: Trained
+        // Level 7-14: Expert
+        // Level 15-18: Master
+        // Level 19-20: Legendary
+        if (level >= 19) profRank = ProficiencyRank.Legendary;
+        else if (level >= 15) profRank = ProficiencyRank.Master;
+        else if (level >= 7) profRank = ProficiencyRank.Expert;
+
+        const profBonus = calculateProficiencyBonusWithVariant(
+            level,
+            profRank,
+            character.variantRules?.proficiencyWithoutLevel
+        );
+
+        // Include CON modifier in displayed value so players see their total attack bonus
+        const conMod = getAbilityModifier(character.abilityScores.con);
+        const totalBonus = profBonus > 0 ? profBonus + conMod : 0;
+
+        const profNames: Record<ProficiencyRank, string> = {
+            [ProficiencyRank.Untrained]: t('proficiency.untrained') || 'Untrained',
+            [ProficiencyRank.Trained]: t('proficiency.trained') || 'Trained',
+            [ProficiencyRank.Expert]: t('proficiency.expert') || 'Expert',
+            [ProficiencyRank.Master]: t('proficiency.master') || 'Master',
+            [ProficiencyRank.Legendary]: t('proficiency.legendary') || 'Legendary',
+        };
+
+        return {
+            name: profNames[profRank],
+            value: totalBonus
+        };
+    };
+
     // Get action cost label
     const getActionCostLabel = (cost: string): string => {
         switch (cost) {
@@ -597,6 +640,17 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             <h3 className="panel-title">
                 {t('tabs.impulse') || 'Impulses'}
             </h3>
+
+            {/* ===== IMPULSE ATTACK PROFICIENCY ===== */}
+            <div className="proficiencies-section">
+                <h4>{t('proficiency.attackProficiencies') || 'Attack Proficiencies'}</h4>
+                <div className="proficiencies-grid">
+                    <div className="proficiency-item">
+                        <span className="proficiency-label">{t('proficiency.impulseAttack') || 'Impulse Attack'}</span>
+                        <span className="proficiency-value">{getImpulseProficiency().name} ({formatModifier(getImpulseProficiency().value)})</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Base Kineticist Actions Section */}
             {(baseKineticistActions.baseActions.length > 0 || baseKineticistActions.elementalBlastAction) && (

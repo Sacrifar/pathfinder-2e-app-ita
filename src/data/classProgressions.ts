@@ -90,9 +90,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 2), 10, 2),        // Expert at 1, Expert at 11
@@ -127,9 +127,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: setFromLevel(fillArray(20, 1), 18, 3),  // Master at 19
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(setFromLevel(fillArray(20, 2), 6, 3), 12, 4), // Expert at 1, Master at 7, Legendary at 13
@@ -165,9 +165,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
+            martial: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 8, 2),        // Trained, Expert at 9
@@ -202,9 +202,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: setFromLevel(setFromLevel(fillArray(20, 1), 6, 2), 16, 3),  // Expert at 7, Master at 17
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(setFromLevel(fillArray(20, 2), 8, 3), 16, 3), // Expert at 1, Master at 9
@@ -237,9 +237,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 8, 2),        // Trained, Expert at 9
@@ -274,9 +274,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 2, 2),        // Trained, Expert at 3
@@ -309,10 +309,10 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: setFromLevel(fillArray(20, 1), 16, 3),  // Master at 17
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
-            advanced: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 12, 3), 18, 4),   // Master at 13, Legendary at 19
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 12, 3), 18, 4),  // Master at 13, Legendary at 19
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 12, 3), 18, 4),  // Master at 13, Legendary at 19
+            advanced: setFromLevel(setFromLevel(fillArray(20, 1), 12, 3), 18, 4),  // Master at 13, Legendary at 19
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 2), 10, 3),       // Expert at 1, Master at 11, Legendary at 19
@@ -350,9 +350,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 8, 2),        // Trained, Expert at 9
@@ -389,9 +389,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: setFromLevel(setFromLevel(fillArray(20, 1), 12, 2), 18, 3), // Expert at 13, Master at 19
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
+            martial: setFromLevel(fillArray(20, 0), 4, 1),   // Trained at 5 (Gate's Threshold)
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(setFromLevel(fillArray(20, 2), 0, 2), 14, 3), // Expert at 1, Master at 15
@@ -427,9 +427,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(setFromLevel(fillArray(20, 2), 8, 3), 0, 2), // Expert at 1, Master at 9
@@ -466,7 +466,7 @@ export const classProgressions: Record<string, ClassProgression> = {
         weaponProficiencies: {
             simple: fillArray(20, 1),
             martial: fillArray(20, 0),
-            unarmed: setFromLevel(fillArray(20, 1), 4, 2),    // Trained, Expert at 5
+            unarmed: setFromLevel(setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3), 16, 4),    // Trained, Expert at 5, Master at 13, Legendary at 17
         },
         savingThrows: {
             fortitude: setFromLevel(setFromLevel(fillArray(20, 2), 10, 3), 16, 4), // Expert at 1, Master at 11, Legendary at 17
@@ -501,9 +501,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 8, 2),        // Trained, Expert at 9
@@ -540,9 +540,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 2), 10, 2),        // Expert at 1, Expert at 11
@@ -616,9 +616,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 4, 2),        // Trained, Expert at 5
@@ -655,9 +655,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
-            martial: fillArray(20, 1),
-            unarmed: fillArray(20, 1),
+            simple: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            martial: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
+            unarmed: setFromLevel(setFromLevel(fillArray(20, 1), 4, 2), 12, 3),  // Expert at 5, Master at 13
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 2, 2),        // Trained, Expert at 3
@@ -693,9 +693,9 @@ export const classProgressions: Record<string, ClassProgression> = {
             unarmored: fillArray(20, 1),
         },
         weaponProficiencies: {
-            simple: fillArray(20, 1),
+            simple: setFromLevel(fillArray(20, 1), 10, 2),   // Expert at 11
             martial: fillArray(20, 0),
-            unarmed: fillArray(20, 1),
+            unarmed: setFromLevel(fillArray(20, 1), 10, 2),  // Expert at 11
         },
         savingThrows: {
             fortitude: setFromLevel(fillArray(20, 1), 8, 2),        // Trained, Expert at 9
@@ -1149,12 +1149,13 @@ export function getArmorProficiencyAtLevel(
  */
 export function getWeaponProficiencyAtLevel(
     classId: string,
-    category: 'simple' | 'martial' | 'unarmed',
+    category: 'simple' | 'martial' | 'unarmed' | 'advanced',
     level: number
 ): ProficiencyLevel {
     const progression = getClassProgression(classId);
     const levelIndex = Math.max(0, Math.min(19, level - 1));
-    return progression.weaponProficiencies[category][levelIndex];
+    // advanced is optional - return 0 (untrained) if not defined
+    return progression.weaponProficiencies[category]?.[levelIndex] ?? 0;
 }
 
 /**

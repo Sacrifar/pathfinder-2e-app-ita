@@ -34,7 +34,7 @@ import { ancestries, backgrounds, classes, skills } from '../data';
 import { recalculateSkillsFromFeats, applySubfeaturesProficiencies, applyDeitySkillsFromDedications } from './featChoices';
 import { getFeats, getArmor } from '../data/pf2e-loader';
 import { getAllKineticistJunctionSkills } from '../data/classFeatures';
-import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, proficiencyLevelToName } from '../data/classProgressions';
+import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, getWeaponProficiencyAtLevel, proficiencyLevelToName } from '../data/classProgressions';
 
 /**
  * Recalculate ALL character data from scratch
@@ -48,6 +48,7 @@ export function recalculateCharacter(character: Character): Character {
     updated = recalculateSkills(updated);
     updated = recalculateSavesAndPerception(updated); // Recalculate saves and perception from feats and class
     updated = initializeArmorProficiency(updated); // Initialize base class armor proficiencies
+    updated = initializeWeaponProficiency(updated); // Initialize base class weapon proficiencies
     updated = applySubfeaturesProficiencies(updated); // Apply feat proficiencies (armor, weapons, class DC)
     updated = recalculateHP(updated);
     updated = recalculateSpeed(updated);
@@ -610,6 +611,55 @@ export function initializeArmorProficiency(character: Character): Character {
             proficiency: unarmoredProf?.proficiency || 'trained'
         };
     }
+
+    return updated;
+}
+
+/**
+ * Initialize base class weapon proficiencies
+ * Uses class progression data to determine weapon proficiency at each level
+ */
+export function initializeWeaponProficiency(character: Character): Character {
+    const updated = { ...character };
+    const classData = classes.find((c: any) => c.id === character.classId);
+
+    if (!classData) return updated;
+
+    // Initialize weaponProficiencies array if not present
+    if (!updated.weaponProficiencies) {
+        updated.weaponProficiencies = [];
+    }
+
+    const classId = classData.id;
+    const level = character.level || 1;
+
+    // Helper to update or add weapon proficiency
+    const updateWeaponProficiency = (
+        category: 'simple' | 'martial' | 'unarmed' | 'advanced'
+    ) => {
+        const profLevel = getWeaponProficiencyAtLevel(classId, category, level);
+        const profName = proficiencyLevelToName(profLevel);
+
+        const existing = updated.weaponProficiencies!.find(p => p.category === category);
+        if (existing) {
+            // Update existing if class progression is higher
+            const profOrder = ['untrained', 'trained', 'expert', 'master', 'legendary'];
+            const existingIdx = profOrder.indexOf(existing.proficiency);
+            const newIdx = profOrder.indexOf(profName);
+            if (newIdx > existingIdx) {
+                existing.proficiency = profName;
+            }
+        } else if (profLevel > 0) {
+            // Only add if trained or better
+            updated.weaponProficiencies!.push({ category, proficiency: profName });
+        }
+    };
+
+    // Update all weapon categories from class progression
+    updateWeaponProficiency('simple');
+    updateWeaponProficiency('martial');
+    updateWeaponProficiency('unarmed');
+    updateWeaponProficiency('advanced');
 
     return updated;
 }

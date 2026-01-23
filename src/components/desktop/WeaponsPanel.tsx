@@ -3,7 +3,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, EquippedItem, WeaponCustomization } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
-import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant } from '../../utils/pf2e-math';
+import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant, ProficiencyRank } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
 import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
@@ -223,6 +223,40 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         return value >= 0 ? `+${value}` : `${value}`;
     };
 
+    // Get proficiency display (name and value)
+    const getProficiencyDisplay = (category: string) => {
+        const profRank = getWeaponProficiencyRank(character, category);
+        const profBonus = calculateProficiencyBonusWithVariant(
+            character.level,
+            profRank,
+            character.variantRules?.proficiencyWithoutLevel
+        );
+
+        const profNames: Record<ProficiencyRank, string> = {
+            [ProficiencyRank.Untrained]: t('proficiency.untrained') || 'Untrained',
+            [ProficiencyRank.Trained]: t('proficiency.trained') || 'Trained',
+            [ProficiencyRank.Expert]: t('proficiency.expert') || 'Expert',
+            [ProficiencyRank.Master]: t('proficiency.master') || 'Master',
+            [ProficiencyRank.Legendary]: t('proficiency.legendary') || 'Legendary',
+        };
+
+        // Include ability modifier in displayed value so players see their total attack bonus
+        // Use STR for melee weapons, DEX for ranged
+        const strMod = getAbilityModifier(character.abilityScores.str);
+        const dexMod = getAbilityModifier(character.abilityScores.dex);
+
+        // Use the higher of STR/DEX as a default display value
+        // (Most weapon categories have both melee and ranged options)
+        const abilityMod = Math.max(strMod, dexMod);
+
+        const totalBonus = profBonus > 0 ? profBonus + abilityMod : 0;
+
+        return {
+            name: profNames[profRank],
+            value: totalBonus
+        };
+    };
+
     // Get equipped weapons with full weapon data
     const equippedWeapons = useMemo(() => {
         // Parse equipment to get wielded weapons with their full data
@@ -305,6 +339,29 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                 <button className="header-btn" onClick={() => setShowBrowser(true)}>
                     + {t('actions.addWeapon') || 'Add Weapon'}
                 </button>
+            </div>
+
+            {/* ===== WEAPON PROFICIENCIES ===== */}
+            <div className="proficiencies-section">
+                <h4>{t('proficiency.weaponProficiencies') || 'Weapon Proficiencies'}</h4>
+                <div className="proficiencies-grid">
+                    <div className="proficiency-item">
+                        <span className="proficiency-label">{t('proficiency.simpleWeapons') || 'Simple Weapons'}</span>
+                        <span className="proficiency-value">{getProficiencyDisplay('simple').name} ({formatModifier(getProficiencyDisplay('simple').value)})</span>
+                    </div>
+                    <div className="proficiency-item">
+                        <span className="proficiency-label">{t('proficiency.martialWeapons') || 'Martial Weapons'}</span>
+                        <span className="proficiency-value">{getProficiencyDisplay('martial').name} ({formatModifier(getProficiencyDisplay('martial').value)})</span>
+                    </div>
+                    <div className="proficiency-item">
+                        <span className="proficiency-label">{t('proficiency.advancedWeapons') || 'Advanced Weapons'}</span>
+                        <span className="proficiency-value">{getProficiencyDisplay('advanced').name} ({formatModifier(getProficiencyDisplay('advanced').value)})</span>
+                    </div>
+                    <div className="proficiency-item">
+                        <span className="proficiency-label">{t('proficiency.unarmedAttacks') || 'Unarmed Attacks'}</span>
+                        <span className="proficiency-value">{getProficiencyDisplay('unarmed').name} ({formatModifier(getProficiencyDisplay('unarmed').value)})</span>
+                    </div>
+                </div>
             </div>
 
             {/* ===== COMMANDER DAILY TACTICS ===== */}

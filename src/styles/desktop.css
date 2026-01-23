@@ -4832,6 +4832,42 @@
     color: var(--desktop-accent-blue);
 }
 
+/* Proficiencies Grid (for Weapons/Impulse panels) */
+.proficiencies-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.proficiency-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--desktop-card);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.proficiency-item:hover {
+    border-color: var(--desktop-accent-blue);
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.15);
+}
+
+.proficiency-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--desktop-text-secondary);
+}
+
+.proficiency-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--desktop-accent-blue);
+    text-transform: capitalize;
+}
+
 .spell-info {
     display: flex;
     gap: 8px;
