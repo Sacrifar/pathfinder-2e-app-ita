@@ -273,3 +273,9 @@ export function getShieldPropertyRunePrice(runeId: string): number {
 export function getAvailableShieldPropertyRunes(maxLevel: number): ShieldPropertyRuneData[] {
     return Object.values(SHIELD_PROPERTY_RUNES).filter(rune => rune.level <= maxLevel);
 }
+
+// Helper function to get max property runes for shields
+// Shields can only have 1 property rune because it makes the shield invested
+export function getMaxShieldPropertyRunes(): number {
+    return 1;
+}

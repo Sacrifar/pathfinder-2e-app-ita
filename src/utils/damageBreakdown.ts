@@ -255,8 +255,8 @@ export function calculateDamageBreakdown(
     const total = totalModifier > 0
         ? `${totalDice} + ${totalModifier}`
         : totalModifier < 0
-        ? `${totalDice} - ${Math.abs(totalModifier)}`
-        : totalDice;
+            ? `${totalDice} - ${Math.abs(totalModifier)}`
+            : totalDice;
 
     return {
         base,
@@ -349,8 +349,8 @@ export function calculateTotalDamageWithConditional(
             const formula = data.modifier > 0
                 ? `${totalDice} + ${data.modifier}`
                 : data.modifier < 0
-                ? `${totalDice} - ${Math.abs(data.modifier)}`
-                : totalDice;
+                    ? `${totalDice} - ${Math.abs(data.modifier)}`
+                    : totalDice;
             parts.push(type !== 'physical' ? `${formula} ${type}` : formula);
         }
     }
@@ -378,4 +378,104 @@ export function hasConditionalDamage(runes?: WeaponRunes): boolean {
         const rune = PROPERTY_RUNES[runeId];
         return rune?.damage && isConditionalDamage(rune.damage.type);
     });
+}
+
+/**
+ * Format damage breakdown as a readable inline string
+ * Shows: base dice + runes + modifier + elemental damage
+ * Example: "4d4+4 bludgeoning +3d6 fire +1d6 cold +1d6 acid"
+ */
+export function formatDamageInline(breakdown: DamageBreakdown, activeConditionalDamage: string[] = []): string {
+    const parts: string[] = [];
+
+    // Get base damage type
+    const baseDamageType = breakdown.base[0]?.damageType || 'physical';
+
+    // Calculate total dice for base damage type (base + striking)
+    let baseDiceCount = 0;
+    let baseDieSize = 0;
+    let physicalModifier = 0;
+
+    // Parse base damage
+    for (const comp of breakdown.base) {
+        const match = comp.value.match(/^(\d+)d(\d+)$/);
+        if (match) {
+            baseDiceCount += parseInt(match[1]);
+            baseDieSize = parseInt(match[2]);  // All base dice have same size
+        }
+    }
+
+    // Add striking rune dice
+    for (const rune of breakdown.runes) {
+        if (rune.type === 'rune-striking') {
+            const match = rune.value.match(/^\+?(\d+)d(\d+)$/);
+            if (match) {
+                baseDiceCount += parseInt(match[1]);
+            }
+        }
+    }
+
+    // Add modifiers
+    for (const mod of [...breakdown.modifier, ...breakdown.buffs]) {
+        const val = parseInt(mod.value);
+        if (!isNaN(val)) {
+            physicalModifier += val;
+        }
+    }
+
+    // Build base damage string
+    const baseDice = `${baseDiceCount}d${baseDieSize}`;
+    const baseStr = physicalModifier > 0
+        ? `${baseDice}+${physicalModifier}`
+        : physicalModifier < 0
+            ? `${baseDice}${physicalModifier}`
+            : baseDice;
+    parts.push(`${baseStr} ${baseDamageType}`);
+
+    // Add elemental rune damage (property runes with damage)
+    for (const rune of breakdown.runes) {
+        if (rune.type === 'rune-property' && rune.damageType) {
+            // Check if this rune is active
+            const isActive = rune.conditionalId ? activeConditionalDamage.includes(rune.conditionalId) : true;
+            if (isActive) {
+                parts.push(`+${rune.value} ${rune.damageType}`);
+            }
+        }
+    }
+
+    return parts.join(' ');
+}
+
+/**
+ * Get elemental runes as separate toggleable items
+ */
+export interface ElementalRuneDisplay {
+    id: string;
+    name: string;
+    nameIt?: string;
+    dice: string;
+    damageType: string;
+    isActive: boolean;
+}
+
+export function getElementalRuneDisplays(
+    breakdown: DamageBreakdown,
+    activeConditionalDamage: string[] = []
+): ElementalRuneDisplay[] {
+    const displays: ElementalRuneDisplay[] = [];
+
+    for (const rune of breakdown.runes) {
+        if (rune.type === 'rune-property' && rune.conditionalId && rune.damageType) {
+            displays.push({
+                id: rune.conditionalId,
+                name: rune.source || rune.label,
+                nameIt: rune.labelIt,
+                dice: rune.value,
+                damageType: rune.damageType,
+                isActive: activeConditionalDamage.includes(rune.conditionalId),
+            });
+        }
+    }
+
+    return displays;
 }

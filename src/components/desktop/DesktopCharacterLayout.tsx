@@ -850,6 +850,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             bulk: gear.bulk,
             invested: false,
             worn: false,
+            // Set container properties if this is a container item
+            isContainer: gear.isContainer,
+            capacity: gear.capacity,
         };
         // Add the gear to equipment (for now, just add - could check for duplicates in future)
         onCharacterUpdate({
@@ -872,6 +875,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
             bulk: gear.bulk,
             invested: false,
             worn: false,
+            // Set container properties if this is a container item
+            isContainer: gear.isContainer,
+            capacity: gear.capacity,
         };
         onCharacterUpdate({
             ...character,

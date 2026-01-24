@@ -149,8 +149,14 @@ export function calculateACWithABP(character: Character): number {
         itemBonus = abp.potency + abp.resilient;
     } else {
         // Standard: Use item bonus from equipment (potency runes)
-        // If we used itemBonus as armorBonus above, set itemBonus to 0
-        itemBonus = (armorBonus === character.armorClass.itemBonus) ? 0 : (character.armorClass.itemBonus || 0);
+        // Get potency rune from equipped armor in the equipment array
+        const { potencyRune } = getArmorRunesFromEquipment(character);
+
+        // Use the potency rune from equipment as the item bonus
+        itemBonus = potencyRune;
+
+        // If we used itemBonus as armorBonus above, we still want to use the potency rune
+        // The potency rune from equipment is the correct item bonus for AC
     }
 
     // AC = 10 + Dex (capped) + Armor Bonus + Proficiency Bonus + Item Bonus
@@ -483,6 +489,32 @@ export function calculateSpellDC(
 }
 
 /**
+ * Get armor runes from the equipped armor in the equipment array
+ * @param character Character data
+ * @returns Object with potencyRune and resilientRune values
+ */
+function getArmorRunesFromEquipment(character: Character): { potencyRune: number; resilientRune: number } {
+    // Default values (no runes)
+    let potencyRune = 0;
+    let resilientRune = 0;
+
+    // Find the equipped armor in the equipment array
+    if (character.equippedArmor && character.equipment) {
+        const equippedArmorItem = character.equipment.find(
+            item => item.id === character.equippedArmor
+        );
+
+        if (equippedArmorItem?.runes) {
+            const runes = equippedArmorItem.runes as { potencyRune?: number; resilientRune?: number };
+            potencyRune = runes.potencyRune || 0;
+            resilientRune = runes.resilientRune || 0;
+        }
+    }
+
+    return { potencyRune, resilientRune };
+}
+
+/**
  * Calculate Saving Throw modifier
  * @param character Character data
  * @param saveType 'fortitude' | 'reflex' | 'will'
@@ -512,7 +544,19 @@ export function calculateSavingThrow(
         abilityMod = getAbilityModifier(character.abilityScores.wis || 10);
     }
 
-    return profBonus + abilityMod;
+    // Get item bonus from armor runes (resilient rune gives item bonus to saves)
+    let itemBonus = 0;
+    if (character.variantRules?.automaticBonusProgression) {
+        // ABP: Use built-in resilient bonus
+        const abp = getABPBonuses(character.level);
+        itemBonus = abp.resilient;
+    } else {
+        // Standard: Use resilient rune from equipped armor
+        const { resilientRune } = getArmorRunesFromEquipment(character);
+        itemBonus = resilientRune;
+    }
+
+    return profBonus + abilityMod + itemBonus;
 }
 
 /**

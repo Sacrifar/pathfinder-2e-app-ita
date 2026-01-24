@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
-import { Character, Resistance, Immunity, EquippedItem } from '../../types';
+import { Character, Resistance, Immunity, EquippedItem, ShieldRunes, ShieldCustomization } from '../../types';
 import { EquipmentBrowser } from './EquipmentBrowser';
 import { LoadedArmor, LoadedShield, getArmor, getShields } from '../../data/pf2e-loader';
 import { ArmorOptionsModal } from './ArmorOptionsModal';
 import { ShieldOptionsModal } from './ShieldOptionsModal';
 import { EquipmentIcon } from '../../utils/actionIcons';
 import { deductCurrency } from '../../utils/currency';
+import { getEquippedArmorDisplayName } from '../../utils/armorName';
+import { getEquippedShieldDisplayName } from '../../utils/shieldName';
 
 interface DefensePanelProps {
     character: Character;
@@ -63,6 +65,18 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         if (!character.equippedShield || !character.equipment) return null;
         return character.equipment.find(item => item.id === character.equippedShield) || null;
     };
+
+    // Get display names with rune enhancements (like weapons)
+    const armorEquippedItem = getArmorEquippedItem();
+    const shieldEquippedItem = getShieldEquippedItem();
+
+    const armorDisplayName = armorEquippedItem && equippedArmor
+        ? getEquippedArmorDisplayName(armorEquippedItem, equippedArmor.name, { language: t('language') as 'en' | 'it' })
+        : equippedArmor?.name || '';
+
+    const shieldDisplayName = shieldEquippedItem && equippedShield
+        ? getEquippedShieldDisplayName(shieldEquippedItem, equippedShield.name, { language: t('language') as 'en' | 'it' })
+        : equippedShield?.name || '';
 
     const handleEquipArmor = (armor: LoadedArmor) => {
         onCharacterUpdate({
@@ -150,19 +164,159 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
         });
     };
 
+    // Stow armor - remove from equipped slot but keep in inventory with enhanced name
+    const handleStowArmor = () => {
+        if (!equippedArmor) return;
+
+        // Ensure the armor is in the equipment array
+        const currentEquipment = character.equipment || [];
+        const armorInEquipment = currentEquipment.find(item => item.id === equippedArmor.id);
+
+        let updatedEquipment;
+        if (!armorInEquipment) {
+            // Add to equipment if not already there with enhanced name
+            const armorEquippedItem = getArmorEquippedItem();
+            const armorRunes = armorEquippedItem?.runes as { potencyRune?: number; resilientRune?: number; propertyRunes?: string[] } | undefined;
+            const armorCustomization = armorEquippedItem?.customization as any;
+
+            // Generate enhanced name with runes and materials
+            const enhancedName = armorCustomization?.customName ||
+                getEquippedArmorDisplayName(
+                    { id: equippedArmor.id, runes: armorRunes, customization: armorCustomization } as EquippedItem,
+                    equippedArmor.name,
+                    { language: t('language') as 'en' | 'it' }
+                );
+
+            updatedEquipment = [...currentEquipment, {
+                id: equippedArmor.id,
+                name: enhancedName,
+                bulk: equippedArmor.bulk,
+                invested: false,
+                worn: false,
+            }];
+        } else {
+            // Update existing item with enhanced name
+            const enhancedName = getEquippedArmorDisplayName(
+                armorInEquipment,
+                equippedArmor.name,
+                { language: t('language') as 'en' | 'it' }
+            );
+
+            updatedEquipment = currentEquipment.map(item =>
+                item.id === equippedArmor.id
+                    ? { ...item, name: enhancedName }
+                    : item
+            );
+        }
+
+        onCharacterUpdate({
+            ...character,
+            equippedArmor: undefined,
+            equipment: updatedEquipment,
+            armorClass: {
+                ...character.armorClass,
+                acBonus: 0,
+                itemBonus: 0,
+                dexCap: 99
+            }
+        });
+    };
+
+    const handleStowShield = () => {
+        if (!equippedShield) return;
+
+        // Ensure the shield is in the equipment array
+        const currentEquipment = character.equipment || [];
+        const shieldInEquipment = currentEquipment.find(item => item.id === equippedShield.id);
+
+        let updatedEquipment;
+        if (!shieldInEquipment) {
+            // Add to equipment if not already there with enhanced name
+            const shieldEquippedItem = getShieldEquippedItem();
+            const shieldRunes = shieldEquippedItem?.runes as ShieldRunes | undefined;
+            const shieldCustomization = shieldEquippedItem?.customization as ShieldCustomization | undefined;
+
+            // Generate enhanced name with runes and materials
+            const enhancedName = shieldCustomization?.customName ||
+                getEquippedShieldDisplayName(
+                    { id: equippedShield.id, runes: shieldRunes, customization: shieldCustomization } as EquippedItem,
+                    equippedShield.name,
+                    { language: t('language') as 'en' | 'it' }
+                );
+
+            updatedEquipment = [...currentEquipment, {
+                id: equippedShield.id,
+                name: enhancedName,
+                bulk: equippedShield.bulk,
+                invested: false,
+                worn: false,
+            }];
+        } else {
+            // Update existing item with enhanced name
+            const enhancedName = getEquippedShieldDisplayName(
+                shieldInEquipment,
+                equippedShield.name,
+                { language: t('language') as 'en' | 'it' }
+            );
+
+            updatedEquipment = currentEquipment.map(item =>
+                item.id === equippedShield.id
+                    ? { ...item, name: enhancedName }
+                    : item
+            );
+        }
+
+        onCharacterUpdate({
+            ...character,
+            equippedShield: undefined,
+            equipment: updatedEquipment,
+            shieldState: undefined
+        });
+    };
+
     // Handlers for armor/shield options
     const handleOpenArmorOptions = () => {
-        const equippedItem = getArmorEquippedItem();
-        if (equippedArmor && equippedItem) {
-            setSelectedArmorItem(equippedItem);
-            setShowArmorOptionsModal(true);
+        if (!equippedArmor) return;
+
+        let equippedItem = getArmorEquippedItem();
+
+        // If armor is not in equipment array, create a default entry
+        if (!equippedItem) {
+            equippedItem = {
+                id: equippedArmor.id,
+                name: equippedArmor.name,
+                bulk: equippedArmor.bulk,
+                invested: false,
+                worn: true,
+            };
         }
+
+        setSelectedArmorItem(equippedItem);
+        setShowArmorOptionsModal(true);
     };
 
     const handleSaveArmorOptions = (updatedItem: EquippedItem) => {
-        const updatedEquipment = character.equipment.map(item =>
-            item.id === updatedItem.id ? updatedItem : item
-        );
+        const existingIndex = character.equipment.findIndex(item => item.id === updatedItem.id);
+        let updatedEquipment;
+
+        // Generate enhanced name with runes and materials
+        const armorCustomization = updatedItem.customization as any;
+
+        const enhancedName = armorCustomization?.customName ||
+            getEquippedArmorDisplayName(updatedItem, equippedArmor?.name || '', { language: t('language') as 'en' | 'it' });
+
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
+        if (existingIndex >= 0) {
+            // Update existing item
+            updatedEquipment = character.equipment.map(item =>
+                item.id === updatedItem.id ? itemWithEnhancedName : item
+            );
+        } else {
+            // Add new item to equipment array
+            updatedEquipment = [...(character.equipment || []), itemWithEnhancedName];
+        }
+
         onCharacterUpdate({
             ...character,
             equipment: updatedEquipment
@@ -176,9 +330,28 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
             alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
             return;
         }
-        const updatedEquipment = character.equipment.map(item =>
-            item.id === updatedItem.id ? updatedItem : item
-        );
+
+        const existingIndex = character.equipment.findIndex(item => item.id === updatedItem.id);
+        let updatedEquipment;
+
+        // Generate enhanced name with runes and materials
+        const armorCustomization = updatedItem.customization as any;
+
+        const enhancedName = armorCustomization?.customName ||
+            getEquippedArmorDisplayName(updatedItem, equippedArmor?.name || '', { language: t('language') as 'en' | 'it' });
+
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
+        if (existingIndex >= 0) {
+            // Update existing item
+            updatedEquipment = character.equipment.map(item =>
+                item.id === updatedItem.id ? itemWithEnhancedName : item
+            );
+        } else {
+            // Add new item to equipment array
+            updatedEquipment = [...(character.equipment || []), itemWithEnhancedName];
+        }
+
         onCharacterUpdate({
             ...character,
             currency: newCurrency,
@@ -188,17 +361,47 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
     };
 
     const handleOpenShieldOptions = () => {
-        const equippedItem = getShieldEquippedItem();
-        if (equippedShield && equippedItem) {
-            setSelectedShieldItem(equippedItem);
-            setShowShieldOptionsModal(true);
+        if (!equippedShield) return;
+
+        let equippedItem = getShieldEquippedItem();
+
+        // If shield is not in equipment array, create a default entry
+        if (!equippedItem) {
+            equippedItem = {
+                id: equippedShield.id,
+                name: equippedShield.name,
+                bulk: equippedShield.bulk,
+                invested: false,
+                worn: false,
+            };
         }
+
+        setSelectedShieldItem(equippedItem);
+        setShowShieldOptionsModal(true);
     };
 
     const handleSaveShieldOptions = (updatedItem: EquippedItem) => {
-        const updatedEquipment = character.equipment.map(item =>
-            item.id === updatedItem.id ? updatedItem : item
-        );
+        const existingIndex = character.equipment.findIndex(item => item.id === updatedItem.id);
+        let updatedEquipment;
+
+        // Generate enhanced name with runes and materials
+        const shieldCustomization = updatedItem.customization as ShieldCustomization | undefined;
+
+        const enhancedName = shieldCustomization?.customName ||
+            getEquippedShieldDisplayName(updatedItem, equippedShield?.name || '', { language: t('language') as 'en' | 'it' });
+
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
+        if (existingIndex >= 0) {
+            // Update existing item
+            updatedEquipment = character.equipment.map(item =>
+                item.id === updatedItem.id ? itemWithEnhancedName : item
+            );
+        } else {
+            // Add new item to equipment array
+            updatedEquipment = [...(character.equipment || []), itemWithEnhancedName];
+        }
+
         onCharacterUpdate({
             ...character,
             equipment: updatedEquipment
@@ -212,9 +415,28 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
             alert(`${t('errors.insufficientFunds') || 'Insufficient funds'}`);
             return;
         }
-        const updatedEquipment = character.equipment.map(item =>
-            item.id === updatedItem.id ? updatedItem : item
-        );
+
+        const existingIndex = character.equipment.findIndex(item => item.id === updatedItem.id);
+        let updatedEquipment;
+
+        // Generate enhanced name with runes and materials
+        const shieldCustomization = updatedItem.customization as ShieldCustomization | undefined;
+
+        const enhancedName = shieldCustomization?.customName ||
+            getEquippedShieldDisplayName(updatedItem, equippedShield?.name || '', { language: t('language') as 'en' | 'it' });
+
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
+        if (existingIndex >= 0) {
+            // Update existing item
+            updatedEquipment = character.equipment.map(item =>
+                item.id === updatedItem.id ? itemWithEnhancedName : item
+            );
+        } else {
+            // Add new item to equipment array
+            updatedEquipment = [...(character.equipment || []), itemWithEnhancedName];
+        }
+
         onCharacterUpdate({
             ...character,
             currency: newCurrency,
@@ -429,7 +651,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                             {equippedArmor ? (
                                 <div className="equipped-item-wrapper">
                                     <div className="equipped-item" onClick={() => openBrowser('armor')}>
-                                        <span className="item-name">{equippedArmor.name}</span>
+                                        <span className="item-name" title={equippedArmor.name}>{armorDisplayName}</span>
                                         <span className="item-details">{equippedArmor.category} • Dex Cap: {equippedArmor.dexCap === 99 ? '-' : equippedArmor.dexCap}</span>
                                     </div>
                                     <button
@@ -438,6 +660,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                         title={t('armor.options') || 'Armor Options'}
                                     >
                                         ⚙️
+                                    </button>
+                                    <button
+                                        className="stow-btn"
+                                        onClick={handleStowArmor}
+                                        title={t('actions.stow') || 'Stow'}
+                                    >
+                                        📦
                                     </button>
                                     <button className="unequip-btn" onClick={handleUnequipArmor} title={t('actions.unequip') || 'Unequip'}>
                                         ×
@@ -468,7 +697,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                     <div className="equipped-item-wrapper">
                                         <div className="equipped-item" onClick={() => openBrowser('shield')}>
                                             <span className={`item-name ${isShieldDestroyed ? 'destroyed' : ''}`}>
-                                                {equippedShield.name}
+                                                {shieldDisplayName}
                                                 {isShieldBroken && !isShieldDestroyed && <span className="status-badge broken">Broken</span>}
                                                 {isShieldDestroyed && <span className="status-badge destroyed">Destroyed</span>}
                                             </span>
@@ -479,6 +708,13 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({
                                             title={t('shield.options') || 'Shield Options'}
                                         >
                                             ⚙️
+                                        </button>
+                                        <button
+                                            className="stow-btn"
+                                            onClick={handleStowShield}
+                                            title={t('actions.stow') || 'Stow'}
+                                        >
+                                            📦
                                         </button>
                                         <button className="unequip-btn" onClick={handleUnequipShield} title={t('actions.unequip') || 'Unequip'}>
                                             ×

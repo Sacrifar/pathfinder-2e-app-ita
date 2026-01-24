@@ -204,7 +204,7 @@ interface RawClassSystem {
 
 interface RawGearSystem {
     baseItem: string | null;
-    bulk: { value: number };
+    bulk: { value: number; capacity?: number; ignored?: number };
     category?: string;
     description: { value: string };
     level: { value: number };
@@ -214,6 +214,7 @@ interface RawGearSystem {
     usage?: { value: string };
     uses?: { max: number; value: number };
     quantity?: number;
+    stowing?: boolean;
 }
 
 // ============ App-friendly types ============
@@ -435,6 +436,9 @@ export interface LoadedGear {
     rawDescription?: string;
     category: 'equipment' | 'consumable' | 'treasure' | 'backpack' | 'kit';
     qty?: number;
+    isContainer?: boolean;  // Whether this item can hold other items (stowing=true in JSON)
+    capacity?: number;      // Bulk capacity of this container
+    bulkReduction?: number; // Amount of bulk ignored for items inside (e.g., 2 for backpack)
 }
 
 // ============ Transform Functions ============
@@ -563,7 +567,7 @@ function transformFeat(raw: RawPF2eItem): LoadedFeat | null {
 
     // Check for reaction indicator
     const hasReaction = /<span[^>]*action-glyph[^>]*>R<\/span>/i.test(description) ||
-                         /<span[^>]*action-glyph[^>]*>reaction<\/span>/i.test(description);
+        /<span[^>]*action-glyph[^>]*>reaction<\/span>/i.test(description);
 
     // Check for numeric action glyphs like <span class="action-glyph">2</span>
     const actionGlyphPattern = /<span[^>]*action-glyph[^>]*>(\d+)<\/span>/gi;
@@ -1126,6 +1130,11 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
     else if (raw.type === 'backpack') category = 'backpack';
     else if (raw.type === 'kit') category = 'kit';
 
+    // Determine if this is a container (backpack type with stowing=true)
+    const isContainer = raw.type === 'backpack' && sys.stowing === true;
+    const capacity = sys.bulk?.capacity;
+    const bulkReduction = sys.bulk?.ignored;
+
     return {
         id: raw._id,
         name: raw.name,
@@ -1138,6 +1147,9 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
         rawDescription: sys.description?.value || '',
         category,
         qty: sys.quantity ?? sys.uses?.value ?? 1,
+        isContainer,
+        capacity,
+        bulkReduction,
     };
 }
 

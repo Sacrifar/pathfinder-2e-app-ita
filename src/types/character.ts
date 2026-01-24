@@ -162,6 +162,7 @@ export interface EquippedItem {
     id: string;
     name: string;
     bulk: number;
+    quantity?: number; // Stackable items quantity (default 1)
     invested?: boolean;
     worn?: boolean;
     wielded?: {
@@ -709,6 +710,10 @@ export function migrateCharacter(data: any): Character {
             }
             if (!item.customization) {
                 item.customization = undefined;
+            }
+            // Migrate quantity (added for stackable items)
+            if (item.quantity === undefined) {
+                item.quantity = 1;
             }
             return item;
         });

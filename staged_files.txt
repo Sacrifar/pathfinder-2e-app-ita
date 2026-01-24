@@ -1,0 +1,9 @@
+node_modules/.tmp/tsconfig.app.tsbuildinfo
+src/components/common/GlobalDiceDisplay.tsx
+src/components/desktop/DamageBreakdown.tsx
+src/components/desktop/WeaponsPanel.tsx
+src/styles/desktop.css
+src/types/character.ts
+src/types/dice.ts
+src/utils/damageBreakdown.ts
+src/utils/weaponCalculations.ts

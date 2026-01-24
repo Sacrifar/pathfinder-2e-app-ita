@@ -10,8 +10,7 @@ import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
 import { WeaponRollData } from '../../types/dice';
 import { canAfford, deductCurrency, formatCurrency } from '../../utils/currency';
-import { calculateDamageBreakdown } from '../../utils/damageBreakdown';
-import { DamageBreakdown } from './DamageBreakdown';
+import { calculateDamageBreakdown, formatDamageInline, getElementalRuneDisplays } from '../../utils/damageBreakdown';
 import {
     calculateMAP,
     formatAttackWithMAP,
@@ -46,8 +45,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     // Track which weapons are two-handed (for two-hand-d* trait)
     const [twoHandedWeapons, setTwoHandedWeapons] = useState<Set<string>>(new Set());
 
-    // Track which weapons have their damage breakdown expanded
-    const [expandedDamageBreakdown, setExpandedDamageBreakdown] = useState<Set<string>>(new Set());
+    // No longer need expandedDamageBreakdown state - damage is shown inline
 
     // Load all weapons from pf2e data
     const allWeapons = useMemo(() => getWeapons(), []);
@@ -88,17 +86,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         });
     }, []);
 
-    const toggleDamageBreakdown = useCallback((weaponId: string) => {
-        setExpandedDamageBreakdown(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(weaponId)) {
-                newSet.delete(weaponId);
-            } else {
-                newSet.add(weaponId);
-            }
-            return newSet;
-        });
-    }, []);
+    // toggleConditionalDamage is kept for elemental rune toggles
 
     const toggleConditionalDamage = useCallback((conditionalId: string) => {
         const currentActive = character.activeConditionalDamage || [];
@@ -386,6 +374,35 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         });
     };
 
+    // Stow weapon - remove wielded status but keep in inventory with enhanced name
+    const handleStowWeapon = (weaponId: string) => {
+        const currentEquipment = character.equipment || [];
+        onCharacterUpdate({
+            ...character,
+            equipment: currentEquipment.map(item => {
+                if (item.id === weaponId) {
+                    // Get weapon data to generate enhanced name
+                    const weapon = allWeapons.find(w => w.id === weaponId);
+                    if (!weapon) return { ...item, wielded: undefined };
+
+                    const weaponRunes = item.runes as WeaponRunes | undefined;
+                    const weaponCustomization = item.customization as WeaponCustomization | undefined;
+
+                    // Generate enhanced name with runes and materials
+                    const enhancedName = weaponCustomization?.customName ||
+                        getEnhancedWeaponName(weapon.name, weaponRunes, weaponCustomization, { language });
+
+                    return {
+                        ...item,
+                        name: enhancedName,
+                        wielded: undefined,
+                    };
+                }
+                return item;
+            }),
+        });
+    };
+
     // Open weapon options modal
     const handleOpenOptions = (weapon: LoadedWeapon, equippedItem: EquippedItem) => {
         setSelectedEquippedWeapon({ weapon, equippedItem });
@@ -395,10 +412,32 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     // Save weapon options
     const handleSaveWeaponOptions = (updatedItem: EquippedItem) => {
         const currentEquipment = character.equipment || [];
+        const weapon = allWeapons.find(w => w.id === updatedItem.id);
+        if (!weapon) {
+            // Weapon not found, just save the item as-is
+            onCharacterUpdate({
+                ...character,
+                equipment: currentEquipment.map(item =>
+                    item.id === updatedItem.id ? updatedItem : item
+                ),
+            });
+            return;
+        }
+
+        const weaponRunes = updatedItem.runes as WeaponRunes | undefined;
+        const weaponCustomization = updatedItem.customization as WeaponCustomization | undefined;
+
+        // Generate enhanced name with runes and materials
+        const enhancedName = weaponCustomization?.customName ||
+            getEnhancedWeaponName(weapon.name, weaponRunes, weaponCustomization, { language });
+
+        // Update the item with the enhanced name
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
         onCharacterUpdate({
             ...character,
             equipment: currentEquipment.map(item =>
-                item.id === updatedItem.id ? updatedItem : item
+                item.id === updatedItem.id ? itemWithEnhancedName : item
             ),
         });
     };
@@ -411,11 +450,34 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             return;
         }
         const currentEquipment = character.equipment || [];
+        const weapon = allWeapons.find(w => w.id === updatedItem.id);
+        if (!weapon) {
+            // Weapon not found, just save the item as-is
+            onCharacterUpdate({
+                ...character,
+                currency: newCurrency,
+                equipment: currentEquipment.map(item =>
+                    item.id === updatedItem.id ? updatedItem : item
+                ),
+            });
+            return;
+        }
+
+        const weaponRunes = updatedItem.runes as WeaponRunes | undefined;
+        const weaponCustomization = updatedItem.customization as WeaponCustomization | undefined;
+
+        // Generate enhanced name with runes and materials
+        const enhancedName = weaponCustomization?.customName ||
+            getEnhancedWeaponName(weapon.name, weaponRunes, weaponCustomization, { language });
+
+        // Update the item with the enhanced name
+        const itemWithEnhancedName = { ...updatedItem, name: enhancedName };
+
         onCharacterUpdate({
             ...character,
             currency: newCurrency,
             equipment: currentEquipment.map(item =>
-                item.id === updatedItem.id ? updatedItem : item
+                item.id === updatedItem.id ? itemWithEnhancedName : item
             ),
         });
     };
@@ -649,7 +711,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 
                         return (
                             <div key={item.id} className="weapon-card">
-                                {/* Header with name, options button, and remove button */}
+                                {/* Header with name, options button, stow button and remove button */}
                                 <div className="weapon-header">
                                     <div className="weapon-title-section">
                                         <span className="weapon-name" title={weapon.name}>{displayName}</span>
@@ -659,6 +721,13 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                             title={t('weapons.options') || 'Weapon Options'}
                                         >
                                             ⚙️
+                                        </button>
+                                        <button
+                                            className="stow-weapon-btn"
+                                            onClick={() => handleStowWeapon(item.id)}
+                                            title={t('actions.stow') || 'Stow'}
+                                        >
+                                            📦
                                         </button>
                                         <button
                                             className="remove-weapon-btn"
@@ -712,48 +781,51 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 
                                 {/* Damage and stats section */}
                                 <div className="weapon-stats-section">
-                                    {/* Damage row with toggle for breakdown */}
-                                    <div className="weapon-stat-row">
-                                        <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
-                                        <div className="damage-display-with-toggle">
-                                            <button
-                                                className="damage-breakdown-toggle"
-                                                onClick={() => toggleDamageBreakdown(item.id)}
-                                                title={t('damage.toggleBreakdown') || 'Toggle damage breakdown'}
-                                            >
-                                                {expandedDamageBreakdown.has(item.id) ? '▼' : '▶'}
-                                            </button>
-                                            <span className="stat-value">{damage} {(item.customization as WeaponCustomization | undefined)?.customDamageType || weapon.damageType}</span>
-                                            <button
-                                                className="damage-roll-btn"
-                                                onClick={() => handleDamageRoll(weapon, item, isTwoHanded)}
-                                                title={`${t('dice.damageRoll') || 'Damage Roll'}: ${weapon.name}`}
-                                            >
-                                                🎲
-                                            </button>
-                                        </div>
-                                    </div>
+                                    {/* Damage row - inline display with all components */}
+                                    {(() => {
+                                        const breakdown = calculateDamageBreakdown(
+                                            character,
+                                            weapon,
+                                            isTwoHanded,
+                                            item,
+                                            character.activeConditionalDamage || []
+                                        );
+                                        const inlineDamage = formatDamageInline(breakdown, character.activeConditionalDamage || []);
+                                        const elementalRunes = getElementalRuneDisplays(breakdown, character.activeConditionalDamage || []);
 
-                                    {/* Damage Breakdown (expanded) */}
-                                    {expandedDamageBreakdown.has(item.id) && (
-                                        <div className="damage-breakdown-container">
-                                            <DamageBreakdown
-                                                breakdown={calculateDamageBreakdown(
-                                                    character,
-                                                    weapon,
-                                                    isTwoHanded,
-                                                    item,
-                                                    character.activeConditionalDamage || []
+                                        return (
+                                            <>
+                                                <div className="weapon-stat-row damage-row">
+                                                    <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
+                                                    <span className="damage-value">{inlineDamage}</span>
+                                                </div>
+
+                                                {/* Elemental Rune Toggles */}
+                                                {elementalRunes.length > 0 && (
+                                                    <div className="elemental-runes-row">
+                                                        {elementalRunes.map(rune => (
+                                                            <label
+                                                                key={rune.id}
+                                                                className={`elemental-rune-toggle ${rune.isActive ? 'active' : ''}`}
+                                                                title={language === 'it' ? rune.nameIt || rune.name : rune.name}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={rune.isActive}
+                                                                    onChange={() => toggleConditionalDamage(rune.id)}
+                                                                />
+                                                                <span className={`rune-type ${rune.damageType}`}>
+                                                                    {rune.dice} {rune.damageType}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
                                                 )}
-                                                onToggleConditional={toggleConditionalDamage}
-                                            />
-                                        </div>
-                                    )}
+                                            </>
+                                        );
+                                    })()}
 
-                                    <div className="weapon-stat-row">
-                                        <span className="stat-label">{t('stats.hands') || 'Hands'}:</span>
-                                        <span className="stat-value">{weapon.hands}</span>
-                                    </div>
+
                                     {/* Critical Specialization Effect */}
                                     {(item.customization as WeaponCustomization | undefined)?.criticalSpecialization && (
                                         <div className="weapon-stat-row crit-spec-row">

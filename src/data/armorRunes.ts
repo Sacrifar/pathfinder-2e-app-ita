@@ -21,7 +21,6 @@ export const ARMOR_FUNDAMENTAL_RUNES = {
         { value: 1, level: 5, price: 160, name: '+1 Armor Potency Rune', nameIt: 'Runa Potenza Armatura +1' },
         { value: 2, level: 11, price: 1060, name: '+2 Armor Potency Rune', nameIt: 'Runa Potenza Armatura +2' },
         { value: 3, level: 18, price: 20560, name: '+3 Armor Potency Rune', nameIt: 'Runa Potenza Armatura +3' },
-        { value: 4, level: 20, price: 70000, name: '+4 Armor Potency Rune', nameIt: 'Runa Potenza Armatura +4', rarity: 'rare' },
     ],
     resilient: [
         { value: 1, level: 8, price: 340, name: 'Resilient Rune', nameIt: 'Runa Resiliente' },
@@ -385,7 +384,7 @@ export const ARMOR_PROPERTY_RUNES: Record<string, ArmorPropertyRuneData> = {
 
 // Helper function to get max property runes based on potency
 export function getMaxArmorPropertyRunes(potencyRune: number): number {
-    return Math.min(potencyRune, 4);
+    return Math.min(potencyRune, 3);
 }
 
 // Helper function to get property rune price

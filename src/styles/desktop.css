@@ -455,7 +455,7 @@
     min-height: 0;
 }
 
-.skills-list.virtual-list > div {
+.skills-list.virtual-list>div {
     width: 100%;
     flex: 1;
     min-height: 0;
@@ -692,6 +692,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -714,6 +715,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1557,9 +1559,12 @@
 }
 
 @keyframes pulse-red {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
     }
+
     50% {
         box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
     }
@@ -2260,7 +2265,8 @@
 }
 
 .weapon-options-btn,
-.remove-weapon-btn {
+.remove-weapon-btn,
+.stow-weapon-btn {
     padding: 3px 6px;
     background: transparent;
     border: 1px solid var(--desktop-border);
@@ -2272,9 +2278,15 @@
 }
 
 .weapon-options-btn:hover,
-.remove-weapon-btn:hover {
+.remove-weapon-btn:hover,
+.stow-weapon-btn:hover {
     background: var(--desktop-bg-tertiary);
     opacity: 1;
+}
+
+.stow-weapon-btn:hover {
+    border-color: var(--desktop-accent-gold, #ffc107);
+    color: var(--desktop-accent-gold, #ffc107);
 }
 
 .remove-weapon-btn:hover {
@@ -2467,6 +2479,136 @@
     color: var(--desktop-accent-green);
     font-size: 12px;
     font-weight: 600;
+}
+
+/* ===== Inline Damage Display ===== */
+.damage-row {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+}
+
+.damage-display-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.damage-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--desktop-accent-orange);
+    font-family: var(--font-mono, monospace);
+    letter-spacing: 0.3px;
+}
+
+.damage-roll-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.damage-roll-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-accent-orange);
+}
+
+/* Elemental Rune Toggles */
+.elemental-runes-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 0;
+    margin-top: 4px;
+    border-top: 1px dashed var(--desktop-border);
+    grid-column: 1 / -1;
+}
+
+.elemental-rune-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.elemental-rune-toggle:hover {
+    opacity: 1;
+    border-color: var(--desktop-accent-orange);
+}
+
+.elemental-rune-toggle.active {
+    opacity: 1;
+    border-color: var(--desktop-accent-orange);
+    background: rgba(255, 165, 0, 0.1);
+}
+
+.elemental-rune-toggle input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.rune-type {
+    font-weight: 500;
+    font-family: var(--font-mono, monospace);
+}
+
+/* Elemental damage type colors */
+.rune-type.fire {
+    color: #e74c3c;
+}
+
+.rune-type.cold {
+    color: #3498db;
+}
+
+.rune-type.electricity {
+    color: #f1c40f;
+}
+
+.rune-type.acid {
+    color: #2ecc71;
+}
+
+.rune-type.sonic {
+    color: #9b59b6;
+}
+
+.rune-type.force {
+    color: #95a5a6;
+}
+
+.rune-type.positive {
+    color: #f5f5dc;
+}
+
+.rune-type.negative {
+    color: #8b0000;
+}
+
+.rune-type.holy {
+    color: #ffd700;
+}
+
+.rune-type.unholy {
+    color: #4b0082;
+}
+
+.rune-type.spirit {
+    color: #dda0dd;
 }
 
 .empty-state-small {
@@ -2964,6 +3106,283 @@
     border-radius: 2px;
     background: var(--desktop-bg-tertiary);
     color: var(--desktop-text-secondary);
+}
+
+/* Drag and Drop Styles */
+.gear-item.dragging {
+    opacity: 0.4;
+    background: var(--desktop-accent-blue);
+}
+
+.gear-drag-handle {
+    cursor: grab;
+    color: var(--desktop-text-muted);
+    font-size: 12px;
+    user-select: none;
+    margin-right: 8px;
+}
+
+.gear-drag-handle:active {
+    cursor: grabbing;
+}
+
+.gear-remove-btn {
+    background: none;
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-secondary);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.gear-remove-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+    border-color: var(--desktop-accent-blue);
+}
+
+/* Quantity controls for gear items */
+.gear-quantity {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+}
+
+.quantity-btn {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-secondary);
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.quantity-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+    border-color: var(--desktop-accent-blue);
+}
+
+.quantity-btn.minus:hover {
+    border-color: var(--desktop-accent-red);
+    color: var(--desktop-accent-red);
+}
+
+.quantity-value {
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 16px;
+    text-align: center;
+}
+
+.gear-options-btn {
+    background: none;
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-secondary);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.gear-options-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+    border-color: var(--desktop-accent-blue);
+}
+
+/* Inventory Sections */
+.inventory-section {
+    margin-bottom: 16px;
+}
+
+.inventory-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--desktop-border);
+    margin-bottom: 8px;
+}
+
+.inventory-section .section-header h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--desktop-text);
+}
+
+.section-count {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+    background: var(--desktop-bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.section-content {
+    min-height: 40px;
+    padding: 8px;
+    background: var(--desktop-bg-secondary);
+    border-radius: 6px;
+    border: 2px dashed transparent;
+    transition: all 0.2s ease;
+}
+
+.section-content.drag-over {
+    border-color: var(--desktop-accent-blue);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.section-empty {
+    text-align: center;
+    padding: 16px;
+    color: var(--desktop-text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Container Styles */
+.containers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.container-section {
+    background: var(--desktop-bg-secondary);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.container-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--desktop-bg-tertiary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.container-header:hover {
+    background: var(--desktop-card-hover);
+}
+
+.container-header.expanded {
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.container-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.container-toggle {
+    font-size: 10px;
+    color: var(--desktop-text-muted);
+    width: 12px;
+}
+
+.container-icon {
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+.container-name {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.container-capacity {
+    font-size: 11px;
+    color: var(--desktop-text-muted);
+}
+
+.container-capacity .over-capacity {
+    color: var(--desktop-accent-red);
+    font-weight: 600;
+}
+
+.container-delete-btn {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container-delete-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-accent-red);
+    border-color: var(--desktop-accent-red);
+    transform: scale(1.1);
+}
+
+.container-contents {
+    padding: 8px;
+    background: var(--desktop-bg-primary);
+    min-height: 32px;
+    border: 2px dashed transparent;
+    transition: all 0.2s ease;
+}
+
+.container-contents.drag-over {
+    border-color: var(--desktop-accent-green);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.container-empty {
+    text-align: center;
+    padding: 12px;
+    color: var(--desktop-text-muted);
+    font-size: 11px;
+    font-style: italic;
+}
+
+.container-contents .gear-item {
+    margin-left: 16px;
+    border-left: 2px solid var(--desktop-border);
+}
+
+/* Bulk reduction indicator */
+.bulk-reduction {
+    font-size: 11px;
+    color: var(--desktop-accent-green);
+    margin-left: 4px;
 }
 
 /* ===== Spells Panel ===== */
@@ -4642,6 +5061,29 @@
     background: var(--desktop-accent-red);
     color: white;
     border-color: var(--desktop-accent-red);
+}
+
+.stow-btn {
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.stow-btn:hover {
+    background: var(--desktop-accent-gold, #ffc107);
+    color: #1a1a2e;
+    border-color: var(--desktop-accent-gold, #ffc107);
 }
 
 /* ===== Selection Browser Modals ===== */
@@ -6926,7 +7368,7 @@
     color: var(--desktop-text);
 }
 
-.blast-option-checkbox input[type="checkbox"]:checked + span {
+.blast-option-checkbox input[type="checkbox"]:checked+span {
     color: var(--desktop-accent-blue, #3b82f6);
     font-weight: 500;
 }
@@ -7254,4 +7696,471 @@
     border-radius: 4px;
     margin-top: 12px;
     font-family: monospace;
+}
+
+/* ===== Weapon Options Modal ===== */
+.weapon-options-modal {
+    background: var(--desktop-bg-secondary, #1a1a2e);
+    border: 1px solid var(--desktop-border-light, rgba(255, 255, 255, 0.15));
+    border-radius: 16px;
+    width: 95%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.weapon-options-modal .modal-header {
+    background: linear-gradient(135deg, var(--desktop-accent-red, #8b0000) 0%, #5c1f1f 100%);
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.weapon-options-modal .modal-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    line-height: 1.4;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.weapon-options-modal .modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Options Section */
+.weapon-options-modal .options-section {
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.weapon-options-modal .options-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-text, #e0e0e0);
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.08));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weapon-options-modal .options-section h3::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--desktop-accent-red, #c42b2b);
+    border-radius: 2px;
+}
+
+/* Option Rows */
+.weapon-options-modal .option-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.weapon-options-modal .option-row:last-child {
+    margin-bottom: 0;
+}
+
+.weapon-options-modal .option-row>label:not(.checkbox-label) {
+    min-width: 140px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--desktop-text-secondary, #a0a0a0);
+}
+
+.weapon-options-modal .option-select,
+.weapon-options-modal .option-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--desktop-bg, #0f0f1a);
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    color: var(--desktop-text, #e0e0e0);
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.weapon-options-modal .option-select:focus,
+.weapon-options-modal .option-input:focus {
+    outline: none;
+    border-color: var(--desktop-accent-red, #c42b2b);
+    box-shadow: 0 0 0 3px rgba(196, 43, 43, 0.15);
+}
+
+.weapon-options-modal .option-select:hover,
+.weapon-options-modal .option-input:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.weapon-options-modal .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--desktop-text, #e0e0e0);
+    cursor: pointer;
+    padding: 8px 0;
+}
+
+.weapon-options-modal .checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--desktop-accent-red, #c42b2b);
+    cursor: pointer;
+}
+
+/* Selected Runes Summary */
+.weapon-options-modal .selected-runes-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 14px;
+    background: linear-gradient(135deg, rgba(196, 43, 43, 0.1) 0%, rgba(139, 0, 0, 0.05) 100%);
+    border: 1px solid rgba(196, 43, 43, 0.2);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.weapon-options-modal .selected-runes-summary strong {
+    font-size: 12px;
+    color: var(--desktop-text-secondary, #a0a0a0);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+}
+
+.weapon-options-modal .selected-rune-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, var(--desktop-accent-red, #c42b2b) 0%, #8b0000 100%);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+    box-shadow: 0 2px 8px rgba(196, 43, 43, 0.3);
+}
+
+.weapon-options-modal .remove-tag-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.weapon-options-modal .remove-tag-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+}
+
+.weapon-options-modal .rune-total-price {
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(196, 43, 43, 0.3);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--desktop-accent-gold, #ffc107);
+}
+
+/* Rune Search Input */
+.weapon-options-modal .rune-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--desktop-bg, #0f0f1a);
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+    color: var(--desktop-text, #e0e0e0);
+    font-size: 14px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.weapon-options-modal .rune-search-input::placeholder {
+    color: var(--desktop-text-muted, #666);
+}
+
+.weapon-options-modal .rune-search-input:focus {
+    outline: none;
+    border-color: var(--desktop-accent-blue, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Property Runes List */
+.weapon-options-modal .property-runes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.weapon-options-modal .property-runes-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.weapon-options-modal .property-runes-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.weapon-options-modal .property-runes-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.weapon-options-modal .property-runes-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Property Rune Card */
+.weapon-options-modal .property-rune-card {
+    background: var(--desktop-bg, #0f0f1a);
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.weapon-options-modal .property-rune-card:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(4px);
+}
+
+.weapon-options-modal .property-rune-card.selected {
+    background: linear-gradient(135deg, rgba(196, 43, 43, 0.15) 0%, rgba(139, 0, 0, 0.1) 100%);
+    border-color: var(--desktop-accent-red, #c42b2b);
+    box-shadow: 0 0 0 1px rgba(196, 43, 43, 0.3) inset;
+}
+
+.weapon-options-modal .property-rune-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.weapon-options-modal .rune-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.weapon-options-modal .rune-card-header input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--desktop-accent-red, #c42b2b);
+    flex-shrink: 0;
+}
+
+.weapon-options-modal .rune-name-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.weapon-options-modal .rune-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--desktop-text, #e0e0e0);
+}
+
+.weapon-options-modal .rune-meta {
+    font-size: 11px;
+    color: var(--desktop-text-muted, #888);
+}
+
+.weapon-options-modal .rune-description {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--desktop-text-secondary, #a0a0a0);
+    margin-left: 30px;
+}
+
+.weapon-options-modal .rune-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    margin-left: 30px;
+}
+
+.weapon-options-modal .rune-traits .trait-tag {
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--desktop-text-secondary, #a0a0a0);
+    text-transform: capitalize;
+}
+
+.weapon-options-modal .no-runes-found {
+    padding: 32px;
+    text-align: center;
+    color: var(--desktop-text-muted, #666);
+    font-size: 14px;
+}
+
+/* Modal Actions */
+.weapon-options-modal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.02));
+    border-top: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.08));
+}
+
+.weapon-options-modal .cancel-btn,
+.weapon-options-modal .give-btn,
+.weapon-options-modal .buy-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weapon-options-modal .cancel-btn {
+    background: transparent;
+    border: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.15));
+    color: var(--desktop-text-secondary, #a0a0a0);
+}
+
+.weapon-options-modal .cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--desktop-text, #e0e0e0);
+}
+
+.weapon-options-modal .give-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.weapon-options-modal .give-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.weapon-options-modal .buy-btn {
+    background: linear-gradient(135deg, var(--desktop-accent-gold, #ffc107) 0%, #ff9800 100%);
+    border: none;
+    color: #1a1a2e;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.weapon-options-modal .buy-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.4);
+}
+
+.weapon-options-modal .buy-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Gear panel modal actions for Restore and Swap buttons */
+.modal-actions-gear {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: var(--desktop-bg-tertiary, rgba(255, 255, 255, 0.02));
+    border-top: 1px solid var(--desktop-border, rgba(255, 255, 255, 0.08));
+}
+
+.modal-actions-gear .restore-btn,
+.modal-actions-gear .swap-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-actions-gear .restore-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.modal-actions-gear .restore-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.modal-actions-gear .swap-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.modal-actions-gear .swap-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
 }

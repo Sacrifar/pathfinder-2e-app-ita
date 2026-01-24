@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLanguage } from '../../hooks/useLanguage';
+import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, EquippedItem, ReinforcingRune, ShieldCustomization } from '../../types';
 import { LoadedShield } from '../../data/pf2e-loader';
 import {
     SHIELD_FUNDAMENTAL_RUNES,
     SHIELD_PROPERTY_RUNES,
     getShieldStatsWithReinforcing,
-    getAvailableShieldPropertyRunes,
-    ShieldPropertyRuneData,
 } from '../../data/shieldRunes';
 import { canAfford, formatCurrency } from '../../utils/currency';
 
@@ -29,6 +27,7 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
     onBuyRunes,
 }) => {
     const { t } = useLanguage();
+    const getLocalizedName = useLocalizedName();
 
     // Local state for form fields
     const [reinforcingRune, setReinforcingRune] = useState<ReinforcingRune | undefined>(
@@ -53,6 +52,9 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
     const [broken, setBroken] = useState<boolean>(
         (equippedShield.customization as ShieldCustomization)?.broken || false
     );
+
+    // Search state for property runes
+    const [runeSearch, setRuneSearch] = useState('');
 
     // Sync state with props when equippedShield changes
     useEffect(() => {
@@ -106,29 +108,38 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
         };
     }, [reinforcingRune, shield.hardness, shield.maxHp, hardnessOverride, maxHPOverride]);
 
-    // Get available property runes (based on character level)
-    const availablePropertyRunes = useMemo(() => {
-        return getAvailableShieldPropertyRunes(character.level || 1);
-    }, [character.level]);
+    // Get all property runes sorted by level
+    const allPropertyRunes = useMemo(() => {
+        return Object.values(SHIELD_PROPERTY_RUNES).sort((a, b) => {
+            if (a.level !== b.level) return a.level - b.level;
+            return (a.nameIt || a.name).localeCompare(b.nameIt || b.name);
+        });
+    }, []);
 
-    const handleAddPropertyRune = () => {
-        if (availablePropertyRunes.length > 0) {
-            const existingRuneIds = new Set(propertyRunes);
-            const availableRune = availablePropertyRunes.find(r => !existingRuneIds.has(r.id));
-            if (availableRune) {
-                setPropertyRunes([...propertyRunes, availableRune.id]);
+    // Filter runes by search
+    const filteredRunes = useMemo(() => {
+        if (!runeSearch) return allPropertyRunes;
+        const search = runeSearch.toLowerCase();
+        return allPropertyRunes.filter(rune =>
+            rune.name.toLowerCase().includes(search) ||
+            (rune.nameIt && rune.nameIt.toLowerCase().includes(search)) ||
+            (rune.description && rune.description.toLowerCase().includes(search)) ||
+            (rune.descriptionIt && rune.descriptionIt.toLowerCase().includes(search))
+        );
+    }, [allPropertyRunes, runeSearch]);
+
+    // Toggle property rune selection
+    const togglePropertyRune = (runeId: string) => {
+        const isSelected = propertyRunes.includes(runeId);
+        if (isSelected) {
+            // Remove the rune
+            setPropertyRunes(propertyRunes.filter(id => id !== runeId));
+        } else {
+            // Add the rune if under limit (shields can only have 1)
+            if (propertyRunes.length < 1) {
+                setPropertyRunes([...propertyRunes, runeId]);
             }
         }
-    };
-
-    const handlePropertyRuneChange = (index: number, newRuneId: string) => {
-        const newRunes = [...propertyRunes];
-        newRunes[index] = newRuneId;
-        setPropertyRunes(newRunes);
-    };
-
-    const getPropertyRuneData = (runeId: string): ShieldPropertyRuneData | undefined => {
-        return SHIELD_PROPERTY_RUNES[runeId];
     };
 
     const handleSaveGive = () => {
@@ -229,7 +240,7 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
                                 <option value="none">{t('weapons.none') || 'None'}</option>
                                 {SHIELD_FUNDAMENTAL_RUNES.reinforcing.map(rune => (
                                     <option key={rune.value} value={rune.value}>
-                                        {rune.nameIt || rune.name} (Hardness +{rune.hardnessIncrease}, HP +{rune.maxHPIncrease} - Lvl {rune.level}, {rune.price} gp)
+                                        {getLocalizedName(rune)} (Hardness +{rune.hardnessIncrease}, HP +{rune.maxHPIncrease} - Lvl {rune.level}, {rune.price} gp)
                                     </option>
                                 ))}
                             </select>
@@ -239,55 +250,90 @@ export const ShieldOptionsModal: React.FC<ShieldOptionsModalProps> = ({
                     {/* Property Runes */}
                     <div className="options-section">
                         <h3>
-                            {t('shield.propertyRunes') || 'Property Runes'} ({propertyRunes.length})
+                            {t('shield.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/1)
                         </h3>
-                        {propertyRunes.map((runeId, index) => {
-                            return (
-                                <div key={index} className="option-row property-rune-row">
-                                    <select
-                                        value={runeId}
-                                        onChange={(e) => handlePropertyRuneChange(index, e.target.value)}
-                                        className="option-select"
-                                    >
-                                        <option value="">{t('weapons.none') || 'None'}</option>
-                                        {availablePropertyRunes.map(rune => (
-                                            <option key={rune.id} value={rune.id}>
-                                                {rune.nameIt || rune.name} (Lvl {rune.level}, {rune.price} gp)
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        className="remove-rune-btn"
-                                        onClick={() => {
-                                            const newRunes = propertyRunes.filter((_, i) => i !== index);
-                                            setPropertyRunes(newRunes);
-                                        }}
-                                        title={t('actions.remove') || 'Remove'}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {availablePropertyRunes.length > propertyRunes.length && (
-                            <button
-                                className="add-rune-btn"
-                                onClick={handleAddPropertyRune}
-                            >
-                                + {t('shield.addPropertyRune') || 'Add Property Rune'}
-                            </button>
-                        )}
+
+                        {/* Selected Runes Summary */}
                         {propertyRunes.length > 0 && (
-                            <div className="rune-total-price">
-                                <span className="rune-price-label">{t('shield.totalPrice') || 'Total Price'}: </span>
-                                <span className="rune-price-value">
-                                    {propertyRunes.reduce((sum, runeId) => {
-                                        const rune = getPropertyRuneData(runeId);
-                                        return sum + (rune?.price || 0);
-                                    }, 0)} gp
-                                </span>
+                            <div className="selected-runes-summary">
+                                <strong>{t('weapons.selected') || 'Selected'}:</strong>
+                                {propertyRunes.map(runeId => {
+                                    const rune = SHIELD_PROPERTY_RUNES[runeId];
+                                    if (!rune) return null;
+                                    return (
+                                        <span key={runeId} className="selected-rune-tag">
+                                            {getLocalizedName(rune)}
+                                            <button
+                                                className="remove-tag-btn"
+                                                onClick={() => togglePropertyRune(runeId)}
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    );
+                                })}
+                                <div className="rune-total-price">
+                                    {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (SHIELD_PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                </div>
                             </div>
                         )}
+
+                        {/* Search */}
+                        <input
+                            type="text"
+                            value={runeSearch}
+                            onChange={(e) => setRuneSearch(e.target.value)}
+                            placeholder={t('weapons.searchRunes') || 'Search runes...'}
+                            className="rune-search-input"
+                        />
+
+                        {/* Rune List */}
+                        <div className="property-runes-list">
+                            {filteredRunes.map(rune => {
+                                const isSelected = propertyRunes.includes(rune.id);
+                                const canSelect = !isSelected && propertyRunes.length >= 1;
+
+                                return (
+                                    <div
+                                        key={rune.id}
+                                        className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
+                                        onClick={() => !canSelect && togglePropertyRune(rune.id)}
+                                    >
+                                        <div className="rune-card-header">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => togglePropertyRune(rune.id)}
+                                                disabled={canSelect}
+                                            />
+                                            <div className="rune-name-info">
+                                                <span className="rune-name">
+                                                    {getLocalizedName(rune)}
+                                                </span>
+                                                <span className="rune-meta">
+                                                    Lvl {rune.level} • {rune.price} gp • {rune.rarity}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="rune-description">
+                                            {t('language') === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
+                                        </div>
+                                        {rune.traits && rune.traits.length > 0 && (
+                                            <div className="rune-traits">
+                                                {rune.traits.map(trait => (
+                                                    <span key={trait} className="trait-tag">{trait}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {filteredRunes.length === 0 && (
+                                <div className="no-runes-found">
+                                    {t('weapons.noRunesFound') || 'No runes found'}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Advanced Customization */}

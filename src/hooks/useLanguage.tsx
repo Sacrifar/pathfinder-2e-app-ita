@@ -355,6 +355,7 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.equipArmor': 'Equip Armor',
         'actions.equipShield': 'Equip Shield',
         'actions.equip': 'Equip',
+        'actions.wield': 'Wield',
         'actions.unequip': 'Unequip',
         'browser.equipment': 'Equipment Browser',
         'browser.search': 'Search...',
@@ -670,6 +671,17 @@ const translations: Record<Language, Record<string, string>> = {
         'kineticist.availableImpulses': 'Available Impulses',
         'kineticist.junctionSelected': 'junction selected',
         'kineticist.impulseFeats': 'Impulse Feats',
+
+        // Gear Panel - Restore and Swap
+        'gear.restore': 'Restore',
+        'gear.swap': 'Swap',
+        'gear.restoreToDefense': 'Restore to Defense',
+        'gear.swapWithDefense': 'Swap with Defense',
+        'gear.alreadyEquippedWarning': 'Already Equipped',
+        'gear.armorAlreadyEquipped': 'There is already an armor equipped in the Defense slot. Please unequip it first before restoring this one.',
+        'gear.shieldAlreadyEquipped': 'There is already a shield equipped in the Defense slot. Please unequip it first before restoring this one.',
+        'gear.restoreSuccess': 'Restored to Defense slot',
+        'actions.stow': 'Stow',
     },
     it: {
         // Navigation
@@ -1016,6 +1028,7 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.equipArmor': 'Equipaggia Armatura',
         'actions.equipShield': 'Equipaggia Scudo',
         'actions.equip': 'Equipaggia',
+        'actions.wield': 'Impugna',
         'actions.unequip': 'Rimuovi',
         'browser.equipment': 'Browser Equipaggiamento',
         'browser.search': 'Cerca...',
@@ -1331,6 +1344,17 @@ const translations: Record<Language, Record<string, string>> = {
         'kineticist.availableImpulses': 'Impulsi Disponibili',
         'kineticist.junctionSelected': 'giunzione selezionata',
         'kineticist.impulseFeats': 'Talenti Impulso',
+
+        // Gear Panel - Restore and Swap
+        'gear.restore': 'Ripristina',
+        'gear.swap': 'Scambia',
+        'gear.restoreToDefense': 'Ripristina in Difesa',
+        'gear.swapWithDefense': 'Scambia con Difesa',
+        'gear.alreadyEquippedWarning': 'Già Equipaggiato',
+        'gear.armorAlreadyEquipped': 'C\'è già un\'armatura equipaggiata nello slot Difesa. Rimuovila prima di ripristinare questa.',
+        'gear.shieldAlreadyEquipped': 'C\'è già uno scudo equipaggiato nello slot Difesa. Rimuovilo prima di ripristinare questo.',
+        'gear.restoreSuccess': 'Ripristinato nello slot Difesa',
+        'actions.stow': 'Riponi',
     }
 };
 
