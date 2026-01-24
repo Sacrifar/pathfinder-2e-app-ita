@@ -2,6 +2,24 @@
 
 Guida completa per configurare l'ambiente di sviluppo per il progetto Pathfinder 2E App.
 
+## Quick Setup (Raccomandato)
+
+**Setup automatico in 1 comando:**
+
+```bash
+# Linux/macOS
+./.claude/setup-vscode.sh
+
+# Windows PowerShell
+.\.claude\setup-vscode.ps1
+```
+
+Questi script creano automaticamente la configurazione `.vscode/` ottimale per il progetto.
+
+**Oppure:** Segui la guida completa sotto per configurazione manuale e dettagli.
+
+---
+
 ## Editor Consigliato
 
 **Visual Studio Code** (VSCode) è l'editor consigliato per questo progetto.
@@ -366,11 +384,29 @@ npm run validate:data
 
 ### 2. Configurazione VSCode
 
-Apri il progetto in VSCode:
+**Metodo A: Setup Automatico (Raccomandato)**
 
+```bash
+# Linux/macOS
+./.claude/setup-vscode.sh
+
+# Windows PowerShell
+.\.claude\setup-vscode.ps1
+```
+
+Poi apri il progetto:
 ```bash
 code .
 ```
+
+**Metodo B: Configurazione Manuale**
+
+Apri il progetto in VSCode:
+```bash
+code .
+```
+
+Crea manualmente i file in `.vscode/` seguendo i template in questa guida (vedi sezioni "Configurazione Workspace VSCode", "Task VSCode", ecc.).
 
 VSCode chiederà di installare le estensioni raccomandate - **accetta**.
 
@@ -403,7 +439,10 @@ pathfinder-2e-app-ita/
 │   ├── agent-skills.json
 │   ├── README.md
 │   ├── QUICKREF.md
-│   └── validate.js
+│   ├── WORKSPACE.md
+│   ├── validate.js
+│   ├── setup-vscode.sh     # Setup script per Linux/macOS
+│   └── setup-vscode.ps1    # Setup script per Windows
 ├── src/                  # Codice sorgente
 ├── public/               # Asset statici
 ├── dist/                 # Build output (gitignored)
