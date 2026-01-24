@@ -25,28 +25,43 @@ function extractElementFromTraits(traits: string[]): string | undefined {
 
 /**
  * Element color mapping for 3D dice
+ * Colors match the impulse panel (ImpulsePanel.tsx) for consistency
  * Each element has a primary color (for base dice) and a bonus color (for extra damage dice)
- * Includes both kineticist elements and spell damage traits
+ * Includes kineticist elements, spell damage traits, and weapon rune damage types
  */
 const ELEMENT_COLORS: Record<string, { primary: string; bonus: string }> = {
-    // Kineticist elements
-    air: { primary: '#3B82F6', bonus: '#FBBF24' },      // Blue (base) + Yellow (electricity)
-    fire: { primary: '#EF4444', bonus: '#F97316' },     // Red (base) + Orange (bonus)
-    earth: { primary: '#78716C', bonus: '#22C55E' },    // Brown (base) + Green (bonus)
-    metal: { primary: '#6B7280', bonus: '#EAB308' },    // Gray (base) + Gold (bonus)
-    water: { primary: '#0EA5E9', bonus: '#06B6D4' },    // Light Blue (base) + Cyan (bonus)
-    wood: { primary: '#854D0E', bonus: '#DC2626' },     // Brown (base) + Red (fire bonus)
+    // Kineticist elements (colors from ImpulsePanel.tsx getElementColor)
+    air: { primary: '#87CEEB', bonus: '#FBBF24' },      // Sky Blue (base) + Yellow (electricity)
+    fire: { primary: '#FF4500', bonus: '#F97316' },     // Orange Red (base) + Orange (bonus)
+    earth: { primary: '#8B4513', bonus: '#22C55E' },    // Saddle Brown (base) + Green (bonus)
+    metal: { primary: '#C0C0C0', bonus: '#EAB308' },    // Silver (base) + Gold (bonus)
+    water: { primary: '#1E90FF', bonus: '#06B6D4' },    // Dodger Blue (base) + Cyan (bonus)
+    wood: { primary: '#228B22', bonus: '#DC2626' },     // Forest Green (base) + Red (fire bonus)
+    aether: { primary: '#9370DB', bonus: '#A855F7' },   // Medium Purple (base) + Light Purple (bonus)
+    void: { primary: '#2F4F4F', bonus: '#374151' },     // Dark Slate Gray (base) + Gray (bonus)
 
-    // Spell damage traits
+    // Spell damage traits and weapon rune elements
     electricity: { primary: '#FBBF24', bonus: '#FDE047' }, // Yellow + Light Yellow
     cold: { primary: '#06B6D4', bonus: '#67E8F9' },      // Cyan + Light Cyan
-    acid: { primary: '#84CC16', bonus: '#A3E635' },      // Green + Light Green
+    acid: { primary: '#2ecc71', bonus: '#A3E635' },      // Green + Light Green (matches DamageBreakdown)
     poison: { primary: '#A855F7', bonus: '#C084FC' },     // Purple + Light Purple
-    sonic: { primary: '#F97316', bonus: '#FB923C' },      // Orange + Light Orange
-    force: { primary: '#E5E7EB', bonus: '#F3F4F6' },     // Gray + Light Gray
-    vitality: { primary: '#F472B6', bonus: '#F9A8D4' },   // Pink + Light Pink
-    void: { primary: '#1F2937', bonus: '#374151' },      // Dark Gray + Gray
-    chaos: { primary: '#7C3AED', bonus: '#8B5CF6' },     // Violet + Purple
+    sonic: { primary: '#9b59b6', bonus: '#BB8DBF' },      // Purple + Light Purple (matches DamageBreakdown)
+    force: { primary: '#95a5a6', bonus: '#BDC3C7' },     // Gray + Light Gray (matches DamageBreakdown)
+    vitality: { primary: '#ff69b4', bonus: '#F9A8D4' },   // Hot Pink + Light Pink (matches DamageBreakdown)
+
+    // Spirit damage (holy/unholy runes)
+    spirit: { primary: '#dda0dd', bonus: '#E6B8E6' },     // Plum + Light Plum (matches DamageBreakdown)
+    holy: { primary: '#ffd700', bonus: '#FFEC8B' },      // Gold + Light Gold (matches DamageBreakdown)
+    unholy: { primary: '#4b0082', bonus: '#6A0DAD' },    // Indigo + Purple (matches DamageBreakdown)
+
+    // Alignment damage (axiomatic/anarchic runes)
+    chaotic: { primary: '#7C3AED', bonus: '#8B5CF6' },   // Violet + Purple
+    lawful: { primary: '#3B82F6', bonus: '#60A5FA' },    // Blue + Light Blue
+
+    // Other damage types (weapon runes)
+    positive: { primary: '#f5f5dc', bonus: '#FFFACD' },  // Beige + Lemon Chiffon (matches DamageBreakdown)
+    negative: { primary: '#8b0000', bonus: '#A52A2A' },  // Dark Red + Brown (matches DamageBreakdown)
+    bleed: { primary: '#8b0000', bonus: '#A52A2A' },     // Dark Red + Brown (matches DamageBreakdown)
 
     // Physical damage types
     precision: { primary: '#14B8A6', bonus: '#5EEAD4' }, // Teal + Light Teal
@@ -76,8 +91,17 @@ function isD20CheckRoll(roll: { rolls: Array<{ sides: number; count: number }> }
  * Helper function to roll multiple dice types using DiceBox's roll method.
  * Supports Roll Objects with themeColor for elemental dice coloring.
  * For "4d6+1d12+6", we extract dice notations and pass them as Roll Objects with colors.
+ *
+ * @param elementalTypes Optional array of elemental types for multi-colored runes (e.g., ['fire', 'cold', 'acid'])
+ * @param elementalRunesMode If true, only color subsequent dice (elemental damage), not the first group (base weapon damage)
  */
-function rollWithDiceBox(diceBox: DiceBox, formula: string, element?: string) {
+function rollWithDiceBox(
+    diceBox: DiceBox,
+    formula: string,
+    element?: string,
+    elementalRunesMode?: boolean,
+    elementalTypes?: string[]
+) {
     const cleanFormula = formula.replace(/\s+/g, '').toLowerCase();
     const diceRegex = /(\d+)d(\d+)/gi;
     const rollObjects: Array<{ qty: number; sides: number; themeColor?: string }> = [];
@@ -94,21 +118,56 @@ function rollWithDiceBox(diceBox: DiceBox, formula: string, element?: string) {
         return;
     }
 
-    // If we have element info, apply colors
-    // First group of dice gets primary color, subsequent groups get bonus color
-    if (element && ELEMENT_COLORS[element]) {
-        const colors = ELEMENT_COLORS[element];
+    console.log('[rollWithDiceBox]', {
+        formula,
+        element,
+        elementalTypes,
+        elementalRunesMode,
+        rollObjects: JSON.parse(JSON.stringify(rollObjects)),
+        colorsAvailable: element ? ELEMENT_COLORS[element] : undefined
+    });
 
+    // If we have elemental types array, use per-die coloring (for weapon runes)
+    if (elementalTypes && elementalTypes.length > 0) {
+        // First die group is base weapon damage (uncolored or damage type color)
+        // Subsequent groups are elemental runes with their specific colors
         rollObjects.forEach((obj, index) => {
             if (index === 0) {
-                // Primary dice (base damage) - primary color
-                obj.themeColor = colors.primary;
-            } else {
-                // Bonus dice (extra damage from stances/feats) - bonus color
-                obj.themeColor = colors.bonus;
+                // Base weapon damage - no color (use default)
+                // Optionally could use damage type color here
+            } else if (index - 1 < elementalTypes.length) {
+                // Each elemental rune gets its specific color
+                const elementType = elementalTypes[index - 1];
+                const colorData = ELEMENT_COLORS[elementType];
+                if (colorData) {
+                    obj.themeColor = colorData.primary;
+                }
             }
         });
     }
+    // Legacy behavior: single element for all dice
+    else if (element && ELEMENT_COLORS[element]) {
+        const colors = ELEMENT_COLORS[element];
+
+        rollObjects.forEach((obj, index) => {
+            if (elementalRunesMode) {
+                // For weapon runes: only color elemental dice (index > 0), leave base damage uncolored
+                if (index > 0) {
+                    obj.themeColor = colors.primary;
+                }
+                // First group (base weapon damage) stays uncolored (default)
+            } else {
+                // For elemental blast and stances: first group gets primary, rest get bonus
+                if (index === 0) {
+                    obj.themeColor = colors.primary;
+                } else {
+                    obj.themeColor = colors.bonus;
+                }
+            }
+        });
+    }
+
+    console.log('[rollWithDiceBox] Final rollObjects:', JSON.parse(JSON.stringify(rollObjects)));
 
     // Roll all dice at once using Roll Objects
     diceBox.roll(rollObjects);
@@ -177,9 +236,13 @@ export function GlobalDiceDisplay() {
                 // Roll any pending dice after initialization
                 if (rolls.length > 0) {
                     const latestRoll = rolls[rolls.length - 1];
-                    console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula);
+                    console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula, 'element:', latestRoll.element, 'weaponData:', latestRoll.weaponData);
                     setTimeout(() => {
-                        rollWithDiceBox(diceBox, latestRoll.formula, latestRoll.element);
+                        // For weapons with elemental runes, use elementalRunesMode to only color elemental dice
+                        const elementalRunesMode = latestRoll.weaponData !== undefined && latestRoll.element !== undefined;
+                        const elementalTypes = latestRoll.weaponData?.elementalTypes;
+                        console.log('[GlobalDiceDisplay] elementalRunesMode:', elementalRunesMode, 'elementalTypes:', elementalTypes);
+                        rollWithDiceBox(diceBox, latestRoll.formula, latestRoll.element, elementalRunesMode, elementalTypes);
                     }, 300);
                 }
             }).catch(err => {
@@ -202,9 +265,13 @@ export function GlobalDiceDisplay() {
                 // Roll 3D dice if initialized
                 if (diceBoxRef.current && isInitialized) {
                     setTimeout(() => {
-                        console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula);
+                        console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula, 'element:', latestRoll.element, 'weaponData:', latestRoll.weaponData);
                         if (diceBoxRef.current) {
-                            rollWithDiceBox(diceBoxRef.current, latestRoll.formula, latestRoll.element);
+                            // For weapons with elemental runes, use elementalRunesMode to only color elemental dice
+                            const elementalRunesMode = latestRoll.weaponData !== undefined && latestRoll.element !== undefined;
+                            const elementalTypes = latestRoll.weaponData?.elementalTypes;
+                            console.log('[GlobalDiceDisplay] elementalRunesMode:', elementalRunesMode, 'elementalTypes:', elementalTypes);
+                            rollWithDiceBox(diceBoxRef.current, latestRoll.formula, latestRoll.element, elementalRunesMode, elementalTypes);
                         }
                     }, 300);
                 }
@@ -260,14 +327,16 @@ export function GlobalDiceDisplay() {
         const attackBonus = weaponData.attackBonus - mapPenalty;
         const formula = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
         const label = `${t('weapons.attack') || 'Attack'}: ${weaponData.weaponName}${attackNumber > 1 ? ` (${attackNumber})` : ''}`;
-        rollDice(formula, label, { weaponData });
+        // Pass element from weaponData if available (for elemental rune dice coloring)
+        rollDice(formula, label, { weaponData, element: weaponData.element });
     };
 
     // Handle weapon damage roll
     const handleWeaponDamageRoll = (weaponData: WeaponRollData, doubleDamage: boolean = false) => {
         const formula = doubleDamage ? doubleDamageFormula(weaponData.damage) : weaponData.damage;
         const label = `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}${doubleDamage ? ' (Critical)' : ''}`;
-        rollDice(formula, label, { weaponData });
+        // Pass element from weaponData if available (for elemental rune dice coloring)
+        rollDice(formula, label, { weaponData, element: weaponData.element });
     };
 
     // Handle impulse attack roll with MAP

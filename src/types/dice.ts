@@ -10,6 +10,8 @@ export interface WeaponRollData {
     attackBonus: number;  // Base attack bonus without MAP
     isTwoHanded: boolean;  // Whether weapon is in two-handed mode
     isAgile: boolean;  // Whether weapon has agile trait (reduced MAP)
+    element?: string;  // Optional: legacy single elemental type (kept for backward compatibility)
+    elementalTypes?: string[];  // Optional: array of elemental types for multi-colored dice (e.g., ['fire', 'cold', 'acid'])
 }
 
 export interface ImpulseRollData {

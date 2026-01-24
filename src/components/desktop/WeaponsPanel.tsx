@@ -1,15 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, EquippedItem, WeaponCustomization, WeaponRunes } from '../../types';
 import { getWeapons, LoadedWeapon } from '../../data/pf2e-loader';
-import { calculateWeaponDamage, getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant, ProficiencyRank } from '../../utils/pf2e-math';
+import { getAbilityModifier, getWeaponProficiencyRank, calculateProficiencyBonusWithVariant, ProficiencyRank } from '../../utils/pf2e-math';
 import { WeaponOptionsModal } from './WeaponOptionsModal';
 import { getEnhancedWeaponName } from '../../utils/weaponName';
 import { getTactics } from '../../data/tactics';
 import { ActionIcon } from '../../utils/actionIcons';
 import { WeaponRollData } from '../../types/dice';
 import { canAfford, deductCurrency, formatCurrency } from '../../utils/currency';
+import { calculateDamageBreakdown } from '../../utils/damageBreakdown';
+import { DamageBreakdown } from './DamageBreakdown';
+import {
+    calculateMAP,
+    formatAttackWithMAP,
+    hasTwoHandTrait,
+} from '../../utils/weaponCalculations';
+import { calculateWeaponDamage } from '../../utils/pf2e-math';
+import { PROPERTY_RUNES } from '../../data/weaponRunes';
 
 interface WeaponsPanelProps {
     character: Character;
@@ -37,10 +46,15 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     // Track which weapons are two-handed (for two-hand-d* trait)
     const [twoHandedWeapons, setTwoHandedWeapons] = useState<Set<string>>(new Set());
 
+    // Track which weapons have their damage breakdown expanded
+    const [expandedDamageBreakdown, setExpandedDamageBreakdown] = useState<Set<string>>(new Set());
+
     // Load all weapons from pf2e data
     const allWeapons = useMemo(() => getWeapons(), []);
 
-    // Filter weapons based on search and category
+    // Filter weapons based on search and category (optimized with search normalization)
+    const searchQueryNormalized = useMemo(() => searchQuery.toLowerCase().trim(), [searchQuery]);
+
     const filteredWeapons = useMemo(() => {
         let weapons = allWeapons;
 
@@ -49,26 +63,20 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             weapons = weapons.filter(w => w.category === categoryFilter);
         }
 
-        // Filter by search
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
+        // Filter by search (optimized with pre-lowercased query)
+        if (searchQueryNormalized) {
             weapons = weapons.filter(w =>
-                w.name.toLowerCase().includes(q) ||
-                w.traits.some(t => t.toLowerCase().includes(q)) ||
-                w.group.toLowerCase().includes(q)
+                w.name.toLowerCase().includes(searchQueryNormalized) ||
+                w.traits.some(t => t.toLowerCase().includes(searchQueryNormalized)) ||
+                w.group.toLowerCase().includes(searchQueryNormalized)
             );
         }
 
         return weapons.slice(0, 50); // Limit for performance
-    }, [allWeapons, categoryFilter, searchQuery]);
+    }, [allWeapons, categoryFilter, searchQueryNormalized]);
 
-    // Check if weapon has two-hand-d* trait
-    const hasTwoHandTrait = (weapon: LoadedWeapon) => {
-        return weapon.traits.some(t => t.startsWith('two-hand-d'));
-    };
-
-    // Toggle two-handed mode for a weapon
-    const toggleTwoHand = (weaponId: string) => {
+    // Toggle handlers - optimized with useCallback to prevent unnecessary re-renders
+    const toggleTwoHand = useCallback((weaponId: string) => {
         setTwoHandedWeapons(prev => {
             const newSet = new Set(prev);
             if (newSet.has(weaponId)) {
@@ -78,83 +86,203 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             }
             return newSet;
         });
-    };
+    }, []);
 
-    // Calculate attack bonus for a weapon
-    const calculateAttackBonus = (weapon: LoadedWeapon, mapPenalty: number = 0): number => {
+    const toggleDamageBreakdown = useCallback((weaponId: string) => {
+        setExpandedDamageBreakdown(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(weaponId)) {
+                newSet.delete(weaponId);
+            } else {
+                newSet.add(weaponId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const toggleConditionalDamage = useCallback((conditionalId: string) => {
+        const currentActive = character.activeConditionalDamage || [];
+        const isActive = currentActive.includes(conditionalId);
+        const newActive = isActive
+            ? currentActive.filter(id => id !== conditionalId)
+            : [...currentActive, conditionalId];
+
+        onCharacterUpdate({
+            ...character,
+            activeConditionalDamage: newActive,
+        });
+    }, [character.activeConditionalDamage, onCharacterUpdate]);
+
+    // Memoized proficiency calculations for all weapon categories
+    const proficiencyCalculations = useMemo(() => {
+        const categories = ['simple', 'martial', 'advanced', 'unarmed'] as const;
+        return categories.reduce((acc, category) => {
+            const profRank = getWeaponProficiencyRank(character, category);
+            const profBonus = calculateProficiencyBonusWithVariant(
+                character.level,
+                profRank,
+                character.variantRules?.proficiencyWithoutLevel
+            );
+            acc[category] = { rank: profRank, bonus: profBonus };
+            return acc;
+        }, {} as Record<string, { rank: ProficiencyRank; bonus: number }>);
+    }, [character.level, character.variantRules?.proficiencyWithoutLevel, character.weaponProficiencies]);
+
+    // Calculate attack bonus for a weapon (optimized, uses memoized proficiency)
+    const calculateAttackBonus = useCallback((weapon: LoadedWeapon, mapPenalty: number = 0): number => {
         const strMod = getAbilityModifier(character.abilityScores.str);
-
-        // Get weapon proficiency rank as enum
-        const profRank = getWeaponProficiencyRank(character, weapon.category);
-
-        const profBonus = calculateProficiencyBonusWithVariant(
-            character.level,
-            profRank,
-            character.variantRules?.proficiencyWithoutLevel
-        );
+        const profData = proficiencyCalculations[weapon.category];
+        const profBonus = profData?.bonus ?? 0;
 
         // Check for potency rune bonus
         let itemBonus = 0;
         const equippedWeapon = character.equipment?.find(e => e.id === weapon.id);
         if (equippedWeapon?.runes) {
-            const runes = equippedWeapon.runes as { potencyRune?: string };
-            if (runes.potencyRune === '+1') itemBonus = 1;
-            else if (runes.potencyRune === '+2') itemBonus = 2;
-            else if (runes.potencyRune === '+3') itemBonus = 3;
-            else if (runes.potencyRune === '+4 (Major)') itemBonus = 4;
-            else if (runes.potencyRune === '+5 (Greater)') itemBonus = 5;
+            const runes = equippedWeapon.runes as WeaponRunes;
+            // potencyRune is a number (1, 2, 3, 4, 5)
+            if (runes.potencyRune && typeof runes.potencyRune === 'number') {
+                itemBonus = runes.potencyRune;
+            }
         }
 
         // Check for custom attack bonus
         const customBonus = (equippedWeapon?.customization as WeaponCustomization | undefined)?.bonusAttack || 0;
 
         return strMod + profBonus + itemBonus + customBonus - mapPenalty;
-    };
+    }, [character.abilityScores.str, character.equipment, proficiencyCalculations]);
 
-    // Handle opening dicebox with weapon data
-    const handleOpenWeaponDiceBox = (weapon: LoadedWeapon, equippedItem: EquippedItem, isTwoHanded: boolean) => {
-        const weaponRunes = equippedItem.runes as { strikingRune?: string } | undefined;
+    // Get elemental damage from active property runes
+    const getElementalDamage = useCallback((weaponRunes: WeaponRunes | undefined): string => {
+        if (!weaponRunes?.propertyRunes) return '';
+
+        const activeDamage = character.activeConditionalDamage || [];
+
+        const elementalDamages: string[] = [];
+        for (const runeId of weaponRunes.propertyRunes) {
+            const runeData = PROPERTY_RUNES[runeId];
+            if (runeData?.damage && activeDamage.includes(runeId)) {
+                elementalDamages.push(runeData.damage.dice);
+            }
+        }
+
+        return elementalDamages.length > 0 ? elementalDamages.join('+') : '';
+    }, [character.activeConditionalDamage]);
+
+    // Helper to get active elemental types from runes (for dice coloring)
+    const getActiveElementalTypes = useCallback((weaponRunes: WeaponRunes | undefined): string[] => {
+        if (!weaponRunes?.propertyRunes) return [];
+
+        const activeDamage = character.activeConditionalDamage || [];
+
+        const elementalTypes: string[] = [];
+        for (const runeId of weaponRunes.propertyRunes) {
+            const runeData = PROPERTY_RUNES[runeId];
+            if (runeData?.damage && activeDamage.includes(runeId)) {
+                const type = runeData.damage.type;
+                if (['fire', 'cold', 'acid', 'electricity', 'sonic'].includes(type)) {
+                    elementalTypes.push(type);
+                }
+            }
+        }
+
+        return elementalTypes;
+    }, [character.activeConditionalDamage]);
+
+    // Handle opening dicebox with weapon data (including active elemental damage)
+    const handleOpenWeaponDiceBox = useCallback((weapon: LoadedWeapon, equippedItem: EquippedItem, isTwoHanded: boolean) => {
+        const weaponRunes = equippedItem.runes as WeaponRunes | undefined;
         const weaponCustomization = equippedItem.customization as WeaponCustomization | undefined;
-        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
-        const attackBonus = calculateAttackBonus(weapon, 0); // Base attack bonus without MAP
-        const isAgile = weapon.traits.includes('agile');
 
-        const weaponData: WeaponRollData = {
-            weaponId: weapon.id,
-            weaponName: weaponCustomization?.customName || weapon.name,
-            damage: damage,
-            damageType: weaponCustomization?.customDamageType || weapon.damageType,
-            attackBonus: attackBonus,
-            isTwoHanded: isTwoHanded,
-            isAgile: isAgile,
-        };
+        // Get base damage
+        const baseDamage = calculateWeaponDamage(character, weapon, isTwoHanded, {
+            runes: weaponRunes,
+            customization: weaponCustomization
+        });
 
-        // Open dicebox with a placeholder roll that includes weapon data
-        rollDice('1d20', `${t('weapons.attack') || 'Attack'}: ${weapon.name}`, { weaponData });
-    };
+        // Get active elemental damage from runes
+        const elementalDamage = getElementalDamage(weaponRunes);
 
-    // Handle damage roll - now opens dicebox with weapon data
-    const handleDamageRoll = (weapon: LoadedWeapon, isTwoHanded: boolean) => {
-        const weaponRunes = (character.equipment?.find(e => e.id === weapon.id))?.runes as { strikingRune?: string } | undefined;
-        const weaponCustomization = (character.equipment?.find(e => e.id === weapon.id))?.customization as WeaponCustomization | undefined;
-        const damage = calculateWeaponDamage(character, weapon, isTwoHanded, { runes: weaponRunes, customization: weaponCustomization });
+        // Combine base damage with elemental damage
+        const fullDamage = elementalDamage ? `${baseDamage}+${elementalDamage}` : baseDamage;
+
         const attackBonus = calculateAttackBonus(weapon, 0);
         const isAgile = weapon.traits.includes('agile');
 
+        // Get active elemental types for dice coloring
+        const activeElementalTypes = getActiveElementalTypes(weaponRunes);
+
         const weaponData: WeaponRollData = {
             weaponId: weapon.id,
             weaponName: weaponCustomization?.customName || weapon.name,
-            damage: damage,
+            damage: fullDamage,  // Store FULL damage including elemental runes
             damageType: weaponCustomization?.customDamageType || weapon.damageType,
             attackBonus: attackBonus,
             isTwoHanded: isTwoHanded,
             isAgile: isAgile,
+            element: activeElementalTypes.length > 0 ? activeElementalTypes[0] : undefined,  // Legacy: single element for backward compatibility
+            elementalTypes: activeElementalTypes.length > 0 ? activeElementalTypes : undefined,  // Array for per-die coloring
         };
 
-        // Open dicebox with weapon data
-        const elementLabel = weaponCustomization?.customDamageType || weapon.damageType;
-        rollDice(damage, `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}`, { weaponData });
-    };
+        const rollContext: any = { weaponData };
+
+        console.log('[WeaponsPanel] Opening dicebox:', {
+            baseDamage,
+            elementalDamage,
+            fullDamage,
+            activeElementalTypes,
+            weaponData
+        });
+
+        rollDice('1d20', `${t('weapons.attack') || 'Attack'}: ${weaponData.weaponName}`, rollContext);
+    }, [character, calculateAttackBonus, getElementalDamage, getActiveElementalTypes, rollDice, t]);
+
+    // Handle damage roll - opens dicebox with weapon data and elemental damage
+    const handleDamageRoll = useCallback((weapon: LoadedWeapon, equippedItem: EquippedItem, isTwoHanded: boolean) => {
+        const weaponRunes = equippedItem.runes as WeaponRunes | undefined;
+        const weaponCustomization = equippedItem.customization as WeaponCustomization | undefined;
+
+        // Get base damage
+        const baseDamage = calculateWeaponDamage(character, weapon, isTwoHanded, {
+            runes: weaponRunes,
+            customization: weaponCustomization
+        });
+
+        // Get active elemental damage from runes
+        const elementalDamage = getElementalDamage(weaponRunes);
+
+        // Combine base damage with elemental damage
+        const fullDamage = elementalDamage ? `${baseDamage}+${elementalDamage}` : baseDamage;
+
+        const attackBonus = calculateAttackBonus(weapon, 0);
+        const isAgile = weapon.traits.includes('agile');
+
+        // Get active elemental types for dice coloring
+        const activeElementalTypes = getActiveElementalTypes(weaponRunes);
+
+        const weaponData: WeaponRollData = {
+            weaponId: weapon.id,
+            weaponName: weaponCustomization?.customName || weapon.name,
+            damage: fullDamage,  // Store FULL damage including elemental runes
+            damageType: weaponCustomization?.customDamageType || weapon.damageType,
+            attackBonus: attackBonus,
+            isTwoHanded: isTwoHanded,
+            isAgile: isAgile,
+            element: activeElementalTypes.length > 0 ? activeElementalTypes[0] : undefined,  // Legacy: single element for backward compatibility
+            elementalTypes: activeElementalTypes.length > 0 ? activeElementalTypes : undefined,  // Array for per-die coloring
+        };
+
+        const rollContext: any = { weaponData };
+
+        console.log('[WeaponsPanel] Damage roll:', {
+            baseDamage,
+            elementalDamage,
+            fullDamage,
+            activeElementalTypes,
+            weaponData
+        });
+
+        rollDice(fullDamage, `${t('weapons.damageRoll') || 'Damage'}: ${weaponData.weaponName}`, rollContext);
+    }, [character, calculateAttackBonus, getElementalDamage, getActiveElementalTypes, rollDice, t]);
 
     // Add weapon to character's inventory (Give - free)
     const handleGiveWeapon = (weapon: LoadedWeapon) => {
@@ -509,6 +637,12 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                         // Check if has two-hand trait
                         const hasTwoHand = hasTwoHandTrait(weapon);
 
+                        // Calculate MAP values for display
+                        const isAgile = weapon.traits.includes('agile');
+                        const mapValues = calculateMAP(isAgile);
+                        const baseAttackBonus = calculateAttackBonus(weapon, 0);
+                        const attackWithMAP = formatAttackWithMAP(baseAttackBonus, mapValues);
+
                         // Get custom name if set, otherwise generate enhanced name with runes and materials
                         const displayName = weaponCustomization?.customName ||
                             getEnhancedWeaponName(weapon.name, weaponRunes, weaponCustomization, { language });
@@ -541,9 +675,18 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Attack section */}
+                                {/* Attack section with MAP display */}
                                 <div className="weapon-attack-section">
-                                    <div className="attack-label">{t('weapons.attack') || 'Attack'}</div>
+                                    <div className="attack-info-row">
+                                        <div className="attack-label">{t('weapons.attack') || 'Attack'}</div>
+                                        <div className="attack-bonus-display">
+                                            <span className="attack-bonus-label">{t('weapons.attackBonus') || 'Attack Bonus'}</span>
+                                            <span className="attack-bonus-value">{attackWithMAP}</span>
+                                            {isAgile && (
+                                                <span className="agile-indicator" title={t('weapons.agileTrait') || 'Agile: Reduced MAP penalties'}>⚡</span>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="weapon-controls">
                                         {/* Two-Hand Toggle */}
                                         {hasTwoHand && (
@@ -560,7 +703,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                         <button
                                             className="attack-btn main-attack"
                                             onClick={() => handleOpenWeaponDiceBox(weapon, item, isTwoHanded)}
-                                            title={t('weapons.rollAttack') || 'Roll Attack'}
+                                            title={`${t('weapons.rollAttack') || 'Roll Attack'}: +${baseAttackBonus}`}
                                         >
                                             <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '20px', height: '20px' }} />
                                         </button>
@@ -569,17 +712,44 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 
                                 {/* Damage and stats section */}
                                 <div className="weapon-stats-section">
+                                    {/* Damage row with toggle for breakdown */}
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.damage') || 'Damage'}:</span>
-                                        <span className="stat-value">{damage} {(item.customization as WeaponCustomization | undefined)?.customDamageType || weapon.damageType}</span>
-                                        <button
-                                            className="damage-roll-btn"
-                                            onClick={() => handleDamageRoll(weapon, isTwoHanded)}
-                                            title={`${t('dice.damageRoll') || 'Damage Roll'}: ${weapon.name}`}
-                                        >
-                                            🎲
-                                        </button>
+                                        <div className="damage-display-with-toggle">
+                                            <button
+                                                className="damage-breakdown-toggle"
+                                                onClick={() => toggleDamageBreakdown(item.id)}
+                                                title={t('damage.toggleBreakdown') || 'Toggle damage breakdown'}
+                                            >
+                                                {expandedDamageBreakdown.has(item.id) ? '▼' : '▶'}
+                                            </button>
+                                            <span className="stat-value">{damage} {(item.customization as WeaponCustomization | undefined)?.customDamageType || weapon.damageType}</span>
+                                            <button
+                                                className="damage-roll-btn"
+                                                onClick={() => handleDamageRoll(weapon, item, isTwoHanded)}
+                                                title={`${t('dice.damageRoll') || 'Damage Roll'}: ${weapon.name}`}
+                                            >
+                                                🎲
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {/* Damage Breakdown (expanded) */}
+                                    {expandedDamageBreakdown.has(item.id) && (
+                                        <div className="damage-breakdown-container">
+                                            <DamageBreakdown
+                                                breakdown={calculateDamageBreakdown(
+                                                    character,
+                                                    weapon,
+                                                    isTwoHanded,
+                                                    item,
+                                                    character.activeConditionalDamage || []
+                                                )}
+                                                onToggleConditional={toggleConditionalDamage}
+                                            />
+                                        </div>
+                                    )}
+
                                     <div className="weapon-stat-row">
                                         <span className="stat-label">{t('stats.hands') || 'Hands'}:</span>
                                         <span className="stat-value">{weapon.hands}</span>

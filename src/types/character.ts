@@ -481,6 +481,9 @@ export interface Character {
     conditions: { id: string; value?: number; duration?: number }[];
     buffs: Buff[];
 
+    // Active conditional damage for weapons (rune IDs that are currently active)
+    activeConditionalDamage: string[];
+
     // Resistances & Immunities
     resistances: Resistance[];
     immunities: Immunity[];
@@ -604,6 +607,7 @@ export function createEmptyCharacter(): Character {
         currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
         conditions: [],
         buffs: [],
+        activeConditionalDamage: [],
         resistances: [],
         immunities: [],
         customResources: [],
@@ -723,6 +727,11 @@ export function migrateCharacter(data: any): Character {
     // Migrate archetypeDedications (added for Archetype Dedication Constraints)
     if (!character.archetypeDedications) {
         character.archetypeDedications = {};
+    }
+
+    // Migrate activeConditionalDamage (added for conditional damage system)
+    if (!character.activeConditionalDamage) {
+        character.activeConditionalDamage = [];
     }
 
     // Migrate heroPoints (added for interactive hero points)
