@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Last Updated**: 2026-01-21
-**Last Commit**: 7dde53a9 Merge pull request #6 from Sacrifar/claude/init-project-setup-sBQNg
+**Last Updated**: 2026-01-24
+**Last Commit**: [Current commit with agent skills]
 
 ## Project Overview
 
@@ -12,11 +12,54 @@ Pathfinder 2E character builder and sheet application with Italian translations.
 ## Development Commands
 
 ```bash
-npm run dev      # Start dev server (port 5173)
-npm run build    # TypeScript check + Vite build
-npm run lint     # Run ESLint
-npm test         # Run Vitest tests
-npm run preview  # Preview production build
+npm run dev           # Start dev server (port 5173)
+npm run build         # TypeScript check + Vite build
+npm run lint          # Run ESLint
+npm test              # Run Vitest tests
+npm run preview       # Preview production build
+npm run validate:data # Validate PF2E JSON data files
+```
+
+## Agent Skills
+
+This project includes custom Claude agent skills for automating common development tasks. Skills are defined in `.claude/agent-skills.json`.
+
+**Quick Reference**: See `.claude/QUICKREF.md` for fast lookup of available skills.
+
+**Available Skills** (12 total):
+- `add-pf2e-content` - Add game content (weapons, spells, feats, etc.)
+- `create-browser-component` - Create new browser UI components
+- `add-translations` - Add/update Italian translations
+- `create-math-tests` - Create comprehensive math utility tests
+- `validate-character-recalculation` - Validate character calculation logic
+- `add-class-progression` - Add/update class progressions
+- `create-modal-component` - Create new modal components
+- `optimize-bundle` - Analyze and optimize bundle size
+- `add-feat-processing` - Add feat choice processing support
+- `debug-character-issue` - Debug character calculation issues
+- `validate-json-data` - Validate PF2E JSON data structure
+- `add-condition-support` - Add new conditions with modifiers
+
+**Documentation**:
+- `.claude/README.md` - Complete guide to all skills
+- `.claude/examples.md` - Practical usage examples
+- `.claude/QUICKREF.md` - Quick reference card
+- `.claude/validate.js` - JSON validation script
+
+**Common Workflows**:
+
+```bash
+# Add new weapon
+Use: add-pf2e-content → add-translations → validate-json-data
+
+# Add new class
+Use: add-class-progression → add-translations → validate-character-recalculation
+
+# Create new browse UI
+Use: create-browser-component → add-translations
+
+# Pre-release checks
+Use: validate-json-data → validate-character-recalculation → optimize-bundle
 ```
 
 ## Architecture
