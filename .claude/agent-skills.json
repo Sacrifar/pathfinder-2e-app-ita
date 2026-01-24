@@ -1,0 +1,172 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/agent-sdk/main/schema/agent-skills.schema.json",
+  "version": "1.0",
+  "skills": [
+    {
+      "id": "add-pf2e-content",
+      "name": "Add PF2E Game Content",
+      "description": "Add new game content (weapons, spells, feats, etc.) following FoundryVTT JSON format",
+      "prompt": "Add new Pathfinder 2E game content to the appropriate data files.\n\nContext:\n- FoundryVTT JSON files are in src/data/pf2e/ subdirectories\n- pf2e-loader.ts contains glob imports that automatically load JSON files\n- All content needs Italian translations in src/data/translations.ts\n- Barrel export in src/data/index.ts applies translations\n\nSteps:\n1. Identify the content type (weapon, spell, feat, ancestry, etc.)\n2. Find the correct subdirectory in src/data/pf2e/\n3. Create JSON file following FoundryVTT format (check existing files for structure)\n4. Add Italian translation to src/data/translations.ts\n5. Verify the glob pattern in pf2e-loader.ts covers the new file\n6. Test that content loads correctly\n\nProvide the content details and I'll add it to the system.",
+      "instructions": [
+        "Read existing JSON files in the target category to understand structure",
+        "Validate required fields: _id, name, type, system object",
+        "Add Italian translations for name and description",
+        "Ensure image paths use proper PF2E icon references",
+        "Verify content appears in appropriate browser component"
+      ]
+    },
+    {
+      "id": "create-browser-component",
+      "name": "Create Browser Component",
+      "description": "Create a new browser component following the established pattern (sidebar + detail panel)",
+      "prompt": "Create a new browser component for browsing PF2E content.\n\nPattern (from exploration):\n- Two-column layout: sidebar (search + list) and detail panel\n- Search box supporting English and Italian\n- Memoized filtering for performance\n- useLocalizedName/useLocalizedDescription hooks\n- Modal wrapper with DetailModal component\n- Lazy loading in parent component\n\nExisting browser components:\n- AncestryBrowser, ClassBrowser, BackgroundBrowser\n- FeatBrowser, SpellBrowser, ActionBrowser\n- WeaponBrowser, ArmorBrowser, EquipmentBrowser\n\nSteps:\n1. Create new component file in src/components/desktop/\n2. Import data from @/data\n3. Implement search state and memoized filtering\n4. Create sidebar with search box and item list\n5. Create detail panel with item details\n6. Add selection handler\n7. Export and add to parent component with lazy loading\n\nProvide the content type and I'll create the browser.",
+      "instructions": [
+        "Use existing browser components as templates",
+        "Support both English and Italian in search and display",
+        "Memoize filtered results with useMemo",
+        "Use useCallback for stable event handlers",
+        "Follow DetailModal pattern for consistent UI",
+        "Add proper TypeScript types for props and state"
+      ]
+    },
+    {
+      "id": "add-translations",
+      "name": "Add Italian Translations",
+      "description": "Add or update Italian translations for game content",
+      "prompt": "Add Italian translations for Pathfinder 2E content.\n\nTranslation System (two layers):\n\n1. Data Translations (src/data/translations.ts):\n   - Maps for ancestries, classes, heritages, backgrounds, etc.\n   - Format: { [englishName]: { nameIt: string, descriptionIt?: string } }\n   - Applied in src/data/index.ts barrel exports\n\n2. UI Translations (src/hooks/useLanguage.tsx):\n   - 1335+ lines of UI text translations\n   - Function: t(key: string): string\n   - Covers buttons, labels, tooltips, etc.\n\nSteps:\n1. Identify translation type (data content vs UI text)\n2. For data: Add to appropriate map in translations.ts\n3. For UI: Add to useLanguage hook translations object\n4. Verify translation appears when language is set to Italian\n5. Check for consistency with existing translation style\n\nProvide the English text and I'll add Italian translations.",
+      "instructions": [
+        "Maintain consistent translation style and terminology",
+        "Check existing translations for similar terms",
+        "Preserve HTML formatting in description translations",
+        "Use proper Italian grammar and Pathfinder 2E terminology",
+        "Test both English and Italian display"
+      ]
+    },
+    {
+      "id": "create-math-tests",
+      "name": "Create Math Utility Tests",
+      "description": "Create comprehensive unit tests for PF2E math utilities",
+      "prompt": "Create unit tests for Pathfinder 2E mathematical utilities.\n\nKey utilities to test (src/utils/):\n- pf2e-math.ts: Proficiency bonuses, ability modifiers, ABP calculations\n- bulkCalculator.ts: Encumbrance and weight calculations\n- conditionModifiers.ts: Condition penalty calculations\n- petStats.ts: Familiar/companion/eidolon calculations\n\nTesting setup:\n- Framework: Vitest 2.1.8\n- Pattern: Colocate .test.ts files with source\n- Command: npm test\n\nSteps:\n1. Create .test.ts file next to utility file\n2. Import utility functions\n3. Write test cases covering:\n   - Standard cases\n   - Edge cases (level 0, level 20, untrained, legendary)\n   - Boundary conditions\n   - Error cases\n4. Run tests with npm test\n5. Aim for >90% coverage\n\nProvide the utility to test and I'll create comprehensive tests.",
+      "instructions": [
+        "Test all proficiency ranks (0-4)",
+        "Test all levels (1-20 plus edge cases)",
+        "Test ABP on/off scenarios",
+        "Verify calculation formulas match PF2E rules",
+        "Document expected values with comments",
+        "Use descriptive test names"
+      ]
+    },
+    {
+      "id": "validate-character-recalculation",
+      "name": "Validate Character Recalculation",
+      "description": "Test and validate character recalculation logic for edge cases",
+      "prompt": "Validate character recalculation system for correctness and edge cases.\n\nRecalculation System (src/utils/characterRecalculator.ts):\n- FROM-SCRATCH recalculation (not incremental)\n- 910 lines with complex dependency order\n- Must handle level changes without data loss\n- Order-dependent: abilities → skills → saves → proficiencies → HP → speed\n\nCritical requirements:\n- Feat choices persist when level decreases\n- Effects only apply up to current level\n- No destructive updates\n- Correct dependency ordering\n\nSteps:\n1. Create test character scenarios:\n   - Level 1 → 20 progression\n   - Level 20 → 1 regression\n   - Multiclass with archetype dedications\n   - Different ancestries/classes combinations\n2. Verify calculations at each level\n3. Check feat choice persistence\n4. Validate proficiency progressions\n5. Confirm HP/skill/save calculations\n\nProvide the scenario to test and I'll validate recalculation.",
+      "instructions": [
+        "Test all 20 levels for at least 2 classes",
+        "Verify ability boost applications",
+        "Check class feature grants",
+        "Validate skill proficiency increases",
+        "Confirm HP calculations with Constitution changes",
+        "Test archetype feat requirements"
+      ]
+    },
+    {
+      "id": "add-class-progression",
+      "name": "Add Class Progression",
+      "description": "Add or update class level progression and features",
+      "prompt": "Add or update class progression data for Pathfinder 2E classes.\n\nClass Data Files:\n- src/data/classProgressions.ts - Feature grants by level\n- src/data/classSpecializations.ts - Subclasses, orders, muses, etc.\n- src/data/classFeatures.ts - Feature definitions\n- src/data/classResourceTemplates.ts - Focus pools, spell slots\n\nStructure:\n```typescript\nexport const classProgressions: Record<string, ClassProgression> = {\n  [classId]: {\n    features: {\n      1: ['feature-id-1', 'feature-id-2'],\n      2: ['feature-id-3'],\n      // ...\n    },\n    abilityBoosts: { 1: 4, 5: 1, 10: 1, ... },\n    skillIncreases: { 3: 1, 7: 1, ... }\n  }\n};\n```\n\nSteps:\n1. Read PF2E rulebook for class progression\n2. Add features to classFeatures.ts\n3. Map feature grants by level in classProgressions.ts\n4. Add specializations if applicable\n5. Configure resource templates (spell slots, focus, etc.)\n6. Add Italian translations\n7. Test in character builder\n\nProvide the class details and I'll add progression.",
+      "instructions": [
+        "Verify feature grants match official PF2E rules",
+        "Include all ability boosts and skill increases",
+        "Add specialization choices at correct levels",
+        "Configure spell/focus progression for spellcasters",
+        "Test level-up flow in builder",
+        "Ensure features appear in character sheet"
+      ]
+    },
+    {
+      "id": "create-modal-component",
+      "name": "Create Modal Component",
+      "description": "Create a new modal component following established patterns",
+      "prompt": "Create a new modal component following the project's modal patterns.\n\nModal Pattern (from 60+ desktop components):\n```typescript\ninterface ModalProps {\n  isOpen: boolean;\n  onClose: () => void;\n  title: string;\n  subtitle?: string;\n  children?: React.ReactNode;\n  actions?: React.ReactNode;\n}\n```\n\nKey features:\n- Overlay click detection (close on background click)\n- Close button in header\n- Lazy loading with React.lazy() + Suspense\n- Proper z-index layering\n- Responsive sizing\n- Optional footer actions\n\nSteps:\n1. Create component file in src/components/desktop/\n2. Define props interface\n3. Implement overlay click handler\n4. Add modal header with title and close button\n5. Add modal content section\n6. Add optional actions footer\n7. Export and add lazy loading in parent\n\nProvide the modal purpose and I'll create it.",
+      "instructions": [
+        "Use DetailModal as base or create custom layout",
+        "Handle overlay click with e.target === e.currentTarget check",
+        "Use useCallback for stable event handlers",
+        "Support keyboard ESC to close",
+        "Add proper TypeScript types",
+        "Test open/close animations"
+      ]
+    },
+    {
+      "id": "optimize-bundle",
+      "name": "Optimize Bundle Size",
+      "description": "Analyze and optimize Vite bundle size and chunk splitting",
+      "prompt": "Analyze and optimize the Vite bundle configuration.\n\nCurrent setup (vite.config.ts):\n- React vendor chunk (react, react-dom, react-router-dom)\n- PF2E data chunk (pf2e-loader)\n- Class data chunk (classProgressions, etc.)\n- Translations chunk\n- Chunk size warning: 1000kb\n\nOptimization strategies:\n1. Analyze current bundle sizes\n2. Identify large dependencies\n3. Consider code splitting opportunities\n4. Evaluate lazy loading coverage\n5. Check for duplicate dependencies\n6. Optimize image/asset loading\n\nSteps:\n1. Run build and analyze output\n2. Use rollup-plugin-visualizer or similar\n3. Identify large chunks (>500kb)\n4. Create additional chunk splits if needed\n5. Verify lazy loading for desktop components\n6. Test production build performance\n\nI'll analyze and optimize the bundle.",
+      "instructions": [
+        "Build with npm run build",
+        "Check dist/ folder for chunk sizes",
+        "Identify any chunks over 500kb",
+        "Verify all desktop panels are lazy loaded",
+        "Consider dynamic imports for large utilities",
+        "Test production preview with npm run preview"
+      ]
+    },
+    {
+      "id": "add-feat-processing",
+      "name": "Add Feat Choice Processing",
+      "description": "Add support for new feat choice types in feat processing system",
+      "prompt": "Add support for new feat choice types in the feat processing system.\n\nFeat Choice System (src/utils/featChoices.ts - 1416 lines):\n- Parses feat choices from PF2E data\n- Applies choices to character (skills, weapons, armor proficiencies)\n- Handles complex conditionals and prerequisites\n- Dedication analyzer for archetype requirements\n\nCommon choice types:\n- Skill proficiency grants\n- Weapon proficiency grants\n- Armor proficiency grants\n- Ability boosts\n- Special abilities\n- Spellcasting\n\nSteps:\n1. Identify new choice type in feat data\n2. Add parsing logic in extractFeatChoices()\n3. Add application logic in applyFeatChoices()\n4. Update prerequisite validation if needed\n5. Add to dedication analyzer if archetype-related\n6. Create test cases\n7. Test with actual character\n\nProvide the feat choice details and I'll add support.",
+      "instructions": [
+        "Read existing choice type implementations",
+        "Maintain immutable character updates",
+        "Handle edge cases and validation",
+        "Add TypeScript types for new choice data",
+        "Test with multiple feat combinations",
+        "Verify recalculation triggers correctly"
+      ]
+    },
+    {
+      "id": "debug-character-issue",
+      "name": "Debug Character Calculation Issue",
+      "description": "Debug and fix character calculation or display issues",
+      "prompt": "Debug character calculation or display issues in the app.\n\nCommon issue areas:\n1. Character Recalculation (characterRecalculator.ts)\n   - Incorrect ability scores\n   - Wrong proficiency bonuses\n   - Missing class features\n   - HP calculation errors\n\n2. Feat Processing (featChoices.ts)\n   - Choices not applying\n   - Proficiency not updating\n   - Prerequisites failing incorrectly\n\n3. Display Issues\n   - Missing localization\n   - Wrong values shown\n   - UI state sync problems\n\nDebugging approach:\n1. Reproduce the issue\n2. Check character object state\n3. Trace through recalculation flow\n4. Verify feat choice application\n5. Check for dependency order issues\n6. Test with minimal character\n7. Add logging if needed\n8. Create regression test\n\nProvide the issue description and I'll debug it.",
+      "instructions": [
+        "Create minimal reproduction case",
+        "Check character state in localStorage",
+        "Trace recalculation function calls",
+        "Verify PF2E rules are correctly implemented",
+        "Add console.log for debugging (remove after)",
+        "Create test case to prevent regression"
+      ]
+    },
+    {
+      "id": "validate-json-data",
+      "name": "Validate PF2E JSON Data",
+      "description": "Validate FoundryVTT JSON data files for correctness and completeness",
+      "prompt": "Validate PF2E JSON data files for structural correctness.\n\nJSON Data Structure Requirements:\n- Must have _id field (unique identifier)\n- Must have name field (string)\n- Must have type field (matching category)\n- Must have system object (varies by type)\n- Optional: img field (icon path)\n- Optional: flags object (metadata)\n\nValidation checks:\n1. Required fields present\n2. Field types correct\n3. No duplicate _id values\n4. Valid JSON syntax\n5. System object matches type schema\n6. Image paths valid (if present)\n7. References to other content valid\n\nSteps:\n1. Read all JSON files in category\n2. Parse and validate structure\n3. Check for duplicates\n4. Verify cross-references\n5. Report validation errors\n6. Suggest fixes\n\nProvide the data category and I'll validate it.",
+      "instructions": [
+        "Use JSON.parse() to validate syntax",
+        "Check all required fields",
+        "Build map of all _id values to find duplicates",
+        "Verify type field matches filename/category",
+        "Check system object has required fields for type",
+        "Report all issues with file names and line numbers"
+      ]
+    },
+    {
+      "id": "add-condition-support",
+      "name": "Add Condition Support",
+      "description": "Add new condition with modifier calculations",
+      "prompt": "Add support for a new condition with appropriate modifier calculations.\n\nCondition System:\n- Conditions defined in src/data/pf2e/conditionitems/\n- Modifier calculations in src/utils/conditionModifiers.ts\n- Applied to character skills, AC, perception, etc.\n\nCondition structure:\n```json\n{\n  \"_id\": \"condition-id\",\n  \"name\": \"Condition Name\",\n  \"type\": \"condition\",\n  \"system\": {\n    \"description\": { \"value\": \"<p>Description</p>\" },\n    \"value\": { \"value\": 1 },\n    \"rules\": []\n  }\n}\n```\n\nModifier types:\n- Skill penalties\n- AC penalties\n- Perception penalties\n- Speed reduction\n- Ability score penalties\n\nSteps:\n1. Add condition JSON to conditionitems/\n2. Add modifier calculation in conditionModifiers.ts\n3. Add Italian translation\n4. Test condition application\n5. Verify modifiers display correctly\n\nProvide the condition details and I'll add it.",
+      "instructions": [
+        "Follow existing condition JSON structure",
+        "Implement modifier calculation following PF2E rules",
+        "Handle stacking rules (most severe applies)",
+        "Add both name and description translations",
+        "Test with character sheet display",
+        "Verify penalty calculations are correct"
+      ]
+    }
+  ]
+}
