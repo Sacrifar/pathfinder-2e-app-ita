@@ -4,6 +4,7 @@
  */
 
 // Import all equipment JSON files using Vite's glob import
+// Note: eager:true loads all data upfront, but enables better caching and code splitting via manualChunks
 const equipmentModules = import.meta.glob<{ default: unknown }>(
     './pf2e/equipment/*.json',
     { eager: true }
