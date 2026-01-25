@@ -23,6 +23,7 @@ import { LoadedFeat, getClasses, getFeats, getSpells } from '../data/pf2e-loader
 import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
 import { backgrounds, skills as skillsData } from '../data';
 import { recalculateCharacter } from '../utils/characterRecalculator';
+import { initializeSpellcastingForClass, updateSpellSlotsForLevel } from '../utils/spellcastingInitializer';
 import { getAllKineticistJunctionGrantedFeats } from '../data/classFeatures';
 import { updateDedicationTrackingOnAdd, updateDedicationTrackingOnRemove, recalculateDedicationTracking, removeDedicationAndArchetypeFeats, isArchetypeDedication, migrateFeatIds } from '../utils/archetypeDedication';
 
@@ -94,6 +95,8 @@ const CharacterSheetPage: React.FC = () => {
                     migrated.perception = 'trained';
 
                     migrated = recalculateCharacter(migrated);
+                    // Initialize spellcasting for spellcaster classes
+                    migrated = initializeSpellcastingForClass(migrated);
 
                     // Save the recalculated character back to localStorage
                     const updatedCharacters = characters.map(c =>
@@ -116,7 +119,9 @@ const CharacterSheetPage: React.FC = () => {
     const handleCharacterUpdate = (updated: Character) => {
         // ALWAYS recalculate character on any update to ensure saves, perception, and HP are correct
         // This handles level ups, feat additions, and any other changes
-        const recalculated = recalculateCharacter(updated);
+        let recalculated = recalculateCharacter(updated);
+        // Update spell slots when level changes for spellcaster classes
+        recalculated = updateSpellSlotsForLevel(recalculated);
 
         setCharacter(recalculated);
 
@@ -303,11 +308,12 @@ const CharacterSheetPage: React.FC = () => {
         } else if (pendingClassId) {
             // Apply class selection with bonus skill - recalculation will handle skills
             if (character) {
-                const updated = recalculateCharacter({
+                let updated = recalculateCharacter({
                     ...character,
                     classId: pendingClassId,
                     skillIncreases: { ...character.skillIncreases, 0: skillName },
                 });
+                updated = initializeSpellcastingForClass(updated);
                 handleCharacterUpdate(updated);
             }
             setPendingClassId(null);
@@ -349,10 +355,11 @@ const CharacterSheetPage: React.FC = () => {
                             if (currentBonusSkill && currentBonusSkill === bgSkillLower) {
                                 // Bonus skill already matches - no need to show modal
                                 // Just update the class
-                                const updated = recalculateCharacter({
+                                let updated = recalculateCharacter({
                                     ...character,
                                     classId,
                                 });
+                                updated = initializeSpellcastingForClass(updated);
                                 handleCharacterUpdate(updated);
                                 setSelectionType(null);
                                 return;
@@ -395,7 +402,9 @@ const CharacterSheetPage: React.FC = () => {
                 }
             }
 
-            const updated = recalculateCharacter(updatedCharacter);
+            let updated = recalculateCharacter(updatedCharacter);
+            // Initialize spellcasting for spellcaster classes
+            updated = initializeSpellcastingForClass(updated);
             handleCharacterUpdate(updated);
         }
         setSelectionType(null);

@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character, EquippedItem, ShieldCustomization, ShieldRunes } from '../../types';
-import { getArmor, getShields, getGear, getWeapons, LoadedArmor, LoadedShield, LoadedGear, LoadedWeapon } from '../../data/pf2e-loader';
+import { getArmor, getShields, getGear, getWeapons, LoadedArmor, LoadedShield, LoadedGear, LoadedWeapon, getSpellGrantingItem, shouldResetDailyUses } from '../../data';
 import { getEquippedArmorDisplayName } from '../../utils/armorName';
 import { getEquippedShieldDisplayName } from '../../utils/shieldName';
 import { DetailModal } from './DetailModal';
 import { cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { getShieldStatsWithReinforcing } from '../../data/shieldRunes';
+import { recalculateCharacter } from '../../utils/characterRecalculator';
 
 type SelectedItem = { data: LoadedWeapon; type: 'weapon' } | { data: LoadedArmor; type: 'armor' } | { data: LoadedShield; type: 'shield' } | { data: LoadedGear; type: 'gear' };
 
@@ -559,6 +560,165 @@ export const GearPanel: React.FC<GearPanelProps> = ({
         return item.name;
     };
 
+    // Render spell-granting item configuration
+    const renderSpellGrantingConfig = (itemId: string) => {
+        const spellGrantingItem = getSpellGrantingItem(itemId);
+        if (!spellGrantingItem) return null;
+
+        const equipmentItem = equipment.find(e => e.id === itemId);
+        const selectedChoice = equipmentItem?.spellGrant?.selectedChoice;
+        const dailyUses = equipmentItem?.spellGrant?.dailyUses;
+
+        // Reset daily uses if needed
+        if (dailyUses && equipmentItem?.spellGrant?.lastReset) {
+            if (shouldResetDailyUses(equipmentItem.spellGrant.lastReset)) {
+                // Reset would happen here, but we need to update character
+                // For now, we'll just show the current state
+            }
+        }
+
+        const selectedChoiceData = spellGrantingItem.choices.find(c => c.value === selectedChoice);
+
+        return (
+            <div className="spell-granting-config">
+                <h4>{t('gear.spellOptions') || 'Spell Options'}</h4>
+
+                {/* Choice selector */}
+                <div className="choice-selector">
+                    <label>{spellGrantingItem.choiceLabel}:</label>
+                    <select
+                        value={selectedChoice || ''}
+                        onChange={(e) => {
+                            const newChoice = e.target.value;
+                            const newEquipment = equipment.map(item => {
+                                if (item.id === itemId) {
+                                    return {
+                                        ...item,
+                                        spellGrant: {
+                                            ...item.spellGrant,
+                                            selectedChoice: newChoice,
+                                        },
+                                    };
+                                }
+                                return item;
+                            });
+                            onCharacterUpdate({
+                                ...character,
+                                equipment: newEquipment,
+                            });
+                        }}
+                    >
+                        <option value="">-- Select --</option>
+                        {spellGrantingItem.choices.map(choice => (
+                            <option key={choice.value} value={choice.value}>
+                                {choice.labelIt || choice.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Selected spell info */}
+                {selectedChoiceData && (
+                    <div className="selected-spell-info">
+                        <h5>{selectedChoiceData.labelIt || selectedChoiceData.label}</h5>
+                        <p className="spell-description">
+                            {selectedChoiceData.descriptionIt || selectedChoiceData.description}
+                        </p>
+                        {spellGrantingItem.frequency === 'daily' && dailyUses && (
+                            <div className="daily-uses">
+                                <span>{t('gear.usesRemaining') || 'Uses'}: {dailyUses.current}/{dailyUses.max}</span>
+                                <button
+                                    onClick={() => {
+                                        const newEquipment = equipment.map(item => {
+                                            if (item.id === itemId) {
+                                                return {
+                                                    ...item,
+                                                    spellGrant: {
+                                                        ...item.spellGrant,
+                                                        dailyUses: {
+                                                            ...dailyUses,
+                                                            current: Math.max(0, (dailyUses.current || 1) - 1),
+                                                        },
+                                                    },
+                                                };
+                                            }
+                                            return item;
+                                        });
+                                        onCharacterUpdate({
+                                            ...character,
+                                            equipment: newEquipment,
+                                        });
+                                    }}
+                                    disabled={(dailyUses.current || 0) <= 0}
+                                    title={t('actions.use') || 'Use'}
+                                >
+                                    {t('actions.use') || 'Use'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Investment required notice */}
+                {spellGrantingItem.requiresInvestment && !equipmentItem?.invested && (
+                    <div className="investment-notice">
+                        <p>⚠️ {t('gear.requiresInvestment') || 'This item must be invested to grant spells.'}</p>
+                        <button
+                            onClick={() => {
+                                const newEquipment = equipment.map(item => {
+                                    if (item.id === itemId) {
+                                        return { ...item, invested: true };
+                                    }
+                                    return item;
+                                });
+                                onCharacterUpdate({
+                                    ...character,
+                                    equipment: newEquipment,
+                                });
+                            }}
+                        >
+                            {t('actions.invest') || 'Invest'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // Toggle item investment
+    const toggleInvestment = (itemId: string) => {
+        const itemIndex = equipment.findIndex(item => item.id === itemId);
+        if (itemIndex === -1) return;
+
+        const item = equipment[itemIndex];
+        const currentInvested = item.invested || false;
+        const newInvested = !currentInvested;
+
+        // Check investment limit (10 items)
+        if (newInvested) {
+            const currentInvestedCount = equipment.filter(i => i.invested).length;
+            if (currentInvestedCount >= 10) {
+                alert(t('gear.investedLimitReached') || 'Invested limit (10) reached. Uninvest an item first.');
+                return;
+            }
+        }
+
+        // Toggle invested state
+        const newEquipment = [...equipment];
+        newEquipment[itemIndex] = {
+            ...newEquipment[itemIndex],
+            invested: newInvested,
+        };
+
+        // Update character with recalculated effects (spells, bonuses, etc.)
+        const updatedCharacter = recalculateCharacter({
+            ...character,
+            equipment: newEquipment,
+        });
+
+        onCharacterUpdate(updatedCharacter);
+    };
+
     // Render a single gear item
     const renderGearItem = (item: EquippedItem, section: InventorySection, inContainer = false) => {
         const isDragging = dragState.itemId === item.id;
@@ -566,6 +726,10 @@ export const GearPanel: React.FC<GearPanelProps> = ({
         const isArmor = isArmorOrShield(item.id);
         const displayName = getItemDisplayName(item);
         const quantity = item.quantity ?? 1;
+
+        // Check if this item is investable (has "invested" trait)
+        const gearData = allGear.find(g => g.id === item.id);
+        const isInvestable = gearData?.investable || false;
 
         return (
             <div
@@ -615,6 +779,19 @@ export const GearPanel: React.FC<GearPanelProps> = ({
                     )}
                     {item.worn && (
                         <span className="gear-status worn">{t('status.worn') || 'Worn'}</span>
+                    )}
+                    {/* Investment toggle for investable items */}
+                    {isInvestable && (
+                        <button
+                            className={`invest-toggle-btn ${item.invested ? 'invested' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleInvestment(item.id);
+                            }}
+                            title={item.invested ? (t('gear.uninvest') || 'Uninvest') : (t('gear.invest') || 'Invest')}
+                        >
+                            {item.invested ? (t('gear.invested') || 'Invested') : (t('gear.investable') || 'Investable')}
+                        </button>
                     )}
                     {inContainer && (
                         <button
@@ -969,6 +1146,9 @@ export const GearPanel: React.FC<GearPanelProps> = ({
                                 Bulk: {selectedItem.data.bulk > 0 ? `${selectedItem.data.bulk}B` : 'L'}
                             </div>
                         )}
+
+                        {/* Spell-granting item configuration */}
+                        {selectedItem.type === 'gear' && renderSpellGrantingConfig(selectedItem.data.id)}
                     </div>
                 </DetailModal>
             )}

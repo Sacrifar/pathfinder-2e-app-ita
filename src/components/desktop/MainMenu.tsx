@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../../hooks/useLanguage';
+import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character } from '../../types';
+import { ancestries, classes } from '../../data';
 
 interface MainMenuProps {
     isOpen: boolean;
@@ -31,8 +32,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onShowVariantRules,
 }) => {
     const { t } = useLanguage();
+    const getName = useLocalizedName();
     const navigate = useNavigate();
     // const [showExportOptions, setShowExportOptions] = useState(false);  // Reserved for future submenu
+
+    // Get ancestry and class names for display
+    const ancestryName = ancestries.find(a => a.id === character.ancestryId)?.name || character.ancestryId;
+    const className = classes.find(c => c.id === character.classId)?.name || character.classId;
 
     if (!isOpen) return null;
 
@@ -210,7 +216,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                                 fontSize: '14px',
                                 color: 'var(--text-secondary, #888)',
                             }}>
-                                {character.ancestryId} • {character.classId}
+                                {ancestryName} • {className}
                             </div>
                         </div>
                     </div>

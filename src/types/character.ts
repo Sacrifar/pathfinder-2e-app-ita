@@ -117,6 +117,24 @@ export interface ShieldRunes {
     weaponRunes?: WeaponRunes;
 }
 
+/**
+ * Spell-granting item configuration
+ * Used for items like Gate Attenuator that grant spells with selections
+ */
+export interface ItemSpellGrant {
+    // The selected choice (e.g., element for Gate Attenuator)
+    selectedChoice?: string;  // e.g., "air", "earth", "fire", etc.
+
+    // Daily uses tracking
+    dailyUses?: {
+        current: number;
+        max: number;
+    };
+
+    // Last reset timestamp (for daily uses)
+    lastReset?: string;  // ISO date string
+}
+
 export interface WeaponCustomization {
     // Material & Physical Properties
     material?: SpecialMaterial;  // Special material override
@@ -177,6 +195,9 @@ export interface EquippedItem {
     // Item-specific customization (based on item type)
     runes?: WeaponRunes | ArmorRunes | ShieldRunes;  // Rune system for weapons, armor, or shields
     customization?: WeaponCustomization | ArmorCustomization | ShieldCustomization; // Advanced customization options
+
+    // Spell-granting items (like Gate Attenuator)
+    spellGrant?: ItemSpellGrant;
 }
 
 export interface PreparedSpell {
@@ -227,6 +248,7 @@ export type BonusSelector =
     | 'damage'
     | 'speed'
     | 'all-saves'
+    | 'impulse-attack'
     | 'skill-*'
     | `skill-${string}`
     | 'ability-*'
@@ -621,11 +643,30 @@ export function createEmptyCharacter(): Character {
 }
 
 /**
+ * Migration map for old class IDs to new class IDs
+ * This handles cases where FoundryVTT data was updated and IDs changed
+ */
+const CLASS_ID_MIGRATION_MAP: Record<string, string> = {
+    // Add old ID → new ID mappings here as needed
+    'IiG7DgeLWYrSNXuX': 'RggQN3bX5SEcsffR', // Old Kineticist → New Kineticist
+};
+
+/**
  * Migration utility to ensure backwards compatibility
  * Adds missing fields to existing characters loaded from localStorage
  */
 export function migrateCharacter(data: any): Character {
     const character = { ...data } as Character;
+
+    // Migrate class ID if needed (handles old FoundryVTT data)
+    if (character.classId && CLASS_ID_MIGRATION_MAP[character.classId]) {
+        character.classId = CLASS_ID_MIGRATION_MAP[character.classId];
+    }
+
+    // Migrate secondary class ID if needed (for dual class)
+    if (character.secondaryClassId && CLASS_ID_MIGRATION_MAP[character.secondaryClassId]) {
+        character.secondaryClassId = CLASS_ID_MIGRATION_MAP[character.secondaryClassId];
+    }
 
     // Migrate variantRules (added in v0.1.0)
     if (!character.variantRules) {

@@ -2,7 +2,7 @@
  * Export & Sharing Utilities for Pathfinder 2e Characters
  */
 
-import { Character } from '../types';
+import { Character, migrateCharacter } from '../types';
 import { ancestries, classes } from '../data';
 
 /**
@@ -23,6 +23,7 @@ export function exportCharacterAsJSON(character: Character): void {
 
 /**
  * Import character from JSON file
+ * Applies ID migration to handle old character formats
  */
 export async function importCharacterFromJSON(file: File): Promise<Character> {
     return new Promise((resolve, reject) => {
@@ -30,7 +31,9 @@ export async function importCharacterFromJSON(file: File): Promise<Character> {
         reader.onload = (e) => {
             try {
                 const character = JSON.parse(e.target?.result as string) as Character;
-                resolve(character);
+                // Apply migration using the migrateCharacter utility
+                const migratedCharacter = migrateCharacter(character);
+                resolve(migratedCharacter);
             } catch (error) {
                 reject(new Error('Invalid JSON file'));
             }

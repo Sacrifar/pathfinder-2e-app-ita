@@ -50,7 +50,7 @@ export const ActiveConditions: React.FC<ActiveConditionsProps> = ({
             };
         }),
         ...character.buffs
-            .filter(b => !b.source?.startsWith('feat:')) // Hide feat-derived buffs
+            .filter(b => !b.source?.startsWith('feat:') && !b.source?.startsWith('equipment:')) // Hide feat-derived and equipment-derived buffs
             .map(b => ({
                 id: b.id,
                 type: 'buff' as const,

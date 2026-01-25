@@ -247,252 +247,259 @@ export const WeaponOptionsModal: React.FC<WeaponOptionsModalProps> = ({
                 </div>
 
                 <div className="modal-content">
-                    {/* Fundamental Runes */}
-                    <div className="options-section">
-                        <h3>{t('weapons.fundamentalRunes') || 'Fundamental Runes'}</h3>
+                    <div className="modal-two-columns">
+                        {/* Left Column */}
+                        <div className="modal-column-left">
+                            {/* Fundamental Runes */}
+                            <div className="options-section">
+                                <h3>{t('weapons.fundamentalRunes') || 'Fundamental Runes'}</h3>
 
-                        <div className="option-row">
-                            <label>{t('weapons.potencyRune') || 'Potency Rune'}</label>
-                            <select
-                                value={potencyRune}
-                                onChange={(e) => setPotencyRune(parseInt(e.target.value))}
-                                className="option-select"
-                            >
-                                <option value={0}>{t('weapons.none') || 'None'}</option>
-                                {FUNDAMENTAL_RUNES.potency.map(rune => (
-                                    <option key={rune.value} value={rune.value}>
-                                        {t('weapons.potency') || 'Potency'} +{rune.value} (Lvl {rune.level}, {rune.price} gp)
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                <div className="option-row">
+                                    <label>{t('weapons.potencyRune') || 'Potency Rune'}</label>
+                                    <select
+                                        value={potencyRune}
+                                        onChange={(e) => setPotencyRune(parseInt(e.target.value))}
+                                        className="option-select"
+                                    >
+                                        <option value={0}>{t('weapons.none') || 'None'}</option>
+                                        {FUNDAMENTAL_RUNES.potency.map(rune => (
+                                            <option key={rune.value} value={rune.value}>
+                                                {t('weapons.potency') || 'Potency'} +{rune.value} (Lvl {rune.level}, {rune.price} gp)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="option-row">
-                            <label>{t('weapons.strikingRune') || 'Striking Rune'}</label>
-                            <select
-                                value={strikingRune || 'none'}
-                                onChange={(e) => setStrikingRune(e.target.value === 'none' ? undefined : e.target.value as StrikingRune)}
-                                className="option-select"
-                            >
-                                <option value="none">{t('weapons.none') || 'None'}</option>
-                                {FUNDAMENTAL_RUNES.striking.map(rune => (
-                                    <option key={rune.value} value={rune.value}>
-                                        {language === 'it' && rune.nameIt ? rune.nameIt : rune.name} (+{rune.diceBonus} die - Lvl {rune.level}, {rune.price} gp)
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Property Runes */}
-                    <div className="options-section">
-                        <h3>
-                            {t('weapons.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
-                        </h3>
-
-                        {/* Selected Runes Summary */}
-                        {propertyRunes.length > 0 && (
-                            <div className="selected-runes-summary">
-                                <strong>{t('weapons.selected') || 'Selected'}:</strong>
-                                {propertyRunes.map(runeId => {
-                                    const rune = PROPERTY_RUNES[runeId];
-                                    if (!rune) return null;
-                                    return (
-                                        <span key={runeId} className="selected-rune-tag">
-                                            {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
-                                            <button
-                                                className="remove-tag-btn"
-                                                onClick={() => togglePropertyRune(runeId)}
-                                            >
-                                                ×
-                                            </button>
-                                        </span>
-                                    );
-                                })}
-                                <div className="rune-total-price">
-                                    {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                <div className="option-row">
+                                    <label>{t('weapons.strikingRune') || 'Striking Rune'}</label>
+                                    <select
+                                        value={strikingRune || 'none'}
+                                        onChange={(e) => setStrikingRune(e.target.value === 'none' ? undefined : e.target.value as StrikingRune)}
+                                        className="option-select"
+                                    >
+                                        <option value="none">{t('weapons.none') || 'None'}</option>
+                                        {FUNDAMENTAL_RUNES.striking.map(rune => (
+                                            <option key={rune.value} value={rune.value}>
+                                                {language === 'it' && rune.nameIt ? rune.nameIt : rune.name} (+{rune.diceBonus} die - Lvl {rune.level}, {rune.price} gp)
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Search */}
-                        <input
-                            type="text"
-                            value={runeSearch}
-                            onChange={(e) => setRuneSearch(e.target.value)}
-                            placeholder={t('weapons.searchRunes') || 'Search runes...'}
-                            className="rune-search-input"
-                        />
+                            {/* Material & Physical Properties */}
+                            <div className="options-section">
+                                <h3>{t('weapons.materialPhysical') || 'Material & Physical'}</h3>
 
-                        {/* Rune List */}
-                        <div className="property-runes-list">
-                            {filteredRunes.map(rune => {
-                                const isSelected = propertyRunes.includes(rune.id);
-                                const canSelect = !isSelected && propertyRunes.length >= maxPropertyRunes;
-
-                                return (
-                                    <div
-                                        key={rune.id}
-                                        className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
-                                        onClick={() => !canSelect && togglePropertyRune(rune.id)}
+                                <div className="option-row">
+                                    <label>{t('weapons.material') || 'Material'}</label>
+                                    <select
+                                        value={material || 'none'}
+                                        onChange={(e) => setMaterial(e.target.value === 'none' ? undefined : e.target.value as SpecialMaterial)}
+                                        className="option-select"
                                     >
-                                        <div className="rune-card-header">
-                                            <input
-                                                type="checkbox"
-                                                checked={isSelected}
-                                                onChange={() => togglePropertyRune(rune.id)}
-                                                disabled={canSelect}
-                                            />
-                                            <div className="rune-name-info">
-                                                <span className="rune-name">
-                                                    {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
-                                                </span>
-                                                <span className="rune-meta">
-                                                    Lvl {rune.level} • {rune.price} gp • {rune.rarity}
-                                                    {rune.damage && ` • ${rune.damage.dice} ${rune.damage.type}`}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="rune-description">
-                                            {language === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
-                                        </div>
-                                        {rune.traits && rune.traits.length > 0 && (
-                                            <div className="rune-traits">
-                                                {rune.traits.map(trait => (
-                                                    <span key={trait} className="trait-tag">{trait}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {filteredRunes.length === 0 && (
-                                <div className="no-runes-found">
-                                    {t('weapons.noRunesFound') || 'No runes found'}
+                                        <option value="none">{t('weapons.none') || 'None'}</option>
+                                        {availableMaterials.map(mat => (
+                                            <option key={mat.id} value={mat.id}>
+                                                {language === 'it' && mat.nameIt ? mat.nameIt : mat.name} {mat.price > 0 ? `(Lvl ${mat.level}, ${mat.price} gp)` : `(Standard)`}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
-                            )}
+
+                                <div className="option-row">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={isLarge}
+                                            onChange={(e) => setIsLarge(e.target.checked)}
+                                        />
+                                        {t('weapons.isLarge') || 'Large Weapon'}
+                                    </label>
+                                </div>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.bulkOverride') || 'Bulk Override'}</label>
+                                    <input
+                                        type="number"
+                                        value={bulkOverride ?? ''}
+                                        onChange={(e) => setBulkOverride(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder={weapon.bulk.toString()}
+                                        className="option-input"
+                                        step="0.1"
+                                        min="0"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Advanced Customization */}
+                            <div className="options-section">
+                                <h3>{t('weapons.advancedCustomization') || 'Advanced'}</h3>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.attackAbility') || 'Attack Ability'}</label>
+                                    <select
+                                        value={attackAbilityOverride}
+                                        onChange={(e) => setAttackAbilityOverride(e.target.value as AbilityOverride)}
+                                        className="option-select"
+                                    >
+                                        <option value="auto">{t('weapons.auto') || 'Auto (Default)'}</option>
+                                        <option value="str">STR</option>
+                                        <option value="dex">DEX</option>
+                                        <option value="con">CON</option>
+                                        <option value="int">INT</option>
+                                        <option value="wis">WIS</option>
+                                        <option value="cha">CHA</option>
+                                    </select>
+                                </div>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.customName') || 'Custom Name'}</label>
+                                    <input
+                                        type="text"
+                                        value={customName}
+                                        onChange={(e) => setCustomName(e.target.value)}
+                                        placeholder={weapon.name}
+                                        className="option-input"
+                                    />
+                                </div>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.bonusAttack') || 'Bonus Attack'}</label>
+                                    <input
+                                        type="number"
+                                        value={bonusAttack ?? ''}
+                                        onChange={(e) => setBonusAttack(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder="+0"
+                                        className="option-input"
+                                    />
+                                </div>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.bonusDamage') || 'Bonus Damage'}</label>
+                                    <input
+                                        type="number"
+                                        value={bonusDamage ?? ''}
+                                        onChange={(e) => setBonusDamage(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder="+0"
+                                        className="option-input"
+                                    />
+                                </div>
+
+                                <div className="option-row">
+                                    <label>{t('weapons.customDamageType') || 'Custom Damage Type'}</label>
+                                    <input
+                                        type="text"
+                                        value={customDamageType}
+                                        onChange={(e) => setCustomDamageType(e.target.value)}
+                                        placeholder={weapon.damageType}
+                                        className="option-input"
+                                    />
+                                </div>
+
+                                <div className="option-row">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={criticalSpecialization}
+                                            onChange={(e) => setCriticalSpecialization(e.target.checked)}
+                                        />
+                                        {t('weapons.criticalSpecialization') || 'Critical Specialization'}
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Material & Physical Properties */}
-                    <div className="options-section">
-                        <h3>{t('weapons.materialPhysical') || 'Material & Physical'}</h3>
+                        {/* Right Column - Property Runes */}
+                        <div className="modal-column-right">
+                            <div className="options-section options-section-full">
+                                <h3>
+                                    {t('weapons.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
+                                </h3>
 
-                        <div className="option-row">
-                            <label>{t('weapons.material') || 'Material'}</label>
-                            <select
-                                value={material || 'none'}
-                                onChange={(e) => setMaterial(e.target.value === 'none' ? undefined : e.target.value as SpecialMaterial)}
-                                className="option-select"
-                            >
-                                <option value="none">{t('weapons.none') || 'None'}</option>
-                                {availableMaterials.map(mat => (
-                                    <option key={mat.id} value={mat.id}>
-                                        {language === 'it' && mat.nameIt ? mat.nameIt : mat.name} {mat.price > 0 ? `(Lvl ${mat.level}, ${mat.price} gp)` : `(Standard)`}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                {/* Selected Runes Summary */}
+                                {propertyRunes.length > 0 && (
+                                    <div className="selected-runes-summary">
+                                        <strong>{t('weapons.selected') || 'Selected'}:</strong>
+                                        {propertyRunes.map(runeId => {
+                                            const rune = PROPERTY_RUNES[runeId];
+                                            if (!rune) return null;
+                                            return (
+                                                <span key={runeId} className="selected-rune-tag">
+                                                    {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
+                                                    <button
+                                                        className="remove-tag-btn"
+                                                        onClick={() => togglePropertyRune(runeId)}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                        <div className="rune-total-price">
+                                            {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                        </div>
+                                    </div>
+                                )}
 
-                        <div className="option-row">
-                            <label className="checkbox-label">
+                                {/* Search */}
                                 <input
-                                    type="checkbox"
-                                    checked={isLarge}
-                                    onChange={(e) => setIsLarge(e.target.checked)}
+                                    type="text"
+                                    value={runeSearch}
+                                    onChange={(e) => setRuneSearch(e.target.value)}
+                                    placeholder={t('weapons.searchRunes') || 'Search runes...'}
+                                    className="rune-search-input"
                                 />
-                                {t('weapons.isLarge') || 'Large Weapon'}
-                            </label>
-                        </div>
 
-                        <div className="option-row">
-                            <label>{t('weapons.bulkOverride') || 'Bulk Override'}</label>
-                            <input
-                                type="number"
-                                value={bulkOverride ?? ''}
-                                onChange={(e) => setBulkOverride(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder={weapon.bulk.toString()}
-                                className="option-input"
-                                step="0.1"
-                                min="0"
-                            />
-                        </div>
-                    </div>
+                                {/* Rune List */}
+                                <div className="property-runes-list property-runes-list-tall">
+                                    {filteredRunes.map(rune => {
+                                        const isSelected = propertyRunes.includes(rune.id);
+                                        const canSelect = !isSelected && propertyRunes.length >= maxPropertyRunes;
 
-                    {/* Advanced Customization */}
-                    <div className="options-section">
-                        <h3>{t('weapons.advancedCustomization') || 'Advanced'}</h3>
-
-                        <div className="option-row">
-                            <label>{t('weapons.attackAbility') || 'Attack Ability'}</label>
-                            <select
-                                value={attackAbilityOverride}
-                                onChange={(e) => setAttackAbilityOverride(e.target.value as AbilityOverride)}
-                                className="option-select"
-                            >
-                                <option value="auto">{t('weapons.auto') || 'Auto (Default)'}</option>
-                                <option value="str">STR</option>
-                                <option value="dex">DEX</option>
-                                <option value="con">CON</option>
-                                <option value="int">INT</option>
-                                <option value="wis">WIS</option>
-                                <option value="cha">CHA</option>
-                            </select>
-                        </div>
-
-                        <div className="option-row">
-                            <label>{t('weapons.customName') || 'Custom Name'}</label>
-                            <input
-                                type="text"
-                                value={customName}
-                                onChange={(e) => setCustomName(e.target.value)}
-                                placeholder={weapon.name}
-                                className="option-input"
-                            />
-                        </div>
-
-                        <div className="option-row">
-                            <label>{t('weapons.bonusAttack') || 'Bonus Attack'}</label>
-                            <input
-                                type="number"
-                                value={bonusAttack ?? ''}
-                                onChange={(e) => setBonusAttack(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder="+0"
-                                className="option-input"
-                            />
-                        </div>
-
-                        <div className="option-row">
-                            <label>{t('weapons.bonusDamage') || 'Bonus Damage'}</label>
-                            <input
-                                type="number"
-                                value={bonusDamage ?? ''}
-                                onChange={(e) => setBonusDamage(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder="+0"
-                                className="option-input"
-                            />
-                        </div>
-
-                        <div className="option-row">
-                            <label>{t('weapons.customDamageType') || 'Custom Damage Type'}</label>
-                            <input
-                                type="text"
-                                value={customDamageType}
-                                onChange={(e) => setCustomDamageType(e.target.value)}
-                                placeholder={weapon.damageType}
-                                className="option-input"
-                            />
-                        </div>
-
-                        <div className="option-row">
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={criticalSpecialization}
-                                    onChange={(e) => setCriticalSpecialization(e.target.checked)}
-                                />
-                                {t('weapons.criticalSpecialization') || 'Critical Specialization'}
-                            </label>
+                                        return (
+                                            <div
+                                                key={rune.id}
+                                                className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
+                                                onClick={() => !canSelect && togglePropertyRune(rune.id)}
+                                            >
+                                                <div className="rune-card-header">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => togglePropertyRune(rune.id)}
+                                                        disabled={canSelect}
+                                                    />
+                                                    <div className="rune-name-info">
+                                                        <span className="rune-name">
+                                                            {language === 'it' && rune.nameIt ? rune.nameIt : rune.name}
+                                                        </span>
+                                                        <span className="rune-meta">
+                                                            Lvl {rune.level} • {rune.price} gp • {rune.rarity}
+                                                            {rune.damage && ` • ${rune.damage.dice} ${rune.damage.type}`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="rune-description">
+                                                    {language === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
+                                                </div>
+                                                {rune.traits && rune.traits.length > 0 && (
+                                                    <div className="rune-traits">
+                                                        {rune.traits.map(trait => (
+                                                            <span key={trait} className="trait-tag">{trait}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {filteredRunes.length === 0 && (
+                                        <div className="no-runes-found">
+                                            {t('weapons.noRunesFound') || 'No runes found'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 

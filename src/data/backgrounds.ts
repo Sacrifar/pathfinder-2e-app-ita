@@ -1,324 +1,140 @@
 /**
- * Pathfinder 2e Core Backgrounds (Remastered)
+ * Pathfinder 2e Backgrounds
+ * Loads all backgrounds from PF2E JSON data files
  */
 
 import type { Background } from '../types';
+import { getBackgrounds as getLoadedBackgrounds, type LoadedBackground } from './pf2e-loader';
 
-export const backgrounds: Background[] = [
-    {
-        id: 'acolyte',
-        name: 'Acolyte',
-        nameIt: 'Accolito',
-        description: 'You spent your early days in a religious monastery or cloister.',
-        descriptionIt: 'Hai trascorso i tuoi primi giorni in un monastero o convento religioso.',
-        source: { book: 'Player Core', page: 68 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'wis', 'free'],
-        trainedSkills: ['Religion'],
-        trainedLore: 'Scribing Lore',
-        featId: 'student-of-the-canon'
-    },
-    {
-        id: 'acrobat',
-        name: 'Acrobat',
-        nameIt: 'Acrobata',
-        description: 'In a circus or on the streets, you earned your living tumbling and performing daring feats.',
-        descriptionIt: 'In un circo o per le strade, ti guadagnavi da vivere facendo acrobazie e spettacoli audaci.',
-        source: { book: 'Player Core', page: 68 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'dex', 'free'],
-        trainedSkills: ['Acrobatics'],
-        trainedLore: 'Circus Lore',
-        featId: 'steady-balance'
-    },
-    {
-        id: 'artisan',
-        name: 'Artisan',
-        nameIt: 'Artigiano',
-        description: 'As an apprentice, you practiced a particular form of building or crafting.',
-        descriptionIt: 'Come apprendista, hai praticato una particolare forma di costruzione o artigianato.',
-        source: { book: 'Player Core', page: 68 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'int', 'free'],
-        trainedSkills: ['Crafting'],
-        trainedLore: 'Guild Lore',
-        featId: 'specialty-crafting'
-    },
-    {
-        id: 'barkeep',
-        name: 'Barkeep',
-        nameIt: 'Oste',
-        description: 'You have five everything in your time behind the bar. You\'re quick with a drink and a conversation.',
-        descriptionIt: 'Hai visto di tutto nel tempo passato dietro il bancone. Sei veloce con un drink e una conversazione.',
-        source: { book: 'Player Core', page: 68 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['con', 'cha', 'free'],
-        trainedSkills: ['Diplomacy'],
-        trainedLore: 'Alcohol Lore',
-        featId: 'hobnobber'
-    },
-    {
-        id: 'charlatan',
-        name: 'Charlatan',
-        nameIt: 'Ciarlatano',
-        description: 'You traveled from place to place, selling fake potions or other useless products.',
-        descriptionIt: 'Hai viaggiato di luogo in luogo, vendendo false pozioni o altri prodotti inutili.',
-        source: { book: 'Player Core', page: 69 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'cha', 'free'],
-        trainedSkills: ['Deception'],
-        trainedLore: 'Underworld Lore',
-        featId: 'charming-liar'
-    },
-    {
-        id: 'criminal',
-        name: 'Criminal',
-        nameIt: 'Criminale',
-        description: 'As an illicit agent in a criminal syndicate, you stole goods or smuggled contraband.',
-        descriptionIt: 'Come agente illecito in un sindacato criminale, rubavi beni o contrabbandavi merci.',
-        source: { book: 'Player Core', page: 69 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['dex', 'int', 'free'],
-        trainedSkills: ['Stealth'],
-        trainedLore: 'Underworld Lore',
-        featId: 'experienced-smuggler'
-    },
-    {
-        id: 'entertainer',
-        name: 'Entertainer',
-        nameIt: 'Intrattenitore',
-        description: 'Through an eclectic performance art, you inspired emotions in your audience.',
-        descriptionIt: 'Attraverso un\'arte performativa eclettica, hai ispirato emozioni nel tuo pubblico.',
-        source: { book: 'Player Core', page: 69 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['dex', 'cha', 'free'],
-        trainedSkills: ['Performance'],
-        trainedLore: 'Theater Lore',
-        featId: 'fascinating-performance'
-    },
-    {
-        id: 'farmhand',
-        name: 'Farmhand',
-        nameIt: 'Bracciante',
-        description: 'With a strong back and an understanding of seasonal cycles, you grew up tending to crops.',
-        descriptionIt: 'Con una schiena forte e una comprensione dei cicli stagionali, sei cresciuto coltivando la terra.',
-        source: { book: 'Player Core', page: 69 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['con', 'wis', 'free'],
-        trainedSkills: ['Athletics'],
-        trainedLore: 'Farming Lore',
-        featId: 'assurance'
-    },
-    {
-        id: 'fortune-teller',
-        name: 'Fortune Teller',
-        nameIt: 'Indovino',
-        description: 'The strands of fate are laid bare to your eyes.',
-        descriptionIt: 'I fili del destino sono esposti ai tuoi occhi.',
-        source: { book: 'Player Core', page: 70 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'cha', 'free'],
-        trainedSkills: ['Occultism'],
-        trainedLore: 'Fortune-Telling Lore',
-        featId: 'oddity-identification'
-    },
-    {
-        id: 'gladiator',
-        name: 'Gladiator',
-        nameIt: 'Gladiatore',
-        description: 'The roar of the crowd and the thrill of combat courses through your blood.',
-        descriptionIt: 'Il ruggito della folla e il brivido del combattimento scorrono nel tuo sangue.',
-        source: { book: 'Player Core', page: 70 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'cha', 'free'],
-        trainedSkills: ['Performance'],
-        trainedLore: 'Gladiatorial Lore',
-        featId: 'impressive-performance'
-    },
-    {
-        id: 'guard',
-        name: 'Guard',
-        nameIt: 'Guardia',
-        description: 'You served in the guard, whether in a city or at law in nearby lands.',
-        descriptionIt: 'Hai servito come guardia, sia in una città che nelle terre vicine.',
-        source: { book: 'Player Core', page: 70 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'cha', 'free'],
-        trainedSkills: ['Intimidation'],
-        trainedLore: 'Legal Lore',
-        featId: 'quick-coercion'
-    },
-    {
-        id: 'herbalist',
-        name: 'Herbalist',
-        nameIt: 'Erborista',
-        description: 'As a formally trained apothecary or a rural practitioner of folk medicine, you learned the healing properties of various herbs. You\'re adept at collecting the right natural cures in all sorts of environments and preparing them properly.',
-        descriptionIt: 'Come farmacista formalmente formato o come praticante rurale di medicina popolare, hai appreso le proprietà curative di varie erbe. Sei abile nel raccogliere le cure naturali giuste in tutti gli ambienti e nel prepararle correttamente.',
-        source: { book: 'Player Core', page: 70 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['con', 'wis', 'free'],
-        trainedSkills: ['Nature'],
-        trainedLore: 'Herbalism Lore',
-        featId: 'natural-medicine'
-    },
-    {
-        id: 'hermit',
-        name: 'Hermit',
-        nameIt: 'Eremita',
-        description: 'In an isolated place—like a cave, remote cabin, or secluded grove—you found quiet and solitude.',
-        descriptionIt: 'In un luogo isolato—come una grotta, una capanna remota o un boschetto appartato—hai trovato quiete e solitudine.',
-        source: { book: 'Player Core', page: 70 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['con', 'int', 'free'],
-        trainedSkills: ['Nature', 'Occultism'],
-        trainedLore: 'Terrain Lore',
-        featId: 'dubious-knowledge'
-    },
-    {
-        id: 'hunter',
-        name: 'Hunter',
-        nameIt: 'Cacciatore',
-        description: 'You tracked and killed wild animals, learning their bytes.',
-        descriptionIt: 'Hai inseguito e ucciso animali selvatici, imparando i loro comportamenti.',
-        source: { book: 'Player Core', page: 71 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['dex', 'wis', 'free'],
-        trainedSkills: ['Survival'],
-        trainedLore: 'Tanning Lore',
-        featId: 'survey-wildlife'
-    },
-    {
-        id: 'laborer',
-        name: 'Laborer',
-        nameIt: 'Manovale',
-        description: 'You\'ve spent years performing physical labor in the fields or at work sites.',
-        descriptionIt: 'Hai trascorso anni a svolgere lavori fisici nei campi o nei cantieri.',
-        source: { book: 'Player Core', page: 71 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'con', 'free'],
-        trainedSkills: ['Athletics'],
-        trainedLore: 'Labor Lore',
-        featId: 'hefty-hauler'
-    },
-    {
-        id: 'merchant',
-        name: 'Merchant',
-        nameIt: 'Mercante',
-        description: 'In a dusty shop or traveling with a caravan, you made a living in buying and selling goods.',
-        descriptionIt: 'In un negozio polveroso o viaggiando con una carovana, ti guadagnavi da vivere comprando e vendendo merci.',
-        source: { book: 'Player Core', page: 71 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'cha', 'free'],
-        trainedSkills: ['Diplomacy'],
-        trainedLore: 'Mercantile Lore',
-        featId: 'bargain-hunter'
-    },
-    {
-        id: 'noble',
-        name: 'Noble',
-        nameIt: 'Nobile',
-        description: 'To noble ones are granted many privileges, and much is expected of them in return.',
-        descriptionIt: 'Ai nobili vengono concessi molti privilegi, e molto ci si aspetta in cambio.',
-        source: { book: 'Player Core', page: 71 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'cha', 'free'],
-        trainedSkills: ['Society'],
-        trainedLore: 'Heraldry Lore',
-        featId: 'courtly-graces'
-    },
-    {
-        id: 'sailor',
-        name: 'Sailor',
-        nameIt: 'Marinaio',
-        description: 'You called the sea your home for many a year. Winds and tides guide your intuition.',
-        descriptionIt: 'Per molti anni hai chiamato il mare la tua casa. Venti e maree guidano la tua intuizione.',
-        source: { book: 'Player Core', page: 72 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'dex', 'free'],
-        trainedSkills: ['Athletics'],
-        trainedLore: 'Sailing Lore',
-        featId: 'underwater-marauder'
-    },
-    {
-        id: 'scholar',
-        name: 'Scholar',
-        nameIt: 'Studioso',
-        description: 'You have a deep passion for learning and dedicated yourself to your studies.',
-        descriptionIt: 'Hai una profonda passione per l\'apprendimento e ti sei dedicato ai tuoi studi.',
-        source: { book: 'Player Core', page: 72 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['int', 'wis', 'free'],
-        trainedSkills: ['Arcana', 'Nature', 'Occultism', 'Religion'],
-        trainedLore: 'Academia Lore',
-        featId: 'assurance'
-    },
-    {
-        id: 'scout',
-        name: 'Scout',
-        nameIt: 'Esploratore',
-        description: 'You called the wilderness home as you found trails and guided travelers.',
-        descriptionIt: 'Hai chiamato la natura selvaggia la tua casa mentre trovavi sentieri e guidavi viaggiatori.',
-        source: { book: 'Player Core', page: 72 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['dex', 'wis', 'free'],
-        trainedSkills: ['Survival'],
-        trainedLore: 'Terrain Lore',
-        featId: 'forager'
-    },
-    {
-        id: 'street-urchin',
-        name: 'Street Urchin',
-        nameIt: 'Monello',
-        description: 'You grew up on the streets, learning how to survive in a city\'s underworld.',
-        descriptionIt: 'Sei cresciuto per le strade, imparando a sopravvivere nei bassifondi di una città.',
-        source: { book: 'Player Core', page: 72 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['dex', 'con', 'free'],
-        trainedSkills: ['Thievery'],
-        trainedLore: 'City Lore',
-        featId: 'pickpocket'
-    },
-    {
-        id: 'warrior',
-        name: 'Warrior',
-        nameIt: 'Guerriero',
-        description: 'In your younger days, you trained with weapons and learned battle tactics.',
-        descriptionIt: 'Nei tuoi giorni più giovani, ti sei allenato con le armi e hai imparato tattiche di battaglia.',
-        source: { book: 'Player Core', page: 73 },
-        rarity: 'common',
-        traits: [],
-        abilityBoosts: ['str', 'con', 'free'],
-        trainedSkills: ['Intimidation'],
-        trainedLore: 'Warfare Lore',
-        featId: 'intimidating-glare'
-    }
-];
+// Map from LoadedBackground to Background type (with Italian translations)
+function mapToBackground(loaded: LoadedBackground): Background {
+    // Italian translations will be added gradually - for now use English names
+    const translations: Record<string, { nameIt: string; descriptionIt: string }> = {
+        'acolyte': {
+            nameIt: 'Accolito',
+            descriptionIt: 'Hai trascorso i tuoi primi giorni in un monastero o convento religioso.'
+        },
+        'acrobat': {
+            nameIt: 'Acrobata',
+            descriptionIt: 'In un circo o per le strade, ti guadagnavi da vivere facendo acrobazie e spettacoli audaci.'
+        },
+        'artisan': {
+            nameIt: 'Artigiano',
+            descriptionIt: 'Come apprendista, hai praticato una particolare forma di costruzione o artigianato.'
+        },
+        'barkeep': {
+            nameIt: 'Oste',
+            descriptionIt: 'Hai visto di tutto nel tempo passato dietro il bancone. Sei veloce con un drink e una conversazione.'
+        },
+        'charlatan': {
+            nameIt: 'Ciarlatano',
+            descriptionIt: 'Hai viaggiato di luogo in luogo, vendendo false pozioni o altri prodotti inutili.'
+        },
+        'criminal': {
+            nameIt: 'Criminale',
+            descriptionIt: 'Come agente illecito in un sindacato criminale, rubavi beni o contrabbandavi merci.'
+        },
+        'entertainer': {
+            nameIt: 'Intrattenitore',
+            descriptionIt: 'Attraverso un\'arte performativa eclettica, hai ispirato emozioni nel tuo pubblico.'
+        },
+        'farmhand': {
+            nameIt: 'Bracciante',
+            descriptionIt: 'Con una schiena forte e una comprensione dei cicli stagionali, sei cresciuto coltivando la terra.'
+        },
+        'fortune-teller': {
+            nameIt: 'Indovino',
+            descriptionIt: 'I fili del destino sono esposti ai tuoi occhi.'
+        },
+        'gladiator': {
+            nameIt: 'Gladiatore',
+            descriptionIt: 'Il ruggito della folla e il brivido del combattimento scorrono nel tuo sangue.'
+        },
+        'guard': {
+            nameIt: 'Guardia',
+            descriptionIt: 'Hai servito come guardia, sia in una città che nelle terre vicine.'
+        },
+        'herbalist': {
+            nameIt: 'Erborista',
+            descriptionIt: 'Come farmacista formalmente formato o come praticante rurale di medicina popolare, hai appreso le proprietà curative di varie erbe.'
+        },
+        'hermit': {
+            nameIt: 'Eremita',
+            descriptionIt: 'In un luogo isolato—come una grotta, una capanna remota o un boschetto appartato—hai trovato quiete e solitudine.'
+        },
+        'hunter': {
+            nameIt: 'Cacciatore',
+            descriptionIt: 'Hai inseguito e ucciso animali selvatici, imparando i loro comportamenti.'
+        },
+        'laborer': {
+            nameIt: 'Manovale',
+            descriptionIt: 'Hai trascorso anni a svolgere lavori fisici nei campi o nei cantieri.'
+        },
+        'merchant': {
+            nameIt: 'Mercante',
+            descriptionIt: 'In un negozio polveroso o viaggiando con una carovana, ti guadagnavi da vivere comprando e vendendo merci.'
+        },
+        'noble': {
+            nameIt: 'Nobile',
+            descriptionIt: 'Ai nobili vengono concessi molti privilegi, e molto ci si aspetta in cambio.'
+        },
+        'sailor': {
+            nameIt: 'Marinaio',
+            descriptionIt: 'Per molti anni hai chiamato il mare la tua casa. Venti e maree guidano la tua intuizione.'
+        },
+        'saloon-entertainer': {
+            nameIt: 'Intrattenitore da Saloon',
+            descriptionIt: 'Tutto ciò che vuoi fare è intrattenere la gente, ma con certezza, cattive notizie sembrano seguirti.'
+        },
+        'scholar': {
+            nameIt: 'Studioso',
+            descriptionIt: 'Hai una profonda passione per l\'apprendimento e ti sei dedicato ai tuoi studi.'
+        },
+        'scout': {
+            nameIt: 'Esploratore',
+            descriptionIt: 'Hai chiamato la natura selvaggia la tua casa mentre trovavi sentieri e guidavi viaggiatori.'
+        },
+        'street-urchin': {
+            nameIt: 'Monello',
+            descriptionIt: 'Sei cresciuto per le strade, imparando a sopravvivere nei bassifondi di una città.'
+        },
+        'warrior': {
+            nameIt: 'Guerriero',
+            descriptionIt: 'Nei tuoi giorni più giovani, ti sei allenato con le armi e hai imparato tattiche di battaglia.'
+        },
+    };
+
+    const translation = translations[loaded.id];
+    const loreSkill = loaded.trainedLore || 'General Lore';
+
+    return {
+        id: loaded.id,
+        name: loaded.name,
+        nameIt: translation?.nameIt || loaded.name,
+        description: loaded.description,
+        descriptionIt: translation?.descriptionIt || loaded.description,
+        source: { book: loaded.source },
+        rarity: loaded.rarity as 'common' | 'uncommon' | 'rare' | 'unique',
+        traits: loaded.traits,
+        abilityBoosts: loaded.boosts as ('str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' | 'free')[],
+        trainedSkills: loaded.trainedSkills as ('Acrobatics' | 'Arcana' | 'Athletics' | 'Crafting' | 'Deception' | 'Diplomacy' | 'Intimidation' | 'Medicine' | 'Nature' | 'Occultism' | 'Performance' | 'Religion' | 'Society' | 'Stealth' | 'Survival' | 'Thievery')[],
+        trainedLore: loreSkill,
+        featId: loaded.featId
+    };
+}
+
+// Get all backgrounds with translations
+export function getBackgrounds(): Background[] {
+    const loaded = getLoadedBackgrounds();
+    return loaded.map(mapToBackground);
+}
 
 export function getBackgroundById(id: string): Background | undefined {
-    return backgrounds.find(b => b.id === id);
+    const loaded = getLoadedBackgrounds();
+    const found = loaded.find(b => b.id === id);
+    return found ? mapToBackground(found) : undefined;
 }
 
 export function getAllBackgrounds(): Background[] {
-    return backgrounds;
+    return getBackgrounds();
 }

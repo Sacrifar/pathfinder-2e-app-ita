@@ -52,7 +52,15 @@ const classModules = import.meta.glob<{ default: unknown }>(
     { eager: true }
 );
 
+// Import all background JSON files
+const backgroundModules = import.meta.glob<{ default: unknown }>(
+    './pf2e/backgrounds/*.json',
+    { eager: true }
+);
+
 // ============ Types for raw FoundryVTT data ============
+
+type AbilityName = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 
 interface RawPF2eItem {
     _id: string;
@@ -203,6 +211,16 @@ interface RawClassSystem {
     publication: { title: string; license: string; remaster: boolean };
 }
 
+interface RawBackgroundSystem {
+    boosts: Record<string, { value: string[] }>;
+    description: { value: string };
+    items: Record<string, { name: string; uuid: string }>;
+    publication: { title: string; license: string; remaster: boolean };
+    rules: any[];
+    trainedSkills: { value: string[]; custom: string; lore: string[] };
+    traits: { rarity: string; value: string[] };
+}
+
 interface RawGearSystem {
     baseItem: string | null;
     bulk: { value: number; capacity?: number; ignored?: number };
@@ -216,6 +234,9 @@ interface RawGearSystem {
     uses?: { max: number; value: number };
     quantity?: number;
     stowing?: boolean;
+    rules?: any[];  // FlatModifier and other rules
+    apex?: { attribute: AbilityName };  // Apex items that boost ability scores
+    acBonus?: number;  // For items like Armored Cloak
 }
 
 // ============ App-friendly types ============
@@ -424,6 +445,20 @@ export interface LoadedClass {
     classFeatures: Array<{ name: string; level: number }>;
 }
 
+export interface LoadedBackground {
+    id: string;
+    name: string;
+    boosts: string[];
+    trainedSkills: string[];
+    trainedLore: string;
+    featId: string;
+    traits: string[];
+    rarity: string;
+    description: string;
+    source: string;
+    remaster: boolean;
+}
+
 export interface LoadedGear {
     id: string;
     name: string;
@@ -440,6 +475,10 @@ export interface LoadedGear {
     isContainer?: boolean;  // Whether this item can hold other items (stowing=true in JSON)
     capacity?: number;      // Bulk capacity of this container
     bulkReduction?: number; // Amount of bulk ignored for items inside (e.g., 2 for backpack)
+    rules?: any[];          // FlatModifier and other rules that provide bonuses
+    apex?: AbilityName;     // Apex items that boost ability scores (e.g., Belt of Giant Strength)
+    acBonus?: number;       // Direct AC bonus (e.g., Armored Cloak)
+    investable?: boolean;   // Whether this item can be invested (has "invested" trait)
 }
 
 // ============ Transform Functions ============
@@ -910,6 +949,71 @@ function transformClass(raw: RawPF2eItem): LoadedClass | null {
     };
 }
 
+function transformBackground(raw: RawPF2eItem): LoadedBackground | null {
+    if (raw.type !== 'background') return null;
+
+    const sys = raw.system as unknown as RawBackgroundSystem;
+
+    // Extract boosts from the record structure
+    // PF2E background boosts have two entries:
+    // - "0": 2 fixed ability options (e.g., ["cha", "dex"])
+    // - "1": either 2 options OR all 6 abilities (meaning free choice)
+    const boosts: string[] = [];
+    if (sys.boosts) {
+        const boostKeys = Object.keys(sys.boosts).sort();
+        for (const key of boostKeys) {
+            const boost = sys.boosts[key];
+            if (boost.value && boost.value.length > 0) {
+                // If 6 abilities, it's a free choice
+                if (boost.value.length === 6) {
+                    boosts.push('free');
+                } else {
+                    // Add the available options
+                    boosts.push(...boost.value);
+                }
+            }
+        }
+    }
+
+    // Extract trained skills
+    const trainedSkills: string[] = sys.trainedSkills?.value || [];
+
+    // Get the granted feat
+    let featId = '';
+    if (sys.items) {
+        for (const key of Object.keys(sys.items)) {
+            const item = sys.items[key];
+            if (item.name && item.uuid) {
+                // Extract feat ID from name (e.g., "Virtuosic Performer" -> "virtuosic-performer")
+                featId = item.name.toLowerCase().replace(/\s+/g, '-');
+                break;
+            }
+        }
+    }
+
+    // Determine lore skill - if there's a custom lore or lore array
+    let trainedLore = '';
+    if (sys.trainedSkills?.custom) {
+        trainedLore = sys.trainedSkills.custom;
+    } else if (sys.trainedSkills?.lore && sys.trainedSkills.lore.length > 0) {
+        trainedLore = sys.trainedSkills.lore[0];
+    }
+
+    return {
+        id: raw._id,
+        name: raw.name,
+        boosts,
+        trainedSkills,
+        trainedLore,
+        featId,
+        traits: sys.traits?.value || [],
+        rarity: sys.traits?.rarity || 'common',
+        description: stripHtml(sys.description?.value || ''),
+        source: sys.publication?.title || '',
+        remaster: sys.publication?.remaster || false,
+    };
+}
+
 /**
  * Clean up FoundryVTT UUID references from descriptions.
  * Converts @UUID[Compendium.pf2e.actionspf2e.Item.Treat Wounds] to "Treat Wounds"
@@ -1136,13 +1240,26 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
     const capacity = sys.bulk?.capacity;
     const bulkReduction = sys.bulk?.ignored;
 
+    // Parse rules array (if present)
+    const rules = sys.rules ? [...sys.rules] : undefined;
+
+    // Parse apex attribute (for items like Belt of Giant Strength)
+    const apex = sys.apex?.attribute as AbilityName | undefined;
+
+    // Parse direct AC bonus (for items like Armored Cloak)
+    const acBonus = sys.acBonus;
+
+    // Check if this item can be invested (has "invested" trait)
+    const traits = sys.traits?.value || [];
+    const investable = traits.includes('invested');
+
     return {
         id: raw._id,
         name: raw.name,
         level: sys.level?.value || 0,
         priceGp,
         bulk: sys.bulk?.value ?? 0,
-        traits: sys.traits?.value || [],
+        traits,
         rarity: sys.traits?.rarity || 'common',
         description: stripHtml(sys.description?.value || ''),
         rawDescription: sys.description?.value || '',
@@ -1151,6 +1268,10 @@ function transformGear(raw: RawPF2eItem): LoadedGear | null {
         isContainer,
         capacity,
         bulkReduction,
+        rules,
+        apex,
+        acBonus,
+        investable,
     };
 }
 
@@ -1166,6 +1287,7 @@ let cachedShields: LoadedShield[] | null = null;
 let cachedAncestries: LoadedAncestry[] | null = null;
 let cachedHeritages: LoadedHeritage[] | null = null;
 let cachedClasses: LoadedClass[] | null = null;
+let cachedBackgrounds: LoadedBackground[] | null = null;
 let cachedGear: LoadedGear[] | null = null;
 
 // ============ Public API ============
@@ -1585,6 +1707,40 @@ export function getClassById(id: string): LoadedClass | undefined {
 
 export function getClassByName(name: string): LoadedClass | undefined {
     return getClasses().find(c => c.name.toLowerCase() === name.toLowerCase());
+}
+
+// ============ Background API ============
+
+export function getBackgrounds(): LoadedBackground[] {
+    if (cachedBackgrounds) return cachedBackgrounds;
+
+    const backgrounds: LoadedBackground[] = [];
+
+    for (const path in backgroundModules) {
+        // Skip _folders.json
+        if (path.includes('_folders.json')) continue;
+
+        const module = backgroundModules[path];
+        const raw = (module as { default?: RawPF2eItem }).default || module;
+        const background = transformBackground(raw as RawPF2eItem);
+        if (background) {
+            backgrounds.push(background);
+        }
+    }
+
+    // Sort by name
+    backgrounds.sort((a, b) => a.name.localeCompare(b.name));
+
+    cachedBackgrounds = backgrounds;
+    return backgrounds;
+}
+
+export function getBackgroundById(id: string): LoadedBackground | undefined {
+    return getBackgrounds().find(b => b.id === id);
+}
+
+export function getBackgroundByName(name: string): LoadedBackground | undefined {
+    return getBackgrounds().find(b => b.name.toLowerCase() === name.toLowerCase());
 }
 
 // ============ Pet API ============

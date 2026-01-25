@@ -212,191 +212,198 @@ export const ArmorOptionsModal: React.FC<ArmorOptionsModalProps> = ({
                 </div>
 
                 <div className="modal-content">
-                    {/* Fundamental Runes */}
-                    <div className="options-section">
-                        <h3>{t('weapons.fundamentalRunes') || 'Fundamental Runes'}</h3>
+                    <div className="modal-two-columns">
+                        {/* Left Column */}
+                        <div className="modal-column-left">
+                            {/* Fundamental Runes */}
+                            <div className="options-section">
+                                <h3>{t('weapons.fundamentalRunes') || 'Fundamental Runes'}</h3>
 
-                        <div className="option-row">
-                            <label>{t('armor.potencyRune') || 'Armor Potency Rune'}</label>
-                            <select
-                                value={potencyRune}
-                                onChange={(e) => setPotencyRune(parseInt(e.target.value))}
-                                className="option-select"
-                            >
-                                <option value={0}>{t('weapons.none') || 'None'}</option>
-                                {ARMOR_FUNDAMENTAL_RUNES.potency.map(rune => (
-                                    <option key={rune.value} value={rune.value}>
-                                        {getLocalizedName(rune)} (Lvl {rune.level}, {rune.price} gp)
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                <div className="option-row">
+                                    <label>{t('armor.potencyRune') || 'Armor Potency Rune'}</label>
+                                    <select
+                                        value={potencyRune}
+                                        onChange={(e) => setPotencyRune(parseInt(e.target.value))}
+                                        className="option-select"
+                                    >
+                                        <option value={0}>{t('weapons.none') || 'None'}</option>
+                                        {ARMOR_FUNDAMENTAL_RUNES.potency.map(rune => (
+                                            <option key={rune.value} value={rune.value}>
+                                                {getLocalizedName(rune)} (Lvl {rune.level}, {rune.price} gp)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="option-row">
-                            <label>{t('armor.resilientRune') || 'Resilient Rune'}</label>
-                            <select
-                                value={resilientRune || 'none'}
-                                onChange={(e) => setResilientRune(
-                                    e.target.value === 'none' ? undefined : parseInt(e.target.value) as ResilientRune
-                                )}
-                                className="option-select"
-                            >
-                                <option value="none">{t('weapons.none') || 'None'}</option>
-                                {ARMOR_FUNDAMENTAL_RUNES.resilient.map(rune => (
-                                    <option key={rune.value} value={rune.value}>
-                                        {getLocalizedName(rune)} (Lvl {rune.level}, {rune.price} gp)
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Property Runes */}
-                    <div className="options-section">
-                        <h3>
-                            {t('armor.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
-                        </h3>
-
-                        {/* Selected Runes Summary */}
-                        {propertyRunes.length > 0 && (
-                            <div className="selected-runes-summary">
-                                <strong>{t('weapons.selected') || 'Selected'}:</strong>
-                                {propertyRunes.map(runeId => {
-                                    const rune = ARMOR_PROPERTY_RUNES[runeId];
-                                    if (!rune) return null;
-                                    return (
-                                        <span key={runeId} className="selected-rune-tag">
-                                            {getLocalizedName(rune)}
-                                            <button
-                                                className="remove-tag-btn"
-                                                onClick={() => togglePropertyRune(runeId)}
-                                            >
-                                                ×
-                                            </button>
-                                        </span>
-                                    );
-                                })}
-                                <div className="rune-total-price">
-                                    {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (ARMOR_PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                <div className="option-row">
+                                    <label>{t('armor.resilientRune') || 'Resilient Rune'}</label>
+                                    <select
+                                        value={resilientRune || 'none'}
+                                        onChange={(e) => setResilientRune(
+                                            e.target.value === 'none' ? undefined : parseInt(e.target.value) as ResilientRune
+                                        )}
+                                        className="option-select"
+                                    >
+                                        <option value="none">{t('weapons.none') || 'None'}</option>
+                                        {ARMOR_FUNDAMENTAL_RUNES.resilient.map(rune => (
+                                            <option key={rune.value} value={rune.value}>
+                                                {getLocalizedName(rune)} (Lvl {rune.level}, {rune.price} gp)
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Search */}
-                        <input
-                            type="text"
-                            value={runeSearch}
-                            onChange={(e) => setRuneSearch(e.target.value)}
-                            placeholder={t('weapons.searchRunes') || 'Search runes...'}
-                            className="rune-search-input"
-                        />
+                            {/* Advanced Customization */}
+                            <div className="options-section">
+                                <h3>{t('armor.advancedCustomization') || 'Advanced Customization'}</h3>
 
-                        {/* Rune List */}
-                        <div className="property-runes-list">
-                            {filteredRunes.map(rune => {
-                                const isSelected = propertyRunes.includes(rune.id);
-                                const canSelect = !isSelected && propertyRunes.length >= maxPropertyRunes;
-
-                                return (
-                                    <div
-                                        key={rune.id}
-                                        className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
-                                        onClick={() => !canSelect && togglePropertyRune(rune.id)}
-                                    >
-                                        <div className="rune-card-header">
-                                            <input
-                                                type="checkbox"
-                                                checked={isSelected}
-                                                onChange={() => togglePropertyRune(rune.id)}
-                                                disabled={canSelect}
-                                            />
-                                            <div className="rune-name-info">
-                                                <span className="rune-name">
-                                                    {getLocalizedName(rune)}
-                                                </span>
-                                                <span className="rune-meta">
-                                                    Lvl {rune.level} • {rune.price} gp • {rune.rarity}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="rune-description">
-                                            {t('language') === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
-                                        </div>
-                                        {rune.traits && rune.traits.length > 0 && (
-                                            <div className="rune-traits">
-                                                {rune.traits.map(trait => (
-                                                    <span key={trait} className="trait-tag">{trait}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {filteredRunes.length === 0 && (
-                                <div className="no-runes-found">
-                                    {t('weapons.noRunesFound') || 'No runes found'}
+                                <div className="option-row">
+                                    <label>{t('armor.customName') || 'Custom Name'}</label>
+                                    <input
+                                        type="text"
+                                        value={customName}
+                                        onChange={(e) => setCustomName(e.target.value)}
+                                        placeholder={armor.name}
+                                        className="option-input"
+                                    />
                                 </div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Advanced Customization */}
-                    <div className="options-section">
-                        <h3>{t('armor.advancedCustomization') || 'Advanced Customization'}</h3>
+                                <div className="option-row">
+                                    <label>{t('armor.bonusAC') || 'Bonus AC'}</label>
+                                    <input
+                                        type="number"
+                                        value={bonusAC ?? ''}
+                                        onChange={(e) => setBonusAC(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder="+0"
+                                        className="option-input"
+                                    />
+                                </div>
 
-                        <div className="option-row">
-                            <label>{t('armor.customName') || 'Custom Name'}</label>
-                            <input
-                                type="text"
-                                value={customName}
-                                onChange={(e) => setCustomName(e.target.value)}
-                                placeholder={armor.name}
-                                className="option-input"
-                            />
-                        </div>
+                                <div className="option-row">
+                                    <label>{t('armor.checkPenaltyOverride') || 'Check Penalty Override'}</label>
+                                    <input
+                                        type="number"
+                                        value={checkPenaltyOverride ?? ''}
+                                        onChange={(e) => setCheckPenaltyOverride(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder={armor.checkPenalty.toString()}
+                                        className="option-input"
+                                    />
+                                </div>
 
-                        <div className="option-row">
-                            <label>{t('armor.bonusAC') || 'Bonus AC'}</label>
-                            <input
-                                type="number"
-                                value={bonusAC ?? ''}
-                                onChange={(e) => setBonusAC(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder="+0"
-                                className="option-input"
-                            />
-                        </div>
+                                <div className="option-row">
+                                    <label>{t('armor.speedPenaltyOverride') || 'Speed Penalty Override'}</label>
+                                    <input
+                                        type="number"
+                                        value={speedPenaltyOverride ?? ''}
+                                        onChange={(e) => setSpeedPenaltyOverride(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder={armor.speedPenalty.toString()}
+                                        className="option-input"
+                                    />
+                                </div>
 
-                        <div className="option-row">
-                            <label>{t('armor.checkPenaltyOverride') || 'Check Penalty Override'}</label>
-                            <input
-                                type="number"
-                                value={checkPenaltyOverride ?? ''}
-                                onChange={(e) => setCheckPenaltyOverride(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder={armor.checkPenalty.toString()}
-                                className="option-input"
-                            />
-                        </div>
-
-                        <div className="option-row">
-                            <label>{t('armor.speedPenaltyOverride') || 'Speed Penalty Override'}</label>
-                            <input
-                                type="number"
-                                value={speedPenaltyOverride ?? ''}
-                                onChange={(e) => setSpeedPenaltyOverride(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder={armor.speedPenalty.toString()}
-                                className="option-input"
-                            />
+                                <div className="option-row">
+                                    <label>{t('armor.dexCapOverride') || 'Dex Cap Override'}</label>
+                                    <input
+                                        type="number"
+                                        value={dexCapOverride ?? ''}
+                                        onChange={(e) => setDexCapOverride(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder={armor.dexCap.toString()}
+                                        className="option-input"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="option-row">
-                            <label>{t('armor.dexCapOverride') || 'Dex Cap Override'}</label>
-                            <input
-                                type="number"
-                                value={dexCapOverride ?? ''}
-                                onChange={(e) => setDexCapOverride(e.target.value ? parseInt(e.target.value) : undefined)}
-                                placeholder={armor.dexCap.toString()}
-                                className="option-input"
-                            />
+                        {/* Right Column - Property Runes */}
+                        <div className="modal-column-right">
+                            <div className="options-section options-section-full">
+                                <h3>
+                                    {t('armor.propertyRunes') || 'Property Runes'} ({propertyRunes.length}/{maxPropertyRunes})
+                                </h3>
+
+                                {/* Selected Runes Summary */}
+                                {propertyRunes.length > 0 && (
+                                    <div className="selected-runes-summary">
+                                        <strong>{t('weapons.selected') || 'Selected'}:</strong>
+                                        {propertyRunes.map(runeId => {
+                                            const rune = ARMOR_PROPERTY_RUNES[runeId];
+                                            if (!rune) return null;
+                                            return (
+                                                <span key={runeId} className="selected-rune-tag">
+                                                    {getLocalizedName(rune)}
+                                                    <button
+                                                        className="remove-tag-btn"
+                                                        onClick={() => togglePropertyRune(runeId)}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                        <div className="rune-total-price">
+                                            {t('weapons.totalPrice') || 'Total Price'}: {propertyRunes.reduce((sum, runeId) => sum + (ARMOR_PROPERTY_RUNES[runeId]?.price || 0), 0)} gp
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Search */}
+                                <input
+                                    type="text"
+                                    value={runeSearch}
+                                    onChange={(e) => setRuneSearch(e.target.value)}
+                                    placeholder={t('weapons.searchRunes') || 'Search runes...'}
+                                    className="rune-search-input"
+                                />
+
+                                {/* Rune List */}
+                                <div className="property-runes-list property-runes-list-tall">
+                                    {filteredRunes.map(rune => {
+                                        const isSelected = propertyRunes.includes(rune.id);
+                                        const canSelect = !isSelected && propertyRunes.length >= maxPropertyRunes;
+
+                                        return (
+                                            <div
+                                                key={rune.id}
+                                                className={`property-rune-card ${isSelected ? 'selected' : ''} ${canSelect ? 'disabled' : ''}`}
+                                                onClick={() => !canSelect && togglePropertyRune(rune.id)}
+                                            >
+                                                <div className="rune-card-header">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => togglePropertyRune(rune.id)}
+                                                        disabled={canSelect}
+                                                    />
+                                                    <div className="rune-name-info">
+                                                        <span className="rune-name">
+                                                            {getLocalizedName(rune)}
+                                                        </span>
+                                                        <span className="rune-meta">
+                                                            Lvl {rune.level} • {rune.price} gp • {rune.rarity}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="rune-description">
+                                                    {t('language') === 'it' && rune.descriptionIt ? rune.descriptionIt : rune.description}
+                                                </div>
+                                                {rune.traits && rune.traits.length > 0 && (
+                                                    <div className="rune-traits">
+                                                        {rune.traits.map(trait => (
+                                                            <span key={trait} className="trait-tag">{trait}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {filteredRunes.length === 0 && (
+                                        <div className="no-runes-found">
+                                            {t('weapons.noRunesFound') || 'No runes found'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 

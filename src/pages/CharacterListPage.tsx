@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CharacterSummary } from '../types';
+import { migrateCharacter } from '../types';
+import { ancestries, classes } from '../data';
 import { useLanguage } from '../hooks/useLanguage';
+import { useLocalizedName } from '../hooks/useLanguage';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export function CharacterListPage() {
     const { t, language } = useLanguage();
+    const getName = useLocalizedName();
     const navigate = useNavigate();
     const [characters, setCharacters] = useState<CharacterSummary[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,7 +21,9 @@ export function CharacterListPage() {
         if (savedCharacters) {
             try {
                 const parsed = JSON.parse(savedCharacters);
-                setCharacters(parsed);
+                // Apply migration to handle old class IDs
+                const migrated = parsed.map((char: any) => migrateCharacter(char));
+                setCharacters(migrated);
             } catch {
                 console.error('Failed to parse saved characters');
             }
@@ -246,7 +252,7 @@ function CharacterCard({ character, language, t, onDelete }: {
                 </div>
                 <div className="card-body">
                     <p className="text-secondary">
-                        {character.ancestryId} • {character.classId}
+                        {ancestries.find(a => a.id === character.ancestryId)?.name || character.ancestryId} • {classes.find(c => c.id === character.classId)?.name || character.classId}
                     </p>
                 </div>
                 <div className="card-footer">

@@ -682,6 +682,17 @@ const translations: Record<Language, Record<string, string>> = {
         'gear.shieldAlreadyEquipped': 'There is already a shield equipped in the Defense slot. Please unequip it first before restoring this one.',
         'gear.restoreSuccess': 'Restored to Defense slot',
         'actions.stow': 'Stow',
+
+        // Investment System
+        'gear.invest': 'Invest',
+        'gear.uninvest': 'Uninvest',
+        'gear.invested': 'Invested',
+        'gear.investable': 'Investable',
+        'gear.investedLimit': 'You can only have 10 invested items at a time.',
+        'gear.investedLimitReached': 'Invested limit (10) reached. Uninvest an item first.',
+        'gear.requiresInvestment': 'This item must be invested to function.',
+        'gear.investedItems': 'Invested Items',
+        'gear.maxInvested': 'Max 10',
     },
     it: {
         // Navigation
@@ -1355,6 +1366,17 @@ const translations: Record<Language, Record<string, string>> = {
         'gear.shieldAlreadyEquipped': 'C\'è già uno scudo equipaggiato nello slot Difesa. Rimuovilo prima di ripristinare questo.',
         'gear.restoreSuccess': 'Ripristinato nello slot Difesa',
         'actions.stow': 'Riponi',
+
+        // Investment System
+        'gear.invest': 'Investi',
+        'gear.uninvest': 'Disinvesti',
+        'gear.invested': 'Investito',
+        'gear.investable': 'Investibile',
+        'gear.investedLimit': 'Puoi avere solo 10 oggetti investiti alla volta.',
+        'gear.investedLimitReached': 'Limite investiti (10) raggiunto. Disinvesti un oggetto prima.',
+        'gear.requiresInvestment': 'Questo oggetto deve essere investito per funzionare.',
+        'gear.investedItems': 'Oggetti Investiti',
+        'gear.maxInvested': 'Max 10',
     }
 };
 

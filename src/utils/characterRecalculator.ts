@@ -30,11 +30,13 @@
  */
 
 import { Character, SkillProficiency, AbilityName, Buff, BonusType } from '../types';
-import { ancestries, backgrounds, classes, skills } from '../data';
+import { ancestries, backgrounds, classes, skills, shouldResetDailyUses } from '../data';
 import { recalculateSkillsFromFeats, applySubfeaturesProficiencies, applyDeitySkillsFromDedications } from './featChoices';
-import { getFeats, getArmor } from '../data/pf2e-loader';
+import { getFeats, getArmor, getGear } from '../data/pf2e-loader';
 import { getAllKineticistJunctionSkills } from '../data/classFeatures';
 import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, getWeaponProficiencyAtLevel, proficiencyLevelToName } from '../data/classProgressions';
+import { getSpellGrantingItem, getSpellForItemChoice, getAllSpellGrantingItemIds } from '../data/spellGrantingItems';
+import { getClassIdByName } from '../data/classSpecializations';
 
 /**
  * Recalculate ALL character data from scratch
@@ -55,6 +57,9 @@ export function recalculateCharacter(character: Character): Character {
     updated = recalculateSenses(updated);
     updated = recalculateLanguages(updated);
     updated = processFeatFlatModifiers(updated); // Process FlatModifier rules from feats (e.g., Incredible Initiative)
+    updated = processEquipmentBonuses(updated); // Process FlatModifier rules from equipment
+    updated = processSpellGrantingItems(updated); // Add spells from invested spell-granting items
+    updated = resetItemDailyUses(updated); // Reset daily uses for spell-granting items
 
     return updated;
 }
@@ -903,6 +908,329 @@ export function processFeatFlatModifiers(character: Character): Character {
                     updated.buffs.push(buff);
                 }
             }
+        }
+    }
+
+    return updated;
+}
+
+/**
+ * Process bonuses from equipped/worn/invested gear items
+ * This handles items that provide bonuses through their rules array
+ * Similar to processFeatFlatModifiers but for equipment
+ */
+export function processEquipmentBonuses(character: Character): Character {
+    const updated = { ...character };
+    const allGear = getGear();
+
+    // Initialize buffs array if not present
+    if (!updated.buffs) {
+        updated.buffs = [];
+    }
+
+    // Remove existing equipment-derived buffs (they'll be re-added)
+    const existingEquipmentBuffIds = new Set<string>();
+    for (const buff of updated.buffs) {
+        if (buff.source && buff.source.startsWith('equipment:')) {
+            existingEquipmentBuffIds.add(buff.id);
+        }
+    }
+    updated.buffs = updated.buffs.filter(b => !existingEquipmentBuffIds.has(b.id));
+
+    // Process all equipped items
+    for (const item of character.equipment || []) {
+        // Gear must be worn or invested to provide bonuses
+        if (!item.worn && !item.invested) {
+            continue;
+        }
+
+        // Get the gear data
+        const gear = allGear.find(g => g.id === item.id);
+        if (!gear) continue;
+
+        // Process rules array (if present)
+        if (gear.rules && Array.isArray(gear.rules)) {
+            for (const rule of gear.rules) {
+                if (rule.key === 'FlatModifier' && rule.selector && rule.value !== undefined) {
+                    // Map the selector to our BonusSelector type
+                    let selector: string;
+                    switch (rule.selector) {
+                        case 'initiative':
+                            selector = 'initiative';
+                            break;
+                        case 'ac':
+                            selector = 'ac';
+                            break;
+                        case 'fortitude':
+                            selector = 'fortitude';
+                            break;
+                        case 'reflex':
+                            selector = 'reflex';
+                            break;
+                        case 'will':
+                            selector = 'will';
+                            break;
+                        case 'perception':
+                            selector = 'perception';
+                            break;
+                        case 'attack':
+                        case 'attack-roll':
+                            selector = 'attack';
+                            break;
+                        case 'damage':
+                            selector = 'damage';
+                            break;
+                        case 'land-speed':
+                            selector = 'speed';
+                            break;
+                        case 'impulse-attack':
+                        case 'impulse-attack-roll':
+                            selector = 'impulse-attack';
+                            break;
+                        case 'saving-throw':
+                        case 'all-saves':
+                            selector = 'all-saves';
+                            break;
+                        default:
+                            // Handle skill selectors like "skill-acrobatics", "skill-arcana", etc.
+                            if (rule.selector.startsWith('skill-')) {
+                                const skillName = rule.selector.substring(6);
+                                selector = `skill-${skillName}`;
+                            } else {
+                                continue;
+                            }
+                    }
+
+                    // Map the type to our BonusType
+                    let type: BonusType = 'item';  // Equipment bonuses are typically item bonuses
+                    if (rule.type === 'status') type = 'status';
+                    else if (rule.type === 'item') type = 'item';
+                    else if (rule.type === 'circumstance') type = 'circumstance';
+                    else if (rule.type === 'penalty') type = 'penalty';
+
+                    // Handle predicate (conditional bonuses)
+                    if (rule.predicate && Array.isArray(rule.predicate) && rule.predicate.length > 0) {
+                        // Check if the predicate conditions are met
+                        let predicateMet = true;
+
+                        for (const condition of rule.predicate) {
+                            if (condition.or && Array.isArray(condition.or)) {
+                                // OR condition: met if ANY of the conditions are true
+                                const orMet = condition.or.some((orCondition: any) => {
+                                    if (orCondition.startsWith('class:')) {
+                                        const className = orCondition.substring(6);
+                                        const classId = getClassIdByName(className);
+                                        return classId === updated.classId;
+                                    }
+                                    if (orCondition.startsWith('feat:')) {
+                                        const featId = orCondition.substring(5);
+                                        return updated.feats.some(f => f.featId === featId);
+                                    }
+                                    return false;
+                                });
+                                if (!orMet) {
+                                    predicateMet = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!predicateMet) {
+                            continue;
+                        }
+                    }
+
+                    // Create buff from FlatModifier rule
+                    const buff: Buff = {
+                        id: `equipment:${gear.id}:${selector}`,
+                        name: gear.name,
+                        bonus: rule.value,
+                        type: type,
+                        selector: selector as any,
+                        source: `equipment:${gear.name}`
+                    };
+
+                    // Check if buff with same id already exists (avoid duplicates)
+                    const existingBuffIndex = updated.buffs.findIndex(b => b.id === buff.id);
+                    if (existingBuffIndex === -1) {
+                        updated.buffs.push(buff);
+                    }
+                }
+            }
+        }
+
+        // Handle direct AC bonus items (like Armored Cloak)
+        if (gear.acBonus && gear.acBonus > 0) {
+            const buff: Buff = {
+                id: `equipment:${gear.id}:ac`,
+                name: gear.name,
+                bonus: gear.acBonus,
+                type: 'item',
+                selector: 'ac',
+                source: `equipment:${gear.name}`
+            };
+
+            const existingBuffIndex = updated.buffs.findIndex(b => b.id === buff.id);
+            if (existingBuffIndex === -1) {
+                updated.buffs.push(buff);
+            }
+        }
+    }
+
+    // Process apex items (ability score boosting items like Belt of Giant Strength)
+    // These require investment to work
+    for (const item of character.equipment || []) {
+        if (!item.invested) continue;
+
+        const gear = allGear.find(g => g.id === item.id);
+        if (!gear || !gear.apex) continue;
+
+        // Apex items give a +1 ability bonus to the associated ability score
+        // This is handled as a circumstance bonus to ability checks
+        const ability = gear.apex;
+        const buff: Buff = {
+            id: `equipment:${gear.id}:apex-${ability}`,
+            name: gear.name,
+            bonus: 1,
+            type: 'circumstance',
+            selector: `ability-${ability}` as any,
+            source: `equipment:${gear.name}`
+        };
+
+        const existingBuffIndex = updated.buffs.findIndex(b => b.id === buff.id);
+        if (existingBuffIndex === -1) {
+            updated.buffs.push(buff);
+        }
+    }
+
+    return updated;
+}
+
+/**
+ * Reset daily uses for spell-granting items
+ * Checks if a new day has started and resets daily uses accordingly
+ */
+export function resetItemDailyUses(character: Character): Character {
+    const updated = { ...character };
+
+    // Check each equipment item for spellGrant with dailyUses
+    if (!updated.equipment) return updated;
+
+    let hasChanges = false;
+    const newEquipment = updated.equipment.map(item => {
+        if (!item.spellGrant?.dailyUses) return item;
+
+        const { dailyUses, lastReset } = item.spellGrant;
+
+        // Check if we need to reset (new day)
+        if (shouldResetDailyUses(lastReset)) {
+            hasChanges = true;
+            return {
+                ...item,
+                spellGrant: {
+                    ...item.spellGrant,
+                    dailyUses: {
+                        ...dailyUses,
+                        current: dailyUses.max,
+                    },
+                    lastReset: new Date().toISOString(),
+                },
+            };
+        }
+
+        return item;
+    });
+
+    if (hasChanges) {
+        updated.equipment = newEquipment;
+    }
+
+    return updated;
+}
+
+/**
+ * Process spell-granting items and add spells to character
+ * Only invested items grant their spells
+ *
+ * IMPORTANT: This function also REMOVES spells from items that are no longer
+ * invested or have been removed from equipment entirely.
+ */
+export function processSpellGrantingItems(character: Character): Character {
+    const updated = { ...character };
+
+    // Initialize spellcasting if not present (for non-spellcasters using magic items)
+    if (!updated.spellcasting) {
+        updated.spellcasting = {
+            tradition: 'arcane', // Default, may be overridden by class
+            spellcastingType: 'spontaneous',
+            keyAbility: 'int',
+            proficiency: 'untrained',
+            spellSlots: {},
+            knownSpells: [],
+            focusPool: { current: 0, max: 0 },
+        };
+    }
+
+    // Initialize knownSpells array if not present
+    if (!updated.spellcasting.knownSpells) {
+        updated.spellcasting.knownSpells = [];
+    }
+
+    // Get all gear data
+    const allGear = getGear();
+
+    // Get a global map of ALL spells that could be granted by ANY spell-granting item
+    // This is needed to identify which known spells come from spell-granting items
+    // so we can remove them when items are uninvested or removed
+    const allSpellGrantingSpells = getAllSpellGrantingItemIds();
+
+    // First, collect all spells that should be granted by currently invested items
+    const grantedSpells = new Set<string>();
+
+    // Process each equipment item
+    for (const item of updated.equipment || []) {
+        // Skip items that aren't invested
+        if (!item.invested) continue;
+
+        // Get spell-granting item configuration
+        const spellGrantingItem = getSpellGrantingItem(item.id);
+        if (!spellGrantingItem) continue;
+
+        // Check if item has a selected spell choice
+        const selectedChoice = item.spellGrant?.selectedChoice;
+        if (!selectedChoice) continue;
+
+        // Get the spell configuration for this choice
+        const spellChoice = getSpellForItemChoice(item.id, selectedChoice);
+        if (!spellChoice || !spellChoice.spellId) continue;
+
+        // Check daily uses (if applicable)
+        const dailyUses = item.spellGrant?.dailyUses;
+        if (dailyUses && dailyUses.current <= 0) continue;
+
+        // Add to granted spells set
+        grantedSpells.add(spellChoice.spellId);
+    }
+
+    // Filter knownSpells: keep only spells that are either:
+    // 1. Currently granted by invested items, OR
+    // 2. NOT from any spell-granting item (i.e., from class feats, etc.)
+    updated.spellcasting.knownSpells = updated.spellcasting.knownSpells.filter(spellId => {
+        // If this spell is currently granted, keep it
+        if (grantedSpells.has(spellId)) return true;
+
+        // If this spell could potentially be from a spell-granting item, remove it
+        // (because it's not in the grantedSpells set, meaning the item isn't invested/has no uses/was removed)
+        if (spellId in allSpellGrantingSpells) return false;
+
+        // Otherwise, keep it (from other sources like class feats)
+        return true;
+    });
+
+    // Add any newly granted spells that aren't already in the list
+    for (const spellId of grantedSpells) {
+        if (!updated.spellcasting.knownSpells.includes(spellId)) {
+            updated.spellcasting.knownSpells.push(spellId);
         }
     }
 

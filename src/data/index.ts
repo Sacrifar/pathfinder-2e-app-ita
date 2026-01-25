@@ -35,8 +35,14 @@ export {
 // Export translations
 export * from './translations';
 
-// Export backgrounds (still using manual file)
+// Export backgrounds (now loaded from JSON)
 export * from './backgrounds';
+
+// Also import for compatibility wrapper
+import { getBackgrounds as getBackgroundsRaw } from './backgrounds';
+
+// Export as array for backward compatibility
+export const backgrounds = getBackgroundsRaw();
 
 // Export skills
 export * from './skills';
@@ -47,8 +53,14 @@ export * from './pets';
 // Export tactics
 export * from './tactics';
 
+// Export spell-granting items database
+export * from './spellGrantingItems';
+
 // Export class progressions
 export * from './classProgressions';
+
+// Export spell slot progression
+export * from './spellSlotProgression';
 
 // ============ Compatibility wrappers ============
 // These provide nameIt/descriptionIt for components that expect them

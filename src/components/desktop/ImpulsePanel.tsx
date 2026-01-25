@@ -378,6 +378,9 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             character.variantRules?.proficiencyWithoutLevel
         );
 
+        // Calculate base bonus
+        let baseBonus = conMod + profBonus;
+
         // If using Weapon Infusion, use weapon's attack ability score for attack
         const infusedWeapon = getInfusedWeapon();
         if (infusedWeapon) {
@@ -390,10 +393,16 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                 ? getAbilityModifier(character.abilityScores[customAbility as keyof typeof character.abilityScores] || 10)
                 : getAbilityModifier(character.abilityScores[weaponAbility as keyof typeof character.abilityScores] || 10);
 
-            return weaponAbilityMod + profBonus;
+            baseBonus = weaponAbilityMod + profBonus;
         }
 
-        return conMod + profBonus;
+        // Add impulse attack bonuses from equipment (e.g., Gate Attenuator)
+        const impulseAttackBonuses = character.buffs?.filter(buff =>
+            buff.selector === 'impulse-attack'
+        ) || [];
+        const equipmentBonus = impulseAttackBonuses.reduce((sum, buff) => sum + buff.bonus, 0);
+
+        return baseBonus + equipmentBonus;
     };
 
     // Calculate Elemental Blast damage

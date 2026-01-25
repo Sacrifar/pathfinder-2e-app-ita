@@ -3212,6 +3212,37 @@
     border-color: var(--desktop-accent-blue);
 }
 
+/* Investment toggle button */
+.invest-toggle-btn {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    color: var(--desktop-text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.invest-toggle-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-accent-purple);
+}
+
+.invest-toggle-btn.invested {
+    background: var(--desktop-accent-purple);
+    border-color: var(--desktop-accent-purple);
+    color: white;
+}
+
+.invest-toggle-btn.invested:hover {
+    background: #9b59b6;
+    border-color: #9b59b6;
+}
+
 /* Inventory Sections */
 .inventory-section {
     margin-bottom: 16px;
@@ -3383,6 +3414,140 @@
     font-size: 11px;
     color: var(--desktop-accent-green);
     margin-left: 4px;
+}
+
+/* ===== Spell-Granting Item Configuration ===== */
+.spell-granting-config {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--desktop-border);
+}
+
+.spell-granting-config h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--desktop-text);
+}
+
+.choice-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.choice-selector label {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    min-width: 80px;
+}
+
+.choice-selector select {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    color: var(--desktop-text);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.choice-selector select:hover {
+    border-color: var(--desktop-accent-blue);
+}
+
+.choice-selector select:focus {
+    outline: none;
+    border-color: var(--desktop-accent-blue);
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+.selected-spell-info {
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.selected-spell-info h5 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--desktop-accent-blue);
+}
+
+.selected-spell-info .spell-description {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.daily-uses {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--desktop-border);
+}
+
+.daily-uses span {
+    font-size: 12px;
+    color: var(--desktop-text-muted);
+}
+
+.daily-uses button {
+    padding: 4px 12px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 3px;
+    color: var(--desktop-text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.daily-uses button:hover:not(:disabled) {
+    background: var(--desktop-accent-blue);
+    border-color: var(--desktop-accent-blue);
+}
+
+.daily-uses button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.investment-notice {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(234, 88, 12, 0.1);
+    border: 1px solid var(--desktop-accent-orange);
+    border-radius: 4px;
+}
+
+.investment-notice p {
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    color: var(--desktop-accent-orange);
+}
+
+.investment-notice button {
+    padding: 4px 12px;
+    background: var(--desktop-accent-orange);
+    border: none;
+    border-radius: 3px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.investment-notice button:hover {
+    background: var(--desktop-accent-orange-dark);
+    transform: translateY(-1px);
 }
 
 /* ===== Spells Panel ===== */
@@ -7704,7 +7869,7 @@
     border: 1px solid var(--desktop-border-light, rgba(255, 255, 255, 0.15));
     border-radius: 16px;
     width: 95%;
-    max-width: 800px;
+    max-width: 1100px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -7751,6 +7916,43 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+    max-width: none;
+    border: none;
+    background: transparent;
+}
+
+/* Two column layout */
+.weapon-options-modal .modal-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+}
+
+.weapon-options-modal .modal-column-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.weapon-options-modal .modal-column-right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.weapon-options-modal .modal-column-right .options-section-full {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.weapon-options-modal .property-runes-list-tall {
+    flex: 1;
+    max-height: none;
+    min-height: 300px;
 }
 
 /* Options Section */
