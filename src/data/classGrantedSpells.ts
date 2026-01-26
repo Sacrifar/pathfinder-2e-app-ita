@@ -8,11 +8,16 @@
  * - Other spells granted by class features at level 1
  *
  * Each entry defines:
- * - The class ID (Foundry ID)
+ * - The class name (e.g., 'Bard') - automatically converted to Foundry ID
  * - Focus spells automatically granted
  * - Cantrips automatically granted
  * - The level at which they're granted (usually 1)
+ *
+ * NOTE: This file now uses class names instead of hardcoded Foundry IDs
+ * for better maintainability. The classMetadata system handles ID conversion.
  */
+
+import { getClassIdByName } from './classMetadata';
 
 export interface ClassGrantedSpell {
     spellId: string;        // The spell ID from pf2e data
@@ -21,25 +26,28 @@ export interface ClassGrantedSpell {
 }
 
 export interface ClassGrantedSpells {
-    classId: string;        // Foundry class ID
+    classId: string;        // Foundry class ID (auto-filled from className)
+    className?: string;     // Class name (preferred)
     focusSpells?: ClassGrantedSpell[];
     cantrips?: ClassGrantedSpell[];
     spells?: ClassGrantedSpell[];
 }
 
 /**
- * Database of class-granted spells
+ * Database of class-granted spells (using class names)
  *
- * Maps class IDs to their automatically granted spells
+ * Maps class names to their automatically granted spells.
+ * Class names are automatically converted to Foundry IDs at runtime.
  */
-export const CLASS_GRANTED_SPELLS: Record<string, ClassGrantedSpells> = {
+export const CLASS_GRANTED_SPELLS_BY_NAME: Record<string, ClassGrantedSpells> = {
     // BARD
     // Composition Spells class feature grants:
     // - Counter Performance (focus spell) at level 1
     // - Courageous Anthem (composition cantrip) at level 1
     // Note: Composition cantrips are displayed in the Focus Spells tab
-    '3gweRQ5gn7szIWAv': {
-        classId: '3gweRQ5gn7szIWAv',
+    'Bard': {
+        classId: '', // Will be auto-filled
+        className: 'Bard',
         focusSpells: [
             {
                 spellId: 'WILXkjU5Yq3yw10r', // Counter Performance (focus spell)
@@ -60,6 +68,34 @@ export const CLASS_GRANTED_SPELLS: Record<string, ClassGrantedSpells> = {
     // SORCERER - Bloodline grants bloodline spells
     // etc.
 };
+
+/**
+ * Convert class-granted spells from names to IDs
+ * @internal
+ */
+function convertGrantedSpellsToIds(): Record<string, ClassGrantedSpells> {
+    const result: Record<string, ClassGrantedSpells> = {};
+
+    for (const [className, spells] of Object.entries(CLASS_GRANTED_SPELLS_BY_NAME)) {
+        const classId = getClassIdByName(className);
+
+        if (!classId) {
+            console.warn(
+                `[ClassGrantedSpells] Class "${className}" not found. Granted spells will not work for this class.`
+            );
+            continue;
+        }
+
+        result[classId] = { ...spells, classId };
+    }
+
+    return result;
+}
+
+/**
+ * Exported class granted spells with IDs (for backward compatibility)
+ */
+export const CLASS_GRANTED_SPELLS: Record<string, ClassGrantedSpells> = convertGrantedSpellsToIds();
 
 /**
  * Get class-granted spells configuration by class ID
