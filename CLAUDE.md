@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Last Updated**: 2026-01-25
-**Last Commit**: 61ea7046 (feat: Add backgrounds data and a useLanguage hook)
+**Last Updated**: 2026-01-26
+**Last Commit**: 6e0f1170 (refactor: improve code modularity for class-related data structures)
 
 ## Project Overview
 
@@ -94,6 +94,132 @@ const equipmentModules = import.meta.glob<{ default: unknown }>(
 - **Loader**: `pf2e-loader.ts` transforms raw data into typed interfaces
 - **Barrel**: `src/data/index.ts` re-exports with Italian translations
 - **Manual Data**: Class progressions, specializations, tactics in separate `.ts` files
+
+### Class Modularity System (New!)
+
+**Recent Update (2026-01-26)**: The codebase now uses a modular system for class-related data to eliminate hardcoded Foundry IDs and improve maintainability.
+
+**Key Files:**
+
+1. **`classMetadata.ts`** - Auto-generates mappings between class names and Foundry IDs
+   ```typescript
+   import { getClassIdByName, STANDARD_FEAT_PROGRESSION } from '@/data/classMetadata';
+
+   const bardId = getClassIdByName('Bard'); // Auto-converts 'Bard' → Foundry ID
+   ```
+
+2. **`classProgressionsBuilder.ts`** - Builder pattern for defining progressions
+   ```typescript
+   import { createClassProgressions } from '@/data/classProgressionsBuilder';
+
+   const progressions = createClassProgressions({
+       'Alchemist': {
+           armorProficiencies: { /* ... */ },
+           featProgression: STANDARD_FEAT_PROGRESSION, // Reusable pattern
+       }
+   });
+   ```
+
+3. **`classGrantedFeats.ts`** & **`classGrantedSpells.ts`** - Use class names instead of IDs
+   ```typescript
+   // Now uses human-readable class names
+   export const CLASS_GRANTED_FEATS_BY_NAME = [
+       {
+           className: 'Bard', // ✅ Readable!
+           grantedFeats: { /* ... */ }
+       }
+   ];
+   // Auto-converted to Foundry IDs at runtime
+   ```
+
+4. **`classSpecializationRules.ts`** - Centralized specialization availability rules
+   ```typescript
+   import { filterSpecializationsByLevel } from '@/data/classSpecializationRules';
+
+   // Replaces hardcoded class-specific logic in components
+   const filteredTypes = filterSpecializationsByLevel(allTypes, classId, level);
+   ```
+
+5. **`dataValidator.ts`** - Validates referential integrity
+   ```typescript
+   import { validateAllData, logValidationIssues } from '@/data/dataValidator';
+
+   // Validates class/feat/spell IDs, proficiency arrays, etc.
+   const result = validateAllData({ progressions, grantedFeats, grantedSpells });
+   logValidationIssues(result); // Logs errors/warnings in dev mode
+   ```
+
+6. **`devValidation.ts`** - Automatic validation in development
+   - Runs automatically when dev server starts
+   - Validates all data structures
+   - Logs warnings for broken references
+
+7. **`translationChecker.ts`** - Translation coverage analysis
+   ```javascript
+   // Available in dev console:
+   checkTranslationCoverage()        // Show full coverage report
+   getMissingTranslations('Spells')  // Get missing translations for category
+   exportMissingTranslations()       // Export all missing translations
+   ```
+
+**Pattern: Adding a New Class**
+
+Old way (hardcoded IDs):
+```typescript
+// ❌ Had to find Foundry ID manually
+'XwfcJuskrhI9GIjX': { // What class is this??
+    armorProficiencies: { /* ... */ }
+}
+```
+
+New way (class names):
+```typescript
+// ✅ Readable and maintainable
+'Warrior': {
+    armorProficiencies: { /* ... */ },
+    featProgression: STANDARD_FEAT_PROGRESSION // Reusable!
+}
+```
+
+**Pattern: Adding Class-Granted Feats**
+
+```typescript
+// classGrantedFeats.ts
+{
+    className: 'Warrior', // ✅ Use class name
+    grantedFeats: {
+        'warrior_stance': [{
+            featId: 'warrior-stance',
+            grantedAtLevel: 1,
+            source: 'class',
+            slotType: 'class',
+        }]
+    }
+}
+```
+
+**Pattern: Adding Specialization Rules**
+
+```typescript
+// classSpecializationRules.ts
+{
+    className: 'Wizard',
+    rules: [
+        {
+            specializationTypeId: 'advanced_school',
+            minLevel: 10, // Only available from level 10+
+        }
+    ]
+}
+```
+
+**Benefits:**
+- ✅ No hardcoded Foundry IDs
+- ✅ Automatic validation in dev mode
+- ✅ Reusable feat progression patterns
+- ✅ Class-specific logic in data layer (not components)
+- ✅ Translation coverage tracking
+- ✅ 100% backward compatible
 
 ### Translation System
 

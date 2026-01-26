@@ -7,6 +7,10 @@ import App from './App.tsx'
 import './styles/index.css'
 import './styles/desktop.css'
 
+// Run data validation and load translation checker in development mode
+import './data/devValidation';
+import './data/translationChecker';
+
 console.log('Main file executing');
 const rootElement = document.getElementById('root');
 console.log('Root element:', rootElement);
