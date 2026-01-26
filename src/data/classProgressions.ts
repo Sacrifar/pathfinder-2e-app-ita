@@ -7,7 +7,18 @@
  *
  * Progressions are defined as arrays where index represents level (0-19, where 0 = level 1)
  * Values: 0 = untrained, 1 = trained, 2 = expert, 3 = master, 4 = legendary
+ *
+ * NOTE: This file is being refactored to use classMetadata.ts for automatic ID mapping.
+ * Helper functions (fillArray, setFromLevel) and STANDARD_FEAT_PROGRESSION are now
+ * imported from classMetadata.ts to reduce duplication.
  */
+
+import {
+    fillArray,
+    setFromLevel,
+    STANDARD_FEAT_PROGRESSION,
+    getClassIdByName
+} from './classMetadata';
 
 export type ProficiencyLevel = 0 | 1 | 2 | 3 | 4; // untrained, trained, expert, master, legendary
 
@@ -40,18 +51,7 @@ export interface ClassProgression {
     };
 }
 
-// Helper to create an array filled with a value
-const fillArray = (length: number, value: ProficiencyLevel): ProficiencyLevel[] =>
-    Array(length).fill(value);
-
-// Helper to set proficiency from a certain level onward
-const setFromLevel = (array: ProficiencyLevel[], level: number, value: ProficiencyLevel): ProficiencyLevel[] => {
-    const result = [...array];
-    for (let i = level; i < result.length; i++) {
-        result[i] = value;
-    }
-    return result;
-};
+// Helper functions (fillArray, setFromLevel) are now imported from classMetadata.ts
 
 // Default: trained in light armor and unarmored, untrained in others
 const defaultArmorProgression: ClassProgression['armorProficiencies'] = {

@@ -52,6 +52,7 @@ import { useLanguage, useLocalizedName } from '../../hooks/useLanguage';
 import { Character, Proficiency, Buff } from '../../types';
 import { ancestries, classes, backgrounds, heritages, skills as skillsData } from '../../data';
 import { getSpecializationById, classHasSpecializations, getSpecializationsForClass, getKineticistElementFromGateId, type ClassSpecialization } from '../../data/classSpecializations';
+import { KINETICIST_GATES_THRESHOLD_LEVELS } from '../../data/classSpecializationRules';
 import {
     calculateConditionPenalties,
     getSkillPenalty,
@@ -557,8 +558,8 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
 
             // Add Kineticist Gate's Threshold at levels 5, 9, 13, 17
             // Show ONLY Gate's Threshold option (hide Single Gate and Dual Gate choices)
-            const GATES_THRESHOLD_LEVELS = [5, 9, 13, 17];
-            if (character.classId === 'RggQN3bX5SEcsffR' && GATES_THRESHOLD_LEVELS.includes(level)) {
+            // Uses centralized constant from classSpecializationRules.ts
+            if (character.classId === 'RggQN3bX5SEcsffR' && KINETICIST_GATES_THRESHOLD_LEVELS.includes(level)) {
                 if (level === 5) {
                     console.log('[Sidebar] Full kineticistJunctions object:', character.kineticistJunctions);
                 }

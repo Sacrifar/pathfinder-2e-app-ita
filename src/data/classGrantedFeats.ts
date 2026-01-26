@@ -7,13 +7,17 @@
  * - Other class specialization feats that are granted automatically
  *
  * Each entry defines:
- * - The class ID (Foundry ID)
+ * - The class name (e.g., 'Bard') - automatically converted to Foundry ID
  * - The specialization ID (e.g., muse_enigma)
  * - The feat ID that is granted
  * - The level at which it's granted (usually 1)
+ *
+ * NOTE: This file now uses class names instead of hardcoded Foundry IDs
+ * for better maintainability. The classMetadata system handles ID conversion.
  */
 
 import type { CharacterFeat } from '../types';
+import { getClassIdByName } from './classMetadata';
 
 export interface ClassGrantedFeat {
     featId: string;        // The feat ID (generated from feat name in lowercase with hyphens)
@@ -24,20 +28,23 @@ export interface ClassGrantedFeat {
 }
 
 export interface ClassSpecializationGrantedFeats {
-    classId: string;        // Foundry class ID
+    classId: string;        // Foundry class ID (for backward compatibility)
+    className?: string;     // Class name (preferred, auto-converted to ID)
     grantedFeats: Record<string, ClassGrantedFeat[]>; // Map of specialization ID to granted feats
 }
 
 /**
- * Database of class specialization granted feats
+ * Database of class specialization granted feats (using class names)
  *
- * Maps class IDs and specialization IDs to their automatically granted feats
+ * Maps class names and specialization IDs to their automatically granted feats.
+ * Class names are automatically converted to Foundry IDs at runtime.
  */
-export const CLASS_GRANTED_FEATS: ClassSpecializationGrantedFeats[] = [
+export const CLASS_GRANTED_FEATS_BY_NAME: ClassSpecializationGrantedFeats[] = [
     // BARD
     // Muse feats are granted at level 1 based on the chosen muse
     {
-        classId: '3gweRQ5gn7szIWAv', // Bard Foundry ID
+        classId: '', // Will be auto-filled
+        className: 'Bard',
         grantedFeats: {
             // Enigma Muse → Bardic Lore feat
             'muse_enigma': [
@@ -90,6 +97,31 @@ export const CLASS_GRANTED_FEATS: ClassSpecializationGrantedFeats[] = [
     // - Rogue racket feats
     // etc.
 ];
+
+/**
+ * Convert class-granted feats from names to IDs
+ * @internal
+ */
+function convertGrantedFeatsToIds(): ClassSpecializationGrantedFeats[] {
+    return CLASS_GRANTED_FEATS_BY_NAME.map(entry => {
+        if (entry.className) {
+            const classId = getClassIdByName(entry.className);
+            if (!classId) {
+                console.warn(
+                    `[ClassGrantedFeats] Class "${entry.className}" not found. Granted feats will not work for this class.`
+                );
+                return entry;
+            }
+            return { ...entry, classId };
+        }
+        return entry;
+    });
+}
+
+/**
+ * Exported class granted feats with IDs (for backward compatibility)
+ */
+export const CLASS_GRANTED_FEATS: ClassSpecializationGrantedFeats[] = convertGrantedFeatsToIds();
 
 /**
  * Get granted feats configuration by class ID and specialization ID

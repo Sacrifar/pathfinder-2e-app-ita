@@ -6,6 +6,7 @@ import {
     ClassSpecialization,
     ClassSpecializationType,
 } from '../../data/classSpecializations';
+import { filterSpecializationsByLevel } from '../../data/classSpecializationRules';
 import '../../styles/desktop.css';
 
 interface ClassSpecializationBrowserProps {
@@ -29,34 +30,16 @@ export const ClassSpecializationBrowser: React.FC<ClassSpecializationBrowserProp
     const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]); // For multi-select
     const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
 
-    // Get specializations for this class
+    // Get specializations for this class, filtered by level availability rules
     const specializationTypes = useMemo(() => {
         const allTypes = getSpecializationsForClass(classId);
 
-        // For Kineticist, filter options based on level
-        if (classId === 'RggQN3bX5SEcsffR') {
-            const GATES_THRESHOLD_LEVELS = [5, 9, 13, 17];
+        // Apply level-based filtering using centralized rules from classSpecializationRules.ts
+        // This replaces the hardcoded Kineticist logic that was previously here
+        const filteredTypes = filterSpecializationsByLevel(allTypes, classId, characterLevel);
 
-            return allTypes.map(type => {
-                // If this is the gates threshold type, only show at specific levels
-                if (type.id === 'kineticist_gates_threshold') {
-                    if (!GATES_THRESHOLD_LEVELS.includes(characterLevel)) {
-                        // Hide this type by returning empty options
-                        return { ...type, options: [] };
-                    }
-                }
-                // If this is single/dual gate type, hide at gates threshold levels
-                else if (type.id === 'kineticist_single_gate' || type.id === 'kineticist_dual_gate') {
-                    if (GATES_THRESHOLD_LEVELS.includes(characterLevel)) {
-                        return { ...type, options: [] };
-                    }
-                }
-
-                return type;
-            }).filter(type => type.options.length > 0); // Remove types with no options
-        }
-
-        return allTypes;
+        // Remove types with no options
+        return filteredTypes.filter(type => type.options.length > 0);
     }, [classId, characterLevel]);
 
     // Get the current type
