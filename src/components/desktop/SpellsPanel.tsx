@@ -1,15 +1,32 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
-import { Character, Proficiency } from '../../types';
+import { Character, Proficiency, InnateSpell } from '../../types';
 import { getSpells, LoadedSpell, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { extractDamageFromDescription, simplifyFoundryFormula } from '../../utils/pf2e-math';
+import { getCantripsKnown, getSpellsKnown } from '../../data/spellSlotProgression';
+import { getClassNameById } from '../../data/classSpecializations';
 
 interface SpellsPanelProps {
     character: Character;
     onCastSpell: (spellId: string) => void;
     onAddSpell: () => void;
 }
+
+type SpellSubTab = 'class' | 'focus' | 'rituals' | 'innate';
+
+// Action icon mapping
+const getActionIcon = (castTime: string): string => {
+    const time = castTime.toLowerCase();
+    if (time === '1' || time === 'single action') return '◆';
+    if (time === '2' || time === 'two actions' || time === '2 actions') return '◆◆';
+    if (time === '3' || time === 'three actions' || time === '3 actions') return '◆◆◆';
+    if (time === 'free' || time === 'free action') return '◇';
+    if (time === 'reaction') return '⟳';
+    // For longer cast times like "1 minute", "10 minutes", etc.
+    if (time.includes('minute') || time.includes('hour')) return '⏱';
+    return '◆◆'; // Default to 2 actions
+};
 
 export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     character,
@@ -18,6 +35,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 }) => {
     const { t } = useLanguage();
     const { rollDice } = useDiceRoller();
+    const [activeSubTab, setActiveSubTab] = useState<SpellSubTab>('class');
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState<number | 'all'>('all');
@@ -26,6 +44,11 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
     // Load all spells from pf2e data
     const allSpells = useMemo(() => getSpells(), []);
+
+    // Get class name for display
+    const className = useMemo(() => {
+        return getClassNameById(character.classId) || 'Spellcaster';
+    }, [character.classId]);
 
     // Filter spells
     const filteredSpells = useMemo(() => {
@@ -36,9 +59,10 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             spells = spells.filter(s => s.rank === rankFilter);
         }
 
-        // Filter by tradition
-        if (traditionFilter !== 'all') {
-            spells = spells.filter(s => s.traditions.includes(traditionFilter));
+        // Filter by tradition (default to character's tradition)
+        const tradToFilter = traditionFilter !== 'all' ? traditionFilter : character.spellcasting?.tradition;
+        if (tradToFilter) {
+            spells = spells.filter(s => s.traditions.includes(tradToFilter));
         }
 
         // Filter by search
@@ -51,12 +75,12 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         }
 
         return spells.slice(0, 50); // Limit for performance
-    }, [allSpells, rankFilter, traditionFilter, searchQuery]);
+    }, [allSpells, rankFilter, traditionFilter, searchQuery, character.spellcasting?.tradition]);
 
     // Check if character has spellcasting
     if (!character.spellcasting) {
         return (
-            <div className="spells-panel">
+            <div className="spells-panel pathbuilder-style">
                 <div className="panel-header">
                     <h3>{t('tabs.spells') || 'Spells'}</h3>
                     <button className="header-btn" onClick={() => setShowBrowser(true)}>
@@ -90,10 +114,22 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         }
     };
 
+    // Proficiency level helpers
+    const getProficiencyLevel = (prof: Proficiency): number => {
+        switch (prof) {
+            case 'trained': return 1;
+            case 'expert': return 2;
+            case 'master': return 3;
+            case 'legendary': return 4;
+            default: return 0;
+        }
+    };
+
     // Calculate spell attack and DC
     const keyAbilityScore = character.abilityScores[spellcasting.keyAbility];
     const keyMod = Math.floor((keyAbilityScore - 10) / 2);
     const profBonus = getProficiencyBonus(spellcasting.proficiency, character.level || 1);
+    const profLevel = getProficiencyLevel(spellcasting.proficiency);
     const spellAttack = keyMod + profBonus;
     const spellDC = 10 + keyMod + profBonus;
 
@@ -116,15 +152,18 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         });
     }, [spellcasting.knownSpells, validSpellIds, allSpells]);
 
-    // Helper to get spell name from slug
-    const getSpellNameFromSlug = (slug: string): string => {
-        const spell = allSpells.find(s => {
-            // Convert spell ID to slug format for comparison
-            const spellSlug = s.id.toLowerCase().replace(/\s+/g, '-');
-            return spellSlug === slug.toLowerCase();
-        });
-        return spell?.name || slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    };
+    // Calculate spells known limits for spontaneous casters
+    const spellsKnownLimits = useMemo(() => {
+        if (spellcasting.spellcastingType === 'spontaneous') {
+            return getSpellsKnown(character.classId, character.level || 1);
+        }
+        return {};
+    }, [character.classId, character.level, spellcasting.spellcastingType]);
+
+    // Calculate cantrips known limit
+    const cantripsKnownLimit = useMemo(() => {
+        return getCantripsKnown(character.classId, character.level || 1);
+    }, [character.classId, character.level]);
 
     // Helper to get full spell object from slug
     const getSpellFromSlug = (slug: string): LoadedSpell | undefined => {
@@ -133,6 +172,54 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             return spellSlug === slug.toLowerCase();
         });
     };
+
+    // Group known spells by level
+    const knownSpellsByLevel = useMemo(() => {
+        const grouped: { [level: number]: LoadedSpell[] } = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [], 10: [] };
+        validKnownSpells.forEach(spellId => {
+            const spell = getSpellFromSlug(spellId);
+            if (spell) {
+                const level = spell.rank;
+                if (!grouped[level]) grouped[level] = [];
+                grouped[level].push(spell);
+            }
+        });
+        return grouped;
+    }, [validKnownSpells]);
+
+    // Separate focus spells from regular spells
+    const focusSpells = useMemo(() => {
+        return (spellcasting.focusSpells || [])
+            .map(spellId => getSpellFromSlug(spellId))
+            .filter((spell): spell is LoadedSpell => spell !== undefined);
+    }, [spellcasting.focusSpells]);
+
+    // Focus cantrips vs focus spells
+    // Note: Composition cantrips (like Courageous Anthem) have 'cantrip' and 'composition' traits
+    // but not 'focus' trait. They should be treated as focus cantrips.
+    const focusCantrips = useMemo(() => focusSpells.filter(s =>
+        s.traits.includes('cantrip') || s.traits.includes('composition')
+    ), [focusSpells]);
+    const focusSpellsNonCantrip = useMemo(() => focusSpells.filter(s =>
+        !s.traits.includes('cantrip') && !s.traits.includes('composition')
+    ), [focusSpells]);
+
+    // Rituals
+    const rituals = useMemo(() => {
+        return (spellcasting.rituals || [])
+            .map(spellId => getSpellFromSlug(spellId))
+            .filter((spell): spell is LoadedSpell => spell !== undefined);
+    }, [spellcasting.rituals]);
+
+    // Innate Spells
+    const innateSpells = useMemo(() => {
+        return (spellcasting.innateSpells || [])
+            .map(innate => ({
+                ...innate,
+                spell: getSpellFromSlug(innate.spellId),
+            }))
+            .filter((item): item is InnateSpell & { spell: LoadedSpell } => item.spell !== undefined);
+    }, [spellcasting.innateSpells]);
 
     // Extract element from spell traits for dice coloring
     const extractElementFromTraits = (traits: string[]): string | undefined => {
@@ -177,6 +264,14 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     // Spell slots display
     const slotLevels = Object.keys(spellcasting.spellSlots || {}).map(Number).sort((a, b) => a - b);
 
+    // Get ability abbreviation
+    const getAbilityAbbrev = (ability: string): string => {
+        const abbrevMap: Record<string, string> = {
+            'str': 'For', 'dex': 'Des', 'con': 'Cos', 'int': 'Int', 'wis': 'Sag', 'cha': 'Car'
+        };
+        return abbrevMap[ability] || ability.charAt(0).toUpperCase() + ability.slice(1, 3);
+    };
+
     function renderSpellBrowser() {
         return (
             <div className="modal-overlay" onClick={() => setShowBrowser(false)}>
@@ -216,10 +311,10 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                                 {['all', 'arcane', 'divine', 'occult', 'primal'].map(trad => (
                                     <button
                                         key={trad}
-                                        className={`filter-btn tradition-btn ${traditionFilter === trad ? 'active' : ''}`}
+                                        className={`filter-btn tradition-btn ${traditionFilter === trad ? 'active' : ''} ${trad !== 'all' ? `tradition-${trad}` : ''}`}
                                         onClick={() => setTraditionFilter(trad)}
                                     >
-                                        {trad === 'all' ? 'All' : trad}
+                                        {trad === 'all' ? 'All' : trad.charAt(0).toUpperCase() + trad.slice(1)}
                                     </button>
                                 ))}
                             </div>
@@ -260,36 +355,36 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                                 </div>
                                 <div className="spell-detail-grid">
                                     <div className="detail-row">
-                                        <span className="detail-label">Cast</span>
-                                        <span className="detail-value">{selectedSpell.castTime} actions</span>
+                                        <span className="detail-label">{t('spell.cast') || 'Cast'}</span>
+                                        <span className="detail-value">{getActionIcon(selectedSpell.castTime)} {selectedSpell.castTime}</span>
                                     </div>
                                     {selectedSpell.range && (
                                         <div className="detail-row">
-                                            <span className="detail-label">Range</span>
+                                            <span className="detail-label">{t('spell.range') || 'Range'}</span>
                                             <span className="detail-value">{selectedSpell.range}</span>
                                         </div>
                                     )}
                                     {selectedSpell.area && (
                                         <div className="detail-row">
-                                            <span className="detail-label">Area</span>
+                                            <span className="detail-label">{t('spell.area') || 'Area'}</span>
                                             <span className="detail-value">{selectedSpell.area}</span>
                                         </div>
                                     )}
                                     {selectedSpell.duration && (
                                         <div className="detail-row">
-                                            <span className="detail-label">Duration</span>
+                                            <span className="detail-label">{t('spell.duration') || 'Duration'}</span>
                                             <span className="detail-value">{selectedSpell.duration}</span>
                                         </div>
                                     )}
                                     {selectedSpell.save && (
                                         <div className="detail-row">
-                                            <span className="detail-label">Save</span>
+                                            <span className="detail-label">{t('spell.save') || 'Save'}</span>
                                             <span className="detail-value">{selectedSpell.save}</span>
                                         </div>
                                     )}
                                     {selectedSpell.damage && (
                                         <div className="detail-row">
-                                            <span className="detail-label">Damage</span>
+                                            <span className="detail-label">{t('spell.damage') || 'Damage'}</span>
                                             <span className="detail-value damage-value">{selectedSpell.damage}</span>
                                         </div>
                                     )}
@@ -319,104 +414,306 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         );
     }
 
-    return (
-        <div className="spells-panel">
-            <div className="panel-header">
-                <h3>{t('tabs.spells') || 'Spells'}</h3>
-                <button className="header-btn" onClick={() => setShowBrowser(true)}>
+    // Render a spell row in Pathbuilder style
+    const renderSpellRow = (spell: LoadedSpell, isPlaceholder = false) => {
+        if (isPlaceholder) {
+            return (
+                <div className="spell-row placeholder" onClick={() => setShowBrowser(true)}>
+                    <span className="spell-row-name">{t('spell.notSelected') || 'Not Selected'}</span>
+                    <span className="spell-row-actions">—</span>
+                    <span className="spell-row-duration">—</span>
+                    <span className="spell-row-range">—</span>
+                </div>
+            );
+        }
+
+        return (
+            <div className="spell-row" onClick={() => handleSpellCast(spell.id)}>
+                <span className="spell-row-name">{spell.name}</span>
+                <span className="spell-row-actions">{getActionIcon(spell.castTime)}</span>
+                <span className="spell-row-duration">{spell.duration || '—'}</span>
+                <span className="spell-row-range">{spell.range || '—'}</span>
+            </div>
+        );
+    };
+
+    // Render spell level group with fire icons for slots
+    const renderSpellLevelGroup = (level: number, spells: LoadedSpell[], limit: number) => {
+        const slotData = spellcasting.spellSlots[level];
+        const slotsAvailable = slotData ? slotData.max - slotData.used : 0;
+        const slotsMax = slotData?.max || 0;
+
+        // Calculate empty slots (placeholders)
+        const emptySlots = Math.max(0, limit - spells.length);
+
+        return (
+            <div key={level} className="spell-level-group">
+                <div className="spell-level-header">
+                    <h5>{level === 0 ? 'Cantrips' : `${t('stats.spellRank') || 'Spell Rank'} ${level}`}</h5>
+                    <div className="slot-icons">
+                        {level > 0 && Array.from({ length: slotsMax }, (_, i) => (
+                            <span
+                                key={i}
+                                className={`slot-icon ${i < slotsAvailable ? 'available' : 'used'}`}
+                                title={i < slotsAvailable ? 'Available' : 'Used'}
+                            >
+                                🔥
+                            </span>
+                        ))}
+                        {level === 0 && <span className="cantrip-indicator">∞</span>}
+                    </div>
+                </div>
+                <div className="spell-rows">
+                    <div className="spell-row-header">
+                        <span className="spell-row-name">{t('spell.name') || 'Spell'}</span>
+                        <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
+                        <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
+                        <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                    </div>
+                    {spells.map(spell => renderSpellRow(spell))}
+                    {Array.from({ length: emptySlots }, (_, i) => (
+                        <div key={`empty-${i}`}>
+                            {renderSpellRow(null as any, true)}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // Render Class spells tab
+    const renderClassSpellsTab = () => (
+        <div className="spells-tab-content">
+            {/* Spell Stats Header */}
+            <div className="spell-stats-header">
+                <div className="spell-dc-section">
+                    <span className="stat-label">{t('stats.spellDC') || 'Spell DC'}</span>
+                    <span className="stat-value large">DC {spellDC}</span>
+                </div>
+                <div className="spell-attack-section">
+                    <span className="stat-label">{t('stats.spellAttack') || 'Spell Attack'}</span>
+                    <span className="stat-value large">{formatModifier(spellAttack)}</span>
+                </div>
+                <div className="proficiency-section">
+                    <div className="proficiency-badges">
+                        {['T', 'E', 'M', 'L'].map((letter, idx) => (
+                            <span
+                                key={letter}
+                                className={`prof-badge ${idx + 1 <= profLevel ? 'active' : ''}`}
+                            >
+                                {letter}
+                            </span>
+                        ))}
+                    </div>
+                    <div className="stat-breakdown">
+                        <span>{getAbilityAbbrev(spellcasting.keyAbility)} {formatModifier(keyMod)}</span>
+                        <span className="separator">|</span>
+                        <span>Prof {formatModifier(profBonus - (character.level || 1))}</span>
+                        <span className="separator">|</span>
+                        <span>Item +0</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bonus Spells & Print buttons */}
+            <div className="spell-actions-row">
+                <button className="spell-action-btn" onClick={() => setShowBrowser(true)}>
                     + {t('actions.addSpell') || 'Add Spell'}
                 </button>
             </div>
 
-            {/* Spellcasting Info */}
-            <div className="spellcasting-info">
-                <div className="spell-stat">
-                    <span className="spell-stat-label">{t('stats.tradition') || 'Tradition'}</span>
-                    <span className="spell-stat-value tradition-badge">
-                        {spellcasting.tradition}
-                    </span>
-                </div>
-                <div className="spell-stat">
-                    <span className="spell-stat-label">{t('stats.spellAttack') || 'Spell Attack'}</span>
-                    <span className="spell-stat-value">{formatModifier(spellAttack)}</span>
-                </div>
-                <div className="spell-stat">
-                    <span className="spell-stat-label">{t('stats.spellDC') || 'Spell DC'}</span>
-                    <span className="spell-stat-value">{spellDC}</span>
-                </div>
-            </div>
+            {/* Spell Level Groups */}
+            <div className="spell-levels-container">
+                {/* Cantrips */}
+                {renderSpellLevelGroup(0, knownSpellsByLevel[0] || [], cantripsKnownLimit)}
 
-            {/* Focus Points */}
+                {/* Ranked Spells */}
+                {slotLevels.filter(l => l > 0).map(level => {
+                    const limit = spellsKnownLimits[level] || spellcasting.spellSlots[level]?.max || 0;
+                    return renderSpellLevelGroup(level, knownSpellsByLevel[level] || [], limit);
+                })}
+            </div>
+        </div>
+    );
+
+    // Render Focus Spells tab
+    const renderFocusSpellsTab = () => (
+        <div className="spells-tab-content">
+            {/* Focus Points Display */}
             {spellcasting.focusPool && (
-                <div className="focus-pool">
+                <div className="focus-points-header">
                     <span className="focus-label">{t('stats.focusPoints') || 'Focus Points'}</span>
-                    <div className="focus-pips">
+                    <div className="focus-point-icons">
                         {Array.from({ length: spellcasting.focusPool.max }, (_, i) => (
-                            <div
+                            <span
                                 key={i}
-                                className={`focus-pip ${i < spellcasting.focusPool!.current ? 'filled' : 'empty'}`}
-                            />
+                                className={`focus-icon ${i < spellcasting.focusPool!.current ? 'available' : 'used'}`}
+                            >
+                                🔥
+                            </span>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Spell Slots */}
-            <div className="spell-slots-section">
-                <h4>{t('stats.spellSlots') || 'Spell Slots'}</h4>
-                <div className="spell-slots-grid">
-                    {slotLevels.map(level => {
-                        const slot = spellcasting.spellSlots[level];
-                        const remaining = slot.max - slot.used;
-                        return (
-                            <div key={level} className="spell-slot-row">
-                                <span className="slot-level">
-                                    {level === 0 ? 'Cantrip' : `${t('stats.rank') || 'Rank'} ${level}`}
-                                </span>
-                                <div className="slot-pips">
-                                    {Array.from({ length: slot.max }, (_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`slot-pip ${i < remaining ? 'available' : 'used'}`}
-                                        />
-                                    ))}
-                                </div>
-                                <span className="slot-count">{remaining}/{slot.max}</span>
-                            </div>
-                        );
-                    })}
+            {/* Focus Cantrips */}
+            {focusCantrips.length > 0 && (
+                <div className="spell-level-group">
+                    <div className="spell-level-header">
+                        <h5>{t('stats.focusCantrips') || 'Focus Cantrips'}</h5>
+                    </div>
+                    <div className="spell-rows">
+                        <div className="spell-row-header">
+                            <span className="spell-row-name">{t('spell.name') || 'Spell'}</span>
+                            <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
+                            <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
+                            <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                        </div>
+                        {focusCantrips.map(spell => renderSpellRow(spell))}
+                    </div>
                 </div>
+            )}
+
+            {/* Focus Spells */}
+            {focusSpellsNonCantrip.length > 0 && (
+                <div className="spell-level-group">
+                    <div className="spell-level-header">
+                        <h5>{t('stats.focusSpells') || 'Focus Spells'}</h5>
+                    </div>
+                    <div className="spell-rows">
+                        <div className="spell-row-header">
+                            <span className="spell-row-name">{t('spell.name') || 'Spell'}</span>
+                            <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
+                            <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
+                            <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                        </div>
+                        {focusSpellsNonCantrip.map(spell => renderSpellRow(spell))}
+                    </div>
+                </div>
+            )}
+
+            {focusSpells.length === 0 && (
+                <div className="empty-focus-state">
+                    <p>{t('builder.noFocusSpells') || 'No focus spells yet.'}</p>
+                </div>
+            )}
+        </div>
+    );
+
+    // Render Rituals tab
+    const renderRitualsTab = () => (
+        <div className="spells-tab-content">
+            <div className="rituals-header">
+                <button className="spell-action-btn" onClick={() => setShowBrowser(true)}>
+                    + {t('actions.addRitual') || 'Add Ritual'}
+                </button>
             </div>
 
-            {/* Known Spells */}
-            <div className="known-spells-section">
-                <h4>{t('stats.knownSpells') || 'Known Spells'}</h4>
-                {validKnownSpells.length === 0 ? (
-                    <div>
-                        <p className="text-muted">{t('builder.noSpellsKnown') || 'No spells known yet.'}</p>
-                        <button className="add-btn" onClick={() => setShowBrowser(true)}>
-                            + {t('actions.browseSpells') || 'Browse Spells'}
-                        </button>
+            {rituals.length > 0 ? (
+                <div className="spell-level-group">
+                    <div className="spell-rows">
+                        <div className="spell-row-header">
+                            <span className="spell-row-name">{t('spell.name') || 'Ritual'}</span>
+                            <span className="spell-row-actions">{t('spell.rank') || 'Rank'}</span>
+                            <span className="spell-row-duration">{t('spell.castTime') || 'Cast Time'}</span>
+                            <span className="spell-row-range">{t('spell.cost') || 'Cost'}</span>
+                        </div>
+                        {rituals.map(spell => (
+                            <div key={spell.id} className="spell-row">
+                                <span className="spell-row-name">{spell.name}</span>
+                                <span className="spell-row-actions">{spell.rank}</span>
+                                <span className="spell-row-duration">{spell.castTime}</span>
+                                <span className="spell-row-range">—</span>
+                            </div>
+                        ))}
                     </div>
-                ) : (
-                    <div className="spells-list">
-                        {validKnownSpells.map(spellId => {
-                            const spell = getSpellFromSlug(spellId);
-                            return (
-                                <div key={spellId} className="spell-item">
-                                    <span className="spell-name">{spell?.name || getSpellNameFromSlug(spellId)}</span>
-                                    <button
-                                        className="spell-cast-btn"
-                                        onClick={() => handleSpellCast(spellId)}
-                                    >
-                                        {t('actions.cast') || 'Cast'}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                </div>
+            ) : (
+                <div className="empty-rituals-state">
+                    <p>{t('builder.noRituals') || 'No rituals learned yet.'}</p>
+                </div>
+            )}
+        </div>
+    );
+
+    // Render Innate Spells tab
+    const renderInnateSpellsTab = () => (
+        <div className="spells-tab-content">
+            <div className="innate-spells-header">
+                <p className="innate-spells-description">
+                    {t('builder.innateSpellsDescription') || 'Spells granted by your background, feats, or items that can be cast a limited number of times per day.'}
+                </p>
             </div>
+
+            {innateSpells.length > 0 ? (
+                <div className="spell-level-group">
+                    <div className="spell-rows">
+                        <div className="spell-row-header">
+                            <span className="spell-row-name">{t('spell.name') || 'Spell'}</span>
+                            <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
+                            <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
+                            <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                            <span className="spell-row-uses">{t('spell.uses') || 'Uses'}</span>
+                        </div>
+                        {innateSpells.map(({ spell, uses, maxUses, source }) => (
+                            <div key={spell.id} className="spell-row">
+                                <span className="spell-row-name">
+                                    {spell.name}
+                                    <span className="spell-source">{source}</span>
+                                </span>
+                                <span className="spell-row-actions">{getActionIcon(spell.castTime)}</span>
+                                <span className="spell-row-duration">{spell.duration || '—'}</span>
+                                <span className="spell-row-range">{spell.range || '—'}</span>
+                                <span className="spell-row-uses">
+                                    {uses}/{maxUses}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="empty-innate-state">
+                    <p>{t('builder.noInnateSpells') || 'No innate spells yet.'}</p>
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="spells-panel pathbuilder-style">
+            {/* Sub-tabs Navigation */}
+            <div className="spell-subtabs">
+                <button
+                    className={`subtab-btn ${activeSubTab === 'class' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('class')}
+                >
+                    {className}
+                </button>
+                <button
+                    className={`subtab-btn ${activeSubTab === 'focus' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('focus')}
+                >
+                    {t('tabs.focusSpells') || 'Focus Spells'}
+                </button>
+                <button
+                    className={`subtab-btn ${activeSubTab === 'rituals' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('rituals')}
+                >
+                    {t('tabs.rituals') || 'Rituals'}
+                </button>
+                <button
+                    className={`subtab-btn ${activeSubTab === 'innate' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('innate')}
+                >
+                    {t('tabs.innateSpells') || 'Innate Spells'}
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeSubTab === 'class' && renderClassSpellsTab()}
+            {activeSubTab === 'focus' && renderFocusSpellsTab()}
+            {activeSubTab === 'rituals' && renderRitualsTab()}
+            {activeSubTab === 'innate' && renderInnateSpellsTab()}
 
             {/* Spell Browser Modal */}
             {showBrowser && renderSpellBrowser()}

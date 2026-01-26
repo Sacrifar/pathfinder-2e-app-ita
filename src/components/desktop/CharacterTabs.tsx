@@ -21,16 +21,16 @@ export const CharacterTabs: React.FC<CharacterTabsProps> = ({
     const { t } = useLanguage();
 
     const tabs: { id: TabId; label: string; show: boolean }[] = [
-        { id: 'weapons', label: t('tabs.weapons') || 'Weapons', show: true },
-        { id: 'impulse', label: t('tabs.impulse') || 'Impulse', show: hasImpulses },
-        { id: 'defense', label: t('tabs.defense') || 'Defense', show: true },
-        { id: 'gear', label: t('tabs.gear') || 'Gear', show: true },
-        { id: 'resources', label: t('tabs.resources') || 'Resources', show: true },
-        { id: 'spells', label: t('tabs.spells') || 'Spells', show: hasSpells },
-        { id: 'pets', label: t('tabs.pets') || 'Pets', show: hasPets },
-        { id: 'details', label: t('tabs.details') || 'Details', show: true },
-        { id: 'feats', label: t('tabs.feats') || 'Feats', show: true },
-        { id: 'actions', label: t('tabs.actions') || 'Actions', show: true },
+        { id: 'weapons', label: 'Weapons', show: true },
+        { id: 'impulse', label: 'Impulses', show: hasImpulses },
+        { id: 'defense', label: 'Defense', show: true },
+        { id: 'gear', label: 'Gear', show: true },
+        { id: 'resources', label: 'Resources', show: true },
+        { id: 'spells', label: 'Spells', show: hasSpells },
+        { id: 'pets', label: 'Pets', show: hasPets },
+        { id: 'details', label: 'Details', show: true },
+        { id: 'feats', label: 'Feats', show: true },
+        { id: 'actions', label: 'Actions', show: true },
     ];
 
     return (

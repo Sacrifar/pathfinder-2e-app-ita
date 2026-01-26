@@ -207,6 +207,19 @@ export interface PreparedSpell {
     maxUses: number;
 }
 
+/**
+ * Innate spells are spells granted by heritages, backgrounds, feats, or items
+ * that can be cast a specific number of times per day.
+ * Unlike prepared or spontaneous spells, they don't use spell slots.
+ */
+export interface InnateSpell {
+    spellId: string;      // The spell ID from pf2e data
+    uses: number;         // Current uses remaining today
+    maxUses: number;      // Maximum uses per day (usually 1)
+    source: string;       // Source description (e.g., "Heritage: Fey-Touched", "Background")
+    sourceType: 'heritage' | 'background' | 'feat' | 'item'; // Where the spell comes from
+}
+
 export interface SpellSlots {
     [level: number]: {
         max: number;
@@ -398,7 +411,9 @@ export interface Character {
     // Core Identity
     ancestryId: string;
     heritageId?: string;
+    heritageChoice?: string; // Choice for heritages with spell selection (e.g., chosen cantrip for Fey-Touched Gnome)
     backgroundId: string;
+    backgroundChoice?: string; // Choice for backgrounds with options (e.g., zodiac sign for Zodiac Bound)
     classId: string;
     classSpecializationId?: string | string[]; // Class specialization (Muse, Doctrine, Instinct, etc.) - can be array for dual-selection classes like Kineticist
     kineticistJunctions?: {
@@ -542,6 +557,7 @@ export interface Character {
         focusPool?: FocusPool;
         focusSpells?: string[];
         rituals?: string[];  // IDs of known rituals (time-based spells that don't use slots)
+        innateSpells?: InnateSpell[];  // Spells granted by backgrounds/feats/items with daily uses
     };
 
     // Formula Book & Crafting
@@ -714,6 +730,16 @@ export function migrateCharacter(data: any): Character {
     // Migrate spellcasting.rituals (added for Spellcasting Enhancements)
     if (character.spellcasting && !character.spellcasting.rituals) {
         character.spellcasting.rituals = [];
+    }
+
+    // Migrate spellcasting.innateSpells (added for Innate Spells support)
+    if (character.spellcasting && !character.spellcasting.innateSpells) {
+        character.spellcasting.innateSpells = [];
+    }
+
+    // Migrate heritageChoice (added for Heritage Innate Spells)
+    if (character.heritageChoice === undefined) {
+        character.heritageChoice = undefined;
     }
 
     // Migrate equipment items with magical properties (added for Spellcasting Enhancements)

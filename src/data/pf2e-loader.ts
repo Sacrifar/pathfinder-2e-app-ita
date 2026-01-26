@@ -565,12 +565,16 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
         area = `${sys.area.value}-foot ${sys.area.type}`;
     }
 
+    // Get traits to check for cantrip
+    const traits = sys.traits?.value || [];
+    const isCantrip = traits.includes('cantrip');
+
     return {
         id: raw._id,
         name: raw.name,
-        rank: sys.level?.value || 0,
+        rank: isCantrip ? 0 : (sys.level?.value || 0),
         traditions: sys.traits?.traditions || [],
-        traits: sys.traits?.value || [],
+        traits,
         rarity: sys.traits?.rarity || 'common',
         castTime: sys.time?.value || '2',
         range: sys.range?.value || '',

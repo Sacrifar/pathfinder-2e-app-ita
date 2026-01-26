@@ -15,6 +15,11 @@ import {
     type SpellcasterClassConfig,
 } from '../data/spellSlotProgression';
 import { getClassNameById } from '../data/classSpecializations';
+import {
+    getClassGrantedFocusSpells,
+    getClassGrantedCantrips,
+    getAllClassGrantedSpells,
+} from '../data/classGrantedSpells';
 
 /**
  * Initialize or update spellcasting data for a spellcaster class
@@ -24,7 +29,8 @@ import { getClassNameById } from '../data/classSpecializations';
  * 2. Initializes spellcasting structure if not present
  * 3. Updates spell slots based on level
  * 4. For Sorcerers, determines tradition from bloodline
- * 5. Preserves existing spells and focus pool
+ * 5. Grants class-specific spells (focus spells, cantrips from class features)
+ * 6. Preserves existing spells and focus pool
  *
  * @param character - The character to update
  * @returns Updated character with spellcasting data
@@ -56,6 +62,30 @@ export function initializeSpellcastingForClass(character: Character): Character 
     // Preserve existing spellcasting data where possible
     const existingSpellcasting = character.spellcasting;
 
+    // Get class-granted spells (focus spells, cantrips from class features)
+    const classGrantedFocusSpells = getClassGrantedFocusSpells(classId, level);
+    const classGrantedCantrips = getClassGrantedCantrips(classId, level);
+
+    // Start with existing focus spells and cantrips, then add class-granted ones
+    const existingFocusSpells = existingSpellcasting?.focusSpells || [];
+    const existingKnownSpells = existingSpellcasting?.knownSpells || [];
+
+    // Add class-granted focus spells (avoiding duplicates)
+    const updatedFocusSpells = [...existingFocusSpells];
+    for (const focusSpellId of classGrantedFocusSpells) {
+        if (!updatedFocusSpells.includes(focusSpellId)) {
+            updatedFocusSpells.push(focusSpellId);
+        }
+    }
+
+    // Add class-granted cantrips to known spells (avoiding duplicates)
+    const updatedKnownSpells = [...existingKnownSpells];
+    for (const cantripId of classGrantedCantrips) {
+        if (!updatedKnownSpells.includes(cantripId)) {
+            updatedKnownSpells.push(cantripId);
+        }
+    }
+
     // Determine tradition (varies by bloodline for sorcerers)
     let tradition = config.tradition;
     const className = getClassNameById(classId);
@@ -78,11 +108,11 @@ export function initializeSpellcastingForClass(character: Character): Character 
             keyAbility: config.keyAbility,
             proficiency: config.startingProficiency,
             spellSlots,
-            // Preserve existing spells and focus pool, or initialize new ones
-            knownSpells: existingSpellcasting?.knownSpells || [],
+            // Use updated spells that include class-granted ones
+            knownSpells: updatedKnownSpells,
             preparedSpells: existingSpellcasting?.preparedSpells,
             focusPool: existingSpellcasting?.focusPool || { current: 1, max: 1 },
-            focusSpells: existingSpellcasting?.focusSpells || [],
+            focusSpells: updatedFocusSpells,
             rituals: existingSpellcasting?.rituals || [],
         },
     };
@@ -94,6 +124,7 @@ export function initializeSpellcastingForClass(character: Character): Character 
  * Update spell slots when level changes
  * Preserves used slot counts while updating max slots
  * Also updates tradition for sorcerers if bloodline changes
+ * Adds class-granted spells when qualifying level is reached
  *
  * @param character - The character to update
  * @returns Updated character with recalculated spell slots
@@ -131,12 +162,38 @@ export function updateSpellSlotsForLevel(character: Character): Character {
         }
     }
 
+    // Get class-granted spells for the new level
+    const classGrantedFocusSpells = getClassGrantedFocusSpells(classId, level);
+    const classGrantedCantrips = getClassGrantedCantrips(classId, level);
+
+    // Start with existing focus spells and cantrips, then add class-granted ones
+    const existingFocusSpells = character.spellcasting?.focusSpells || [];
+    const existingKnownSpells = character.spellcasting?.knownSpells || [];
+
+    // Add class-granted focus spells (avoiding duplicates)
+    const updatedFocusSpells = [...existingFocusSpells];
+    for (const focusSpellId of classGrantedFocusSpells) {
+        if (!updatedFocusSpells.includes(focusSpellId)) {
+            updatedFocusSpells.push(focusSpellId);
+        }
+    }
+
+    // Add class-granted cantrips to known spells (avoiding duplicates)
+    const updatedKnownSpells = [...existingKnownSpells];
+    for (const cantripId of classGrantedCantrips) {
+        if (!updatedKnownSpells.includes(cantripId)) {
+            updatedKnownSpells.push(cantripId);
+        }
+    }
+
     return {
         ...character,
         spellcasting: {
             ...character.spellcasting,
             tradition,
             spellSlots: updatedSpellSlots,
+            focusSpells: updatedFocusSpells,
+            knownSpells: updatedKnownSpells,
         },
     };
 }

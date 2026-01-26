@@ -27,7 +27,7 @@ interface ImpulseFeatEntry {
 
 export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
     const { t } = useLanguage();
-    const { rollDice } = useDiceRoller();
+    const { rollDice, openDiceBoxWithImpulse } = useDiceRoller();
     const [selectedImpulse, setSelectedImpulse] = useState<ImpulseFeatEntry | null>(null);
     const [selectedBlast, setSelectedBlast] = useState<ElementalBlastEntry | null>(null);
 
@@ -321,6 +321,12 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         const conMod = getAbilityModifier(character.abilityScores.con);
         const totalBonus = profBonus > 0 ? profBonus + conMod : 0;
 
+        // Calculate proficiency level for TEML badges (1=T, 2=E, 3=M, 4=L)
+        const profLevel = profRank;
+
+        // Calculate raw proficiency bonus (without level for display)
+        const rawProfBonus = profRank * 2;
+
         const profNames: Record<ProficiencyRank, string> = {
             [ProficiencyRank.Untrained]: t('proficiency.untrained') || 'Untrained',
             [ProficiencyRank.Trained]: t('proficiency.trained') || 'Trained',
@@ -331,18 +337,21 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
 
         return {
             name: profNames[profRank],
-            value: totalBonus
+            value: totalBonus,
+            profLevel,
+            conMod,
+            rawProfBonus
         };
     };
 
     // Get action cost label
     const getActionCostLabel = (cost: string): string => {
         switch (cost) {
-            case '1': return t('actions.oneAction') || '1 Action';
-            case '2': return t('actions.twoActions') || '2 Actions';
-            case '3': return t('actions.threeActions') || '3 Actions';
-            case 'free': return t('actions.free') || 'Free';
-            case 'reaction': return t('actions.reaction') || 'Reaction';
+            case '1': return '1 Action';
+            case '2': return '2 Actions';
+            case '3': return '3 Actions';
+            case 'free': return 'Free';
+            case 'reaction': return 'Reaction';
             default: return cost;
         }
     };
@@ -585,7 +594,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
         }
     };
 
-    // Handle opening dicebox with blast data
+    // Handle opening dicebox with blast data (without auto-rolling)
     const handleOpenBlastDiceBox = (element: string, isTwoActions: boolean, isMelee: boolean, isAgile: boolean) => {
         const attackBonus = getBlastAttackBonus();
         const damage = getBlastDamage(isTwoActions, isMelee, element);
@@ -601,15 +610,14 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             isTwoActions: isTwoActions,
         };
 
-        const elementLabel = t(`elements.${element}`) || element;
-        rollDice('1d20', `${t('impulse.elementalBlast') || 'Elemental Blast'} (${elementLabel})`, { impulseData });
+        // Open dicebox without auto-rolling - user can choose which action to take
+        openDiceBoxWithImpulse(impulseData);
     };
 
-    // Handle opening dicebox with impulse data
+    // Handle opening dicebox with impulse data (without auto-rolling)
     const handleOpenImpulseDiceBox = (impulse: ImpulseFeatEntry) => {
         const attackBonus = getBlastAttackBonus();
         const isAttack = isAttackImpulse(impulse);
-        const hasDamage = isDamageImpulse(impulse);
 
         // Get the primary element for this impulse
         const element = impulse.elements.find(e =>
@@ -637,35 +645,50 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             isTwoActions: false,
         };
 
-        if (isAttack) {
-            rollDice('1d20', `${impulse.data.name} - ${t('weapons.attack') || 'Attack'}`, { impulseData });
-        } else {
-            rollDice(damage || '1d6', `${impulse.data.name} - ${t('weapons.damageRoll') || 'Damage'}`, { impulseData });
-        }
+        // Open dicebox without auto-rolling - user can choose which action to take
+        openDiceBoxWithImpulse(impulseData);
     };
 
     return (
         <div className="impulse-panel">
             <h3 className="panel-title">
-                {t('tabs.impulse') || 'Impulses'}
+                Impulses
             </h3>
 
             {/* ===== IMPULSE ATTACK PROFICIENCY ===== */}
-            <div className="proficiencies-section">
-                <h4>{t('proficiency.attackProficiencies') || 'Attack Proficiencies'}</h4>
-                <div className="proficiencies-grid">
-                    <div className="proficiency-item">
-                        <span className="proficiency-label">{t('proficiency.impulseAttack') || 'Impulse Attack'}</span>
-                        <span className="proficiency-value">{getImpulseProficiency().name} ({formatModifier(getImpulseProficiency().value)})</span>
-                    </div>
-                </div>
+            <div className="impulse-proficiencies-header">
+                {(() => {
+                    const profData = getImpulseProficiency();
+                    return (
+                        <div className="impulse-prof-display">
+                            <span className="impulse-prof-label">Impulse Attack</span>
+                            <div className="proficiency-badges">
+                                {['T', 'E', 'M', 'L'].map((letter, idx) => (
+                                    <span
+                                        key={letter}
+                                        className={`prof-badge ${idx + 1 <= profData.profLevel ? 'active' : ''}`}
+                                    >
+                                        {letter}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="stat-breakdown">
+                                <span>Cos {formatModifier(profData.conMod)}</span>
+                                <span className="separator">|</span>
+                                <span>Prof {formatModifier(profData.rawProfBonus)}</span>
+                                <span className="separator">|</span>
+                                <span>Item +0</span>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Base Kineticist Actions Section */}
             {(baseKineticistActions.baseActions.length > 0 || baseKineticistActions.elementalBlastAction) && (
                 <div className="impulse-section">
                     <h4 className="impulse-section-title">
-                        {t('impulse.baseActions') || 'Base Actions'}
+                        Base Actions
                     </h4>
                     <div className="impulse-grid">
                         {/* Base actions (Base Kinesis, Channel Elements) */}
@@ -692,13 +715,12 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
 
                                 <div className="impulse-cost">
                                     <ActionIcon cost={action.cost} />
-                                    <span className="cost-label">{getActionCostLabel(action.cost)}</span>
                                 </div>
 
                                 <div className="impulse-traits">
                                     {action.traits.slice(0, 4).map(trait => (
                                         <span key={trait} className="trait-badge">
-                                            {t(`traits.${trait}`) || trait}
+                                            {trait}
                                         </span>
                                     ))}
                                     {action.traits.length > 4 && (
@@ -744,14 +766,13 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
 
                                             <div className="impulse-cost">
                                                 <ActionIcon cost={isTwoActions ? '2' : '1'} />
-                                                <span className="cost-label">{getActionCostLabel(isTwoActions ? '2' : '1')}</span>
                                             </div>
 
                                             <div className="impulse-traits">
                                                 <span className="trait-badge">{element}</span>
                                                 {baseKineticistActions.elementalBlastAction!.traits.slice(0, 3).map(trait => (
                                                     <span key={trait} className="trait-badge">
-                                                        {t(`traits.${trait}`) || trait}
+                                                        {trait}
                                                     </span>
                                                 ))}
                                             </div>
@@ -765,7 +786,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                     checked={isMelee}
                                                     onChange={() => toggleBlastOption(blastKey, 'melee')}
                                                 />
-                                                <span>{t('weapons.melee') || 'Melee'}</span>
+                                                <span>Melee</span>
                                             </label>
                                             <label className="blast-option-checkbox">
                                                 <input
@@ -773,7 +794,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                     checked={isAgile}
                                                     onChange={() => toggleBlastOption(blastKey, 'agile')}
                                                 />
-                                                <span>{t('weapons.agile') || 'Agile'}</span>
+                                                <span>Agile</span>
                                             </label>
                                             {/* Elemental Stance Bonuses */}
                                             {element === 'air' && (
@@ -879,6 +900,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                 title={`${t('weapons.attack') || 'Attack'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()} | ${t('weapons.damage') || 'Damage'}: ${getBlastDamage(isTwoActions, isMelee, element)}`}
                                             >
                                                 <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} />
+                                                Roll
                                             </button>
                                         </div>
                                     </div>
@@ -893,7 +915,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
             {Object.keys(impulsesByElement).length > 0 && (
                 <div className="impulse-section">
                     <h4 className="impulse-section-title">
-                        {t('impulse.learnedImpulses') || 'Learned Impulses'}
+                        Learned Impulses
                     </h4>
                     {Object.entries(impulsesByElement)
                         .sort(([, a], [, b]) => b.length - a.length)
@@ -905,7 +927,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                 >
                                     <span className="element-icon">{getElementIcon(element)}</span>
                                     <span className="element-name">
-                                        {t(`elements.${element}`) || element.charAt(0).toUpperCase() + element.slice(1)}
+                                        {element.charAt(0).toUpperCase() + element.slice(1)}
                                     </span>
                                     <span className="element-count">{impulses.length}</span>
                                 </div>
@@ -913,6 +935,21 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                     {impulses.map((impulse) => {
                                         const isAttack = isAttackImpulse(impulse);
                                         const hasDamage = isDamageImpulse(impulse);
+
+                                        // Calculate damage formula for display if it's a damage-only impulse
+                                        let displayFormula = '';
+                                        if (hasDamage && !isAttack) {
+                                            const description = impulse.data.rawDescription || impulse.data.description;
+                                            const damages = extractDamageFromDescription(description);
+                                            if (damages && damages.length > 0) {
+                                                const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+                                                // Take the first one or join them, usually for display the first main one is enough or short enough
+                                                displayFormula = simplifiedDamages[0];
+                                                // Clean up formula for display (remove +0, spaces)
+                                                displayFormula = displayFormula.replace(/\s/g, '').replace(/\+0$/, '');
+                                            }
+                                        }
+
                                         return (
                                             <div
                                                 key={impulse.feat.featId}
@@ -938,42 +975,37 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                             {impulse.data.actionType === 'reaction' && (
                                                                 <span className="cost-option">
                                                                     <ActionIcon cost="reaction" />
-                                                                    <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
                                                                 </span>
                                                             )}
                                                             {impulse.data.altActionCosts.map(cost => (
                                                                 <span key={cost} className="cost-option">
                                                                     <ActionIcon cost={String(cost) as '1' | '2' | '3'} />
-                                                                    <span className="cost-label">{getActionCostLabel(String(cost))}</span>
                                                                 </span>
                                                             ))}
                                                         </div>
                                                     ) : impulse.data.actionType === 'passive' ? (
-                                                        <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                        <span className="passive-badge">◈ Passive</span>
                                                     ) : impulse.data.actionType === 'free' ? (
                                                         <>
                                                             <ActionIcon cost="free" />
-                                                            <span className="cost-label">{t('actions.free') || 'Free'}</span>
                                                         </>
                                                     ) : impulse.data.actionType === 'reaction' ? (
                                                         <>
                                                             <ActionIcon cost="reaction" />
-                                                            <span className="cost-label">{t('actions.reaction') || 'Reaction'}</span>
                                                         </>
                                                     ) : impulse.data.actionCost ? (
                                                         <>
                                                             <ActionIcon cost={String(impulse.data.actionCost) as '1' | '2' | '3'} />
-                                                            <span className="cost-label">{getActionCostLabel(String(impulse.data.actionCost))}</span>
                                                         </>
                                                     ) : (
-                                                        <span className="passive-badge">◈ {t('feat.passive') || 'Passive'}</span>
+                                                        <span className="passive-badge">◈ Passive</span>
                                                     )}
                                                 </div>
 
                                                 <div className="impulse-traits">
                                                     {impulse.data.traits.slice(0, 4).map(trait => (
                                                         <span key={trait} className="trait-badge">
-                                                            {t(`traits.${trait}`) || trait}
+                                                            {trait}
                                                         </span>
                                                     ))}
                                                     {impulse.data.traits.length > 4 && (
@@ -995,6 +1027,7 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                                             title={`${isAttack ? t('weapons.attack') || 'Attack' : ''}${isAttack && hasDamage ? ' | ' : ''}${hasDamage ? t('weapons.damage') || 'Damage' : ''}`}
                                                         >
                                                             <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px', verticalAlign: 'middle' }} />
+                                                            {isAttack ? 'Roll' : (displayFormula || 'Roll')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -1165,39 +1198,6 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                         </label>
                                     )}
                                 </div>
-
-                                {/* Dice Roll Buttons for Blast Modal */}
-                                <div className="modal-dice-buttons" style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    <button
-                                        className="blast-dice-btn attack"
-                                        onClick={() => handleBlastAttackRoll(selectedBlast.element)}
-                                        title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
-                                    >
-                                        🎲 {t('weapons.attack') || 'Attack'}
-                                    </button>
-                                    {/* 1-action blast damage */}
-                                    <button
-                                        className="blast-dice-btn damage"
-                                        onClick={() => {
-                                            const options = getBlastOptions(selectedBlast.element, false);
-                                            handleBlastDamageRoll(selectedBlast.element, false, options.melee);
-                                        }}
-                                        title={`1a ${t('weapons.damageRoll') || 'Damage'}`}
-                                    >
-                                        🎲 1a {t('weapons.damage') || 'Damage'}
-                                    </button>
-                                    {/* 2-action blast damage */}
-                                    <button
-                                        className="blast-dice-btn damage"
-                                        onClick={() => {
-                                            const options = getBlastOptions(selectedBlast.element, true);
-                                            handleBlastDamageRoll(selectedBlast.element, true, options.melee);
-                                        }}
-                                        title={`2a ${t('weapons.damageRoll') || 'Damage'}`}
-                                    >
-                                        🎲 2a {t('weapons.damage') || 'Damage'}
-                                    </button>
-                                </div>
                             </>
                         )}
 
@@ -1269,32 +1269,6 @@ export const ImpulsePanel: React.FC<ImpulsePanelProps> = ({ character }) => {
                                 <div className="modal-description">
                                     {cleanDescriptionForDisplay(selectedImpulse.data.rawDescription || selectedImpulse.data.description)}
                                 </div>
-
-                                {/* Dice Roll Buttons in Modal */}
-                                {(() => {
-                                    const isAttack = isAttackImpulse(selectedImpulse);
-                                    const hasDamage = isDamageImpulse(selectedImpulse);
-                                    return (isAttack || hasDamage) && (
-                                        <div className="modal-dice-buttons" style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-                                            {isAttack && (
-                                                <button
-                                                    className="blast-dice-btn attack"
-                                                    onClick={() => handleImpulseAttackRoll(selectedImpulse)}
-                                                    title={`${t('weapons.attack') || 'Attack Roll'}: ${getBlastAttackBonus() >= 0 ? '+' : ''}${getBlastAttackBonus()}`}
-                                                >
-                                                    🎲 {t('weapons.attack') || 'Attack'}
-                                                </button>
-                                            )}
-                                            <button
-                                                className="blast-dice-btn damage"
-                                                onClick={() => handleImpulseDamageRoll(selectedImpulse)}
-                                                title={t('weapons.damageRoll') || 'Damage Roll'}
-                                            >
-                                                🎲 {t('weapons.damage') || 'Damage'}
-                                            </button>
-                                        </div>
-                                    );
-                                })()}
                             </>
                         )}
                     </div>

@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Last Updated**: 2026-01-24
-**Last Commit**: [Current commit with agent skills]
+**Last Updated**: 2026-01-25
+**Last Commit**: 61ea7046 (feat: Add backgrounds data and a useLanguage hook)
 
 ## Project Overview
 
@@ -110,16 +110,44 @@ src/
 ├── components/
 │   ├── common/          # Shared components (DiceBox, RichTextEditor, VirtualList)
 │   └── desktop/         # Desktop UI (browsers, panels, modals)
-├── contexts/            # React contexts (ThemeContext)
+│       # Browsers: AncestryBrowser, BackgroundBrowser, ClassBrowser, DeityBrowser, FeatBrowser, etc.
+│       # Panels: ActionsPanel, BiographyPanel, CraftingPanel, DefensePanel, FeatsPanel, GearPanel, etc.
+│       # Modals: AbilityBoostModal, ArmorOptionsModal, DetailModal, SkillTrainingModal, etc.
+├── contexts/            # React contexts (ThemeContext, LanguageContext)
 ├── pages/              # Route-level pages
 ├── data/               # Game data and loaders
-│   ├── pf2e/          # FoundryVTT JSON files (ancestries, classes, equipment, etc.)
+│   ├── pf2e/          # FoundryVTT JSON files (ancestries, backgrounds, classes, equipment, etc.)
 │   ├── pf2e-loader.ts # Data transformation layer
 │   └── index.ts       # Barrel exports with translations
 ├── types/             # TypeScript type definitions
-├── hooks/             # Custom React hooks
+├── hooks/             # Custom React hooks (useLanguage, useMediaQuery)
 └── utils/             # Utility functions
 ```
+
+### Language System
+
+The app has a comprehensive bilingual system (English/Italian):
+
+- **Hook**: `useLanguage()` from `src/hooks/useLanguage.tsx` provides `language`, `setLanguage`, `toggleLanguage()`, and `t(key)` translation function
+- **Context**: `LanguageProvider` wraps the app and persists language preference to localStorage
+- **Helper Hooks**:
+  - `useLocalizedName()` - Get localized name from entity (name/nameIt)
+  - `useLocalizedDescription()` - Get localized description (description/descriptionIt)
+- **Usage Pattern**: All UI text should use `t('key')` for consistent localization
+
+### Game Data Categories
+
+PF2E game data is loaded from JSON files in `src/data/pf2e/`:
+- **ancestries/** - All ancestries and heritages
+- **backgrounds/** - 200+ backgrounds for character creation
+- **classes/** - All character classes with features
+- **equipment/** - Weapons, armor, shields, gear
+- **feats/** - All feat categories (ancestry, class, general, skill)
+- **spells/** - All spells by tradition
+- **actions/** - Class actions and abilities
+- **class-features/** - Special features and abilities
+- **conditions/** - Status conditions
+- **deities/** - All deities with domains
 
 ### Key Type Patterns
 
@@ -150,17 +178,22 @@ These are legacy or unused code. Avoid importing from these paths.
 
 Two classes require special selection UI (see TODO files):
 
-**Commander** (`TODO-COMMANDER.md`):
+**Commander** ([TODO-COMMANDER.md](TODO-COMMANDER.md)):
 - Requires selecting 3 tactics daily from a pool (33 total)
 - Cannot use standard single-specialization selector
 - Tactics located in `src/data/pf2e/actions/class/commander/`
-- Needs dedicated multi-select component
+- Needs dedicated multi-select component with tier/category filtering
 
-**Exemplar** (`TODO-EXEMPLAR.md`):
+**Exemplar** ([TODO-EXEMPLAR.md](TODO-EXEMPLAR.md)):
 - Requires selecting 3 Ikons (body/worn/weapon types)
 - Similar to Commander, needs multi-select UI
 - Ikons in `src/data/pf2e/class-features/` with `exemplar-ikon` tag
 - Must include at least one weapon ikon
+
+### Other Known Limitations
+- Some advanced class features (like kineticist impulses) have specialized browser components
+- Multiclass archetype support is partially implemented
+- Vehicle and mount mechanics are not yet implemented
 
 ## Data File Patterns
 
@@ -180,6 +213,39 @@ Class features and level-up progressions are manually defined in:
 - `src/data/classFeatures.ts` - Feature definitions
 - `src/data/classResourceTemplates.ts` - Focus pools, spell slots, etc.
 
+## Recently Implemented Features
+
+### Backgrounds (Latest: 2026-01-25)
+- **200+ backgrounds** loaded from `src/data/pf2e/backgrounds/*.json`
+- Integrated into character creation flow
+- Provides ability boosts, trained skills, and feat choices
+- Fully translated with Italian names and descriptions
+
+### Desktop Character Sheet Layout
+- **Dedicated panels** for all character aspects: WeaponsPanel, DefensePanel, GearPanel, SpellsPanel, FeatsPanel, ActionsPanel, etc.
+- **Drag-and-drop inventory** system with containers (backpacks, bags)
+- **Bulk tracking** with container reduction (magical containers provide bulk reduction)
+- **Investment system** - 10 invested item limit with toggle UI
+- **Spell-granting items** with configuration UI for selecting spells and tracking daily uses
+- **Damage breakdown** with detailed MAP (Multiple Attack Penalty) display and elemental dice coloring
+
+### Weapon/Armor/Shield Customization
+- **Fundamental runes** (potency, striking, resilient) with automatic bonuses
+- **Property runes** for weapons and armor
+- **Material overrides** (cold iron, silver, adamantine, etc.)
+- **Custom names** and advanced customization options
+- **Shield HP tracking** with reinforcing rune support
+
+### Comprehensive Browser Components
+- Browser components for all content categories: ancestries, backgrounds, classes, deities, feats, spells, equipment
+- Filterable and searchable interfaces
+- Modal-based selection with detailed descriptions
+
+### Language Hook
+- `useLanguage()` hook provides bilingual support throughout the app
+- Translation keys organized by feature area
+- Helper functions for localized names and descriptions
+
 ## Testing
 
 Vitest is configured but test coverage is minimal. When adding tests:
@@ -189,8 +255,37 @@ Vitest is configured but test coverage is minimal. When adding tests:
 
 ## Build Configuration
 
-Vite config includes:
-- Manual chunk splitting for React vendor bundle
-- Port 5173 with host exposure
+Vite config ([vite.config.ts](vite.config.ts)):
+- Manual chunk splitting for React vendor bundle optimization
+- Port 5173 with host exposure for network testing
 - File watching with 1000ms debounce interval
 - Optimized dependencies pre-bundling
+- TypeScript strict mode enabled
+- ESLint with TypeScript rules configured
+
+## Key Utilities
+
+- `src/utils/characterRecalculator.ts` - Recalculates all character stats on equipment/investment changes
+- `src/utils/currency.ts` - Currency conversion and display helpers
+- `src/utils/weaponName.ts` - Enhanced weapon naming with rune information
+- `src/utils/armorName.ts` - Enhanced armor naming with rune information
+- `src/utils/shieldName.ts` - Enhanced shield naming with rune information
+- `src/data/shieldRunes.ts` - Shield reinforcing rune calculations
+- `src/data/spellGrantingItems.ts` - Spell-granting item definitions and configurations
+
+## UI Patterns
+
+### Modal Components
+- All detail modals extend `DetailModal` with title, subtitle, and custom content
+- Modal actions (restore, swap, equip) should use consistent button patterns
+- Use `isOpen` prop for controlled modal state
+
+### Browser Components
+- All browser components follow the pattern: search bar + filter + item grid + detail view
+- Items should display: name (localized), level, traits, and brief description
+- Selection updates parent state through callback props
+
+### Panel Components
+- Desktop panels receive `character` and `onCharacterUpdate` props
+- Always create new character objects when updating (immutability)
+- Use `recalculateCharacter()` for stat-affecting changes (investment, equipment)

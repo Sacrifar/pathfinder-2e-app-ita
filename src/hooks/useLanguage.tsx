@@ -174,6 +174,20 @@ const translations: Record<Language, Record<string, string>> = {
         'tabs.details': 'Details',
         'tabs.feats': 'Feats',
         'tabs.actions': 'Actions',
+        'tabs.focusSpells': 'Focus Spells',
+        'tabs.rituals': 'Rituals',
+        'tabs.innateSpells': 'Innate Spells',
+        'builder.innateSpellsDescription': 'Spells granted by your background, feats, or items that can be cast a limited number of times per day.',
+        'spell.uses': 'Uses',
+        'builder.chooseZodiacSign': 'Choose Your Zodiac Sign',
+        'builder.zodiacSignDescription': 'Select a zodiac sign to determine your ability boost and innate spell.',
+        'builder.innateSpell': 'Innate Spell',
+        'builder.chooseHeritageSpell': 'Choose Your Heritage Spell',
+        'builder.noHeritageSpells': 'No spells available for this heritage.',
+        'traditions.arcane': 'Arcane',
+        'traditions.divine': 'Divine',
+        'traditions.occult': 'Occult',
+        'traditions.primal': 'Primal',
 
         // Builder Desktop
         'builder.ancestryFeat': 'Ancestry Feat',
@@ -212,7 +226,10 @@ const translations: Record<Language, Record<string, string>> = {
         'stats.focusPoints': 'Focus Points',
         'stats.spellSlots': 'Spell Slots',
         'stats.rank': 'Rank',
+        'stats.spellRank': 'Spell Rank',
         'stats.knownSpells': 'Known Spells',
+        'stats.focusSpells': 'Focus Spells',
+        'stats.focusCantrips': 'Focus Cantrips',
 
         // Saves
         'saves.fortitude': 'Fortitude',
@@ -270,6 +287,37 @@ const translations: Record<Language, Record<string, string>> = {
         'feats.skill': 'Skill Feats',
         'feats.bonus': 'Bonus Feats',
         'feats.total': 'total',
+        'feat.level': 'Level',
+        'feat.passive': 'Passive',
+
+        // Traits
+        'traits.air': 'Air',
+        'traits.earth': 'Earth',
+        'traits.fire': 'Fire',
+        'traits.water': 'Water',
+        'traits.wood': 'Wood',
+        'traits.metal': 'Metal',
+        'traits.electricity': 'Electricity',
+        'traits.impulse': 'Impulse',
+        'traits.kineticist': 'Kineticist',
+        'traits.move': 'Move',
+        'traits.overflow': 'Overflow',
+        'traits.polymorph': 'Polymorph',
+        'traits.primal': 'Primal',
+        'traits.attack': 'Attack',
+        'traits.manipulate': 'Manipulate',
+        'traits.concentrate': 'Concentrate',
+        'traits.cantrip': 'Cantrip',
+        'traits.focus': 'Focus',
+        'traits.item': 'Item',
+        'traits.rare': 'Rare',
+        'traits.uncommon': 'Uncommon',
+        'traits.unique': 'Unique',
+        'traits.splash': 'Splash',
+        'traits.alchemical': 'Alchemical',
+        'traits.bomb': 'Bomb',
+        'traits.consumable': 'Consumable',
+        'traits.healing': 'Healing',
 
         // Reference
         'reference.attackBonus': 'Attack Bonus Reference',
@@ -283,6 +331,7 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Weapons
         'weapons.attack': 'Attack',
+        'weapons.attackBonus': 'Attack Bonus',
         'weapons.firstAttack': 'First Attack',
         'weapons.secondAttack': 'Second Attack (MAP)',
         'weapons.thirdAttack': 'Third Attack (MAP)',
@@ -478,7 +527,6 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.remove': 'Remove',
 
         // Rituals
-        'tabs.rituals': 'Rituals',
         'rituals.browser': 'Ritual Browser',
         'rituals.noRituals': 'No rituals known.',
         'rituals.castTime': 'Cast Time',
@@ -522,6 +570,26 @@ const translations: Record<Language, Record<string, string>> = {
         'search.placeholder': 'Search...',
         'actions.browseSpells': 'Browse Spells',
         'actions.learnSpell': 'Learn Spell',
+        'actions.addRitual': 'Add Ritual',
+
+        // Spell Panel
+        'spell.name': 'Spell',
+        'spell.actions': 'Actions',
+        'spell.duration': 'Duration',
+        'spell.range': 'Range',
+        'spell.notSelected': 'Not Selected',
+        'spell.cast': 'Cast',
+        'spell.rank': 'Rank',
+        'spell.area': 'Area',
+        'spell.save': 'Save',
+        'spell.damage': 'Damage',
+        'spell.castTime': 'Cast Time',
+        'spell.cost': 'Cost',
+        'browser.spells': 'Spell Browser',
+        'builder.noInnateSpells': 'No innate spells yet.',
+        'builder.noFocusSpells': 'No focus spells yet.',
+        'builder.noRituals': 'No rituals learned yet.',
+        'builder.noCantripsKnown': 'No cantrips known yet.',
 
         // Dice Roller
         'dice.roll': 'Roll',
@@ -693,6 +761,9 @@ const translations: Record<Language, Record<string, string>> = {
         'gear.requiresInvestment': 'This item must be invested to function.',
         'gear.investedItems': 'Invested Items',
         'gear.maxInvested': 'Max 10',
+
+        // Errors
+        'errors.cannotReplaceGrantedFeat': 'This feat was automatically granted by your class specialization and cannot be changed.',
     },
     it: {
         // Navigation
@@ -858,6 +929,20 @@ const translations: Record<Language, Record<string, string>> = {
         'tabs.details': 'Dettagli',
         'tabs.feats': 'Talenti',
         'tabs.actions': 'Azioni',
+        'tabs.focusSpells': 'Incantesimi di Focalizzazione',
+        'tabs.rituals': 'Rituali',
+        'tabs.innateSpells': 'Incantesimi Innati',
+        'builder.innateSpellsDescription': 'Incantesimi concessi dal tuo background, talenti o oggetti che possono essere lanciati un numero limitato di volte al giorno.',
+        'spell.uses': 'Utilizzi',
+        'builder.chooseZodiacSign': 'Scegli il Tuo Segno Zodiacale',
+        'builder.zodiacSignDescription': 'Seleziona un segno zodiacale per determinare il tuo incremento di caratteristica e incantesimo innato.',
+        'builder.innateSpell': 'Incantesimo Innato',
+        'builder.chooseHeritageSpell': 'Scegli il Tuo Incantesimo di Eredità',
+        'builder.noHeritageSpells': 'Nessun incantesimo disponibile per questa eredità.',
+        'traditions.arcane': 'Arcano',
+        'traditions.divine': 'Divino',
+        'traditions.occult': 'Occulto',
+        'traditions.primal': 'Primordiale',
 
         // Builder Desktop
         'builder.ancestryFeat': 'Talento di Stirpe',
@@ -896,7 +981,10 @@ const translations: Record<Language, Record<string, string>> = {
         'stats.focusPoints': 'Punti Focalizzazione',
         'stats.spellSlots': 'Slot Incantesimo',
         'stats.rank': 'Grado',
+        'stats.spellRank': 'Grado Incantesimo',
         'stats.knownSpells': 'Incantesimi Conosciuti',
+        'stats.focusSpells': 'Incantesimi di Focalizzazione',
+        'stats.focusCantrips': 'Trucchetti di Focalizzazione',
 
         // Saves
         'saves.fortitude': 'Tempra',
@@ -939,6 +1027,37 @@ const translations: Record<Language, Record<string, string>> = {
         'feats.skill': 'Talenti di Abilità',
         'feats.bonus': 'Talenti Bonus',
         'feats.total': 'totali',
+        'feat.level': 'Livello',
+        'feat.passive': 'Passivo',
+
+        // Traits
+        'traits.air': 'Aria',
+        'traits.earth': 'Terra',
+        'traits.fire': 'Fuoco',
+        'traits.water': 'Acqua',
+        'traits.wood': 'Legno',
+        'traits.metal': 'Metallo',
+        'traits.electricity': 'Elettricità',
+        'traits.impulse': 'Impulso',
+        'traits.kineticist': 'Cinetico',
+        'traits.move': 'Movimento',
+        'traits.overflow': 'Overflow',
+        'traits.polymorph': 'Polimorfismo',
+        'traits.primal': 'Primordiale',
+        'traits.attack': 'Attacco',
+        'traits.manipulate': 'Manipolare',
+        'traits.concentrate': 'Concentrazione',
+        'traits.cantrip': 'Trucchetto',
+        'traits.focus': 'Focalizzazione',
+        'traits.item': 'Oggetto',
+        'traits.rare': 'Raro',
+        'traits.uncommon': 'Non Comune',
+        'traits.unique': 'Unico',
+        'traits.splash': 'Spargimento',
+        'traits.alchemical': 'Alchemico',
+        'traits.bomb': 'Bomba',
+        'traits.consumable': 'Consumabile',
+        'traits.healing': 'Guarigione',
 
         // Reference
         'reference.attackBonus': 'Riferimento Bonus Attacco',
@@ -952,6 +1071,7 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Weapons
         'weapons.attack': 'Attacco',
+        'weapons.attackBonus': 'Bonus Attacco',
         'weapons.firstAttack': 'Primo Attacco',
         'weapons.secondAttack': 'Secondo Attacco (MAP)',
         'weapons.thirdAttack': 'Terzo Attacco (MAP)',
@@ -1162,7 +1282,6 @@ const translations: Record<Language, Record<string, string>> = {
         'actions.remove': 'Rimuovi',
 
         // Rituals
-        'tabs.rituals': 'Riti',
         'rituals.browser': 'Browser Riti',
         'rituals.noRituals': 'Nessun rito conosciuto.',
         'rituals.castTime': 'Tempo di Lancio',
@@ -1206,6 +1325,27 @@ const translations: Record<Language, Record<string, string>> = {
         'search.placeholder': 'Cerca...',
         'actions.browseSpells': 'Sfoglia Incantesimi',
         'actions.learnSpell': 'Impara Incantesimo',
+        'actions.addRitual': 'Aggiungi Rito',
+
+        // Spell Panel
+        'spell.name': 'Incantesimo',
+        'spell.actions': 'Azioni',
+        'spell.duration': 'Durata',
+        'spell.range': 'Gittata',
+        'spell.notSelected': 'Non Selezionato',
+        'spell.cast': 'Lancia',
+        'spell.rank': 'Grado',
+        'spell.area': 'Area',
+        'spell.save': 'Tiro Salvezza',
+        'spell.damage': 'Danni',
+        'spell.castTime': 'Tempo di Lancio',
+        'spell.cost': 'Costo',
+        'browser.spells': 'Browser Incantesimi',
+        'builder.noInnateSpells': 'Nessun incantesimo innato ancora.',
+        'builder.noFocusSpells': 'Nessun incantesimo di focalizzazione.',
+        'builder.noRituals': 'Nessun rito imparato.',
+        'builder.noCantripsKnown': 'Nessun trucchetto conosciuto.',
+
 
         // Dice Roller
         'dice.roll': 'Tira',
@@ -1377,6 +1517,9 @@ const translations: Record<Language, Record<string, string>> = {
         'gear.requiresInvestment': 'Questo oggetto deve essere investito per funzionare.',
         'gear.investedItems': 'Oggetti Investiti',
         'gear.maxInvested': 'Max 10',
+
+        // Errors
+        'errors.cannotReplaceGrantedFeat': 'Questo feat è stato concesso automaticamente dalla tua specializzazione di classe e non può essere modificato.',
     }
 };
 

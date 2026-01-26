@@ -28,7 +28,11 @@
       "Bash(xcopy:*)",
       "Bash(powershell:*)",
       "Bash(netstat:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(for:*)",
+      "Bash(do grep:*)",
+      "Bash(done:*)",
+      "Bash(do find src/data/pf2e/spells -name \"*.json\" -type f -exec grep -l \"\"\"name\"\": \"\"$spell\"\"\" {} ;)"
     ]
   }
 }

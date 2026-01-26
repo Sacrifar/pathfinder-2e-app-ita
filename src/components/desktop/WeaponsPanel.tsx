@@ -29,7 +29,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     onCharacterUpdate,
 }) => {
     const { t, language } = useLanguage();
-    const { rollDice } = useDiceRoller();
+    const { rollDice, openDiceBoxWithWeapon } = useDiceRoller();
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'simple' | 'martial' | 'advanced'>('all');
@@ -211,9 +211,7 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             elementalTypes: activeElementalTypes.length > 0 ? activeElementalTypes : undefined,  // Array for per-die coloring
         };
 
-        const rollContext: any = { weaponData };
-
-        console.log('[WeaponsPanel] Opening dicebox:', {
+        console.log('[WeaponsPanel] Opening dicebox without auto-roll:', {
             baseDamage,
             elementalDamage,
             fullDamage,
@@ -221,8 +219,9 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             weaponData
         });
 
-        rollDice('1d20', `${t('weapons.attack') || 'Attack'}: ${weaponData.weaponName}`, rollContext);
-    }, [character, calculateAttackBonus, getElementalDamage, getActiveElementalTypes, rollDice, t]);
+        // Open dicebox without auto-rolling - user can choose which attack to make
+        openDiceBoxWithWeapon(weaponData);
+    }, [character, calculateAttackBonus, getElementalDamage, getActiveElementalTypes, openDiceBoxWithWeapon]);
 
     // Handle damage roll - opens dicebox with weapon data and elemental damage
     const handleDamageRoll = useCallback((weapon: LoadedWeapon, equippedItem: EquippedItem, isTwoHanded: boolean) => {
@@ -504,6 +503,9 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             [ProficiencyRank.Legendary]: t('proficiency.legendary') || 'Legendary',
         };
 
+        // Calculate proficiency level for TEML badges (1=T, 2=E, 3=M, 4=L)
+        const profLevel = profRank;
+
         // Include ability modifier in displayed value so players see their total attack bonus
         // Use STR for melee weapons, DEX for ranged
         const strMod = getAbilityModifier(character.abilityScores.str);
@@ -513,11 +515,17 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         // (Most weapon categories have both melee and ranged options)
         const abilityMod = Math.max(strMod, dexMod);
 
+        // Calculate raw proficiency bonus (without level for display)
+        const rawProfBonus = profRank * 2;
+
         const totalBonus = profBonus > 0 ? profBonus + abilityMod : 0;
 
         return {
             name: profNames[profRank],
-            value: totalBonus
+            value: totalBonus,
+            profLevel,
+            abilityMod,
+            rawProfBonus
         };
     };
 
@@ -606,27 +614,43 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             </div>
 
             {/* ===== WEAPON PROFICIENCIES ===== */}
-            <div className="proficiencies-section">
-                <h4>{t('proficiency.weaponProficiencies') || 'Weapon Proficiencies'}</h4>
-                <div className="proficiencies-grid">
-                    <div className="proficiency-item">
-                        <span className="proficiency-label">{t('proficiency.simpleWeapons') || 'Simple Weapons'}</span>
-                        <span className="proficiency-value">{getProficiencyDisplay('simple').name} ({formatModifier(getProficiencyDisplay('simple').value)})</span>
-                    </div>
-                    <div className="proficiency-item">
-                        <span className="proficiency-label">{t('proficiency.martialWeapons') || 'Martial Weapons'}</span>
-                        <span className="proficiency-value">{getProficiencyDisplay('martial').name} ({formatModifier(getProficiencyDisplay('martial').value)})</span>
-                    </div>
-                    <div className="proficiency-item">
-                        <span className="proficiency-label">{t('proficiency.advancedWeapons') || 'Advanced Weapons'}</span>
-                        <span className="proficiency-value">{getProficiencyDisplay('advanced').name} ({formatModifier(getProficiencyDisplay('advanced').value)})</span>
-                    </div>
-                    <div className="proficiency-item">
-                        <span className="proficiency-label">{t('proficiency.unarmedAttacks') || 'Unarmed Attacks'}</span>
-                        <span className="proficiency-value">{getProficiencyDisplay('unarmed').name} ({formatModifier(getProficiencyDisplay('unarmed').value)})</span>
-                    </div>
+            <div className="weapon-proficiencies-header">
+                <div className="weapon-proficiencies-grid">
+                    {[
+                        { key: 'simple', label: 'Simple' },
+                        { key: 'martial', label: 'Martial' },
+                        { key: 'advanced', label: 'Advanced' },
+                        { key: 'unarmed', label: 'Unarmed' }
+                    ].map(({ key, label }) => {
+                        const profData = getProficiencyDisplay(key);
+                        // Convert internal rank to 1-4 scale for badges
+                        // Trained(2) -> 1, Expert(4) -> 2, Master(6) -> 3, Legendary(8) -> 4
+                        const badgeCount = profData.profLevel / 2;
+
+                        return (
+                            <div key={key} className="weapon-prof-item">
+                                <span className="weapon-prof-label">{label}</span>
+                                <div className="proficiency-badges">
+                                    {['T', 'E', 'M', 'L'].map((letter, idx) => (
+                                        <span
+                                            key={letter}
+                                            className={`prof-badge ${idx + 1 <= badgeCount ? 'active' : ''}`}
+                                        >
+                                            {letter}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="stat-breakdown">
+                                    <span>{formatModifier(profData.abilityMod)}</span>
+                                    <span className="separator">|</span>
+                                    <span>Prof {formatModifier(profData.value - profData.abilityMod)}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
+
 
             {/* ===== COMMANDER DAILY TACTICS ===== */}
             {isCommander && (
@@ -749,7 +773,6 @@ export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                                     <div className="attack-info-row">
                                         <div className="attack-label">{t('weapons.attack') || 'Attack'}</div>
                                         <div className="attack-bonus-display">
-                                            <span className="attack-bonus-label">{t('weapons.attackBonus') || 'Attack Bonus'}</span>
                                             <span className="attack-bonus-value">{attackWithMAP}</span>
                                             {isAgile && (
                                                 <span className="agile-indicator" title={t('weapons.agileTrait') || 'Agile: Reduced MAP penalties'}>⚡</span>

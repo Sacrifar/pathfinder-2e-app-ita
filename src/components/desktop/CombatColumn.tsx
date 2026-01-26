@@ -18,6 +18,38 @@ interface CombatColumnProps {
     onHeroPointChange?: (newHeroPoints: number) => void;
 }
 
+// Skill name mapping for proper display
+const SKILL_NAMES: Record<string, string> = {
+    acrobatics: 'Acrobatics',
+    arcana: 'Arcana',
+    athletics: 'Athletics',
+    crafting: 'Crafting',
+    deception: 'Deception',
+    diplomacy: 'Diplomacy',
+    intimidation: 'Intimidation',
+    lore: 'Lore',
+    medicine: 'Medicine',
+    nature: 'Nature',
+    occultism: 'Occultism',
+    performance: 'Performance',
+    religion: 'Religion',
+    society: 'Society',
+    stealth: 'Stealth',
+    survival: 'Survival',
+    thievery: 'Thievery',
+};
+
+// Helper to get proper skill display name
+const getSkillDisplayName = (skillName: string): string => {
+    const key = skillName.toLowerCase().replace(/\s+/g, '');
+    // Check if it's a lore skill (contains "lore" in the name)
+    if (key.includes('lore') && key !== 'lore') {
+        // Extract the lore type (e.g., "Warfare Lore" -> "Warfare Lore")
+        return skillName;
+    }
+    return SKILL_NAMES[key] || skillName;
+};
+
 // Componente memoizzato per render singolo skill
 const SkillItem = React.memo<{
     skill: SkillDisplay;
@@ -27,37 +59,40 @@ const SkillItem = React.memo<{
     getProficiencyColor: (prof: string) => string;
     onSkillClick?: (skillName: string) => void;
     onSkillRoll?: (skill: SkillDisplay) => void;
-}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor, onSkillClick, onSkillRoll }) => (
-    <div className="skill-item-wrapper">
-        <div
-            className={`skill-item ${onSkillClick ? 'clickable' : ''}`}
-            onClick={() => onSkillClick?.(skill.name)}
-            style={onSkillClick ? { cursor: 'pointer' } : undefined}
-        >
-            <span className="skill-name">
-                {t(`skills.${skill.name.toLowerCase()}`) || skill.name}
-            </span>
-            <div className="skill-modifier-container">
-                <span
-                    className="skill-proficiency"
-                    style={{ color: getProficiencyColor(skill.proficiency) }}
-                >
-                    {getProficiencyIcon(skill.proficiency)}
-                </span>
-                <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
-            </div>
-        </div>
-        {onSkillRoll && (
-            <button
-                className="skill-dice-btn"
-                onClick={() => onSkillRoll(skill)}
-                title={`${t('dice.roll') || 'Roll'} ${t(`skills.${skill.name.toLowerCase()}`) || skill.name}`}
+}>(({ skill, t, formatModifier, getProficiencyIcon, getProficiencyColor, onSkillClick, onSkillRoll }) => {
+    const displayName = getSkillDisplayName(skill.name);
+    return (
+        <div className="skill-item-wrapper">
+            <div
+                className={`skill-item ${onSkillClick ? 'clickable' : ''}`}
+                onClick={() => onSkillClick?.(skill.name)}
+                style={onSkillClick ? { cursor: 'pointer' } : undefined}
             >
-                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '18px', height: '18px' }} />
-            </button>
-        )}
-    </div>
-));
+                <span className="skill-name">
+                    {displayName}
+                </span>
+                <div className="skill-modifier-container">
+                    <span
+                        className="skill-proficiency"
+                        style={{ color: getProficiencyColor(skill.proficiency) }}
+                    >
+                        {getProficiencyIcon(skill.proficiency)}
+                    </span>
+                    <span className="skill-modifier">{formatModifier(skill.modifier)}</span>
+                </div>
+            </div>
+            {onSkillRoll && (
+                <button
+                    className="skill-dice-btn"
+                    onClick={() => onSkillRoll(skill)}
+                    title={`Roll ${displayName}`}
+                >
+                    <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '18px', height: '18px' }} />
+                </button>
+            )}
+        </div>
+    );
+});
 
 SkillItem.displayName = 'SkillItem';
 
@@ -171,26 +206,26 @@ export const CombatColumn: React.FC<CombatColumnProps> = React.memo(({
                 <div
                     className="perception-display rollable"
                     onClick={handlePerceptionRoll}
-                    title={`${t('dice.roll') || 'Roll'} ${t('stats.perception') || 'Perception'}`}
+                    title="Roll Perception"
                     style={{ cursor: 'pointer' }}
                 >
-                    <span className="status-label">{t('stats.perception') || 'Perception'}</span>
+                    <span className="status-label">Perception</span>
                     <span className="perception-value">{formatModifier(perception)}</span>
                 </div>
                 <div
                     className="initiative-display rollable"
                     onClick={handleInitiativeRoll}
-                    title={`${t('dice.roll') || 'Roll'} ${t('stats.initiative') || 'Initiative'}`}
+                    title="Roll Initiative"
                     style={{ cursor: 'pointer' }}
                 >
-                    <span className="status-label">{t('stats.initiative') || 'Initiative'}</span>
+                    <span className="status-label">Initiative</span>
                     <span className="initiative-value">{formatModifier(initiative)}</span>
                 </div>
             </div>
 
             {/* Skills List */}
             <div className="skills-list-box">
-                <h4 className="skills-title">{t('stats.skills') || 'Skills'}</h4>
+                <h4 className="skills-title">Skills</h4>
                 <div className="skills-list">
                     {skills.map((skill, index) => (
                         <SkillItem

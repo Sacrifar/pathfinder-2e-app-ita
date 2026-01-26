@@ -31,6 +31,12 @@ interface DiceRollerContextType {
     updateLastRollWith3DResults: (rollResult: unknown) => void;
     config: DiceConfig;
     updateConfig: (config: Partial<DiceConfig>) => void;
+    // New: Open dicebox without auto-rolling
+    pendingWeaponData: WeaponRollData | null;
+    pendingImpulseData: ImpulseRollData | null;
+    openDiceBoxWithWeapon: (weaponData: WeaponRollData) => void;
+    openDiceBoxWithImpulse: (impulseData: ImpulseRollData) => void;
+    clearPendingData: () => void;
 }
 
 const DiceRollerContext = createContext<DiceRollerContextType | undefined>(undefined);
@@ -55,6 +61,9 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
         autoHide: true,
         hideDelay: 3000
     });
+    // Pending data for opening dicebox without rolling
+    const [pendingWeaponData, setPendingWeaponData] = useState<WeaponRollData | null>(null);
+    const [pendingImpulseData, setPendingImpulseData] = useState<ImpulseRollData | null>(null);
 
     const addRoll = useCallback((roll: DiceRoll) => {
         setRolls(prev => [...prev, roll]);
@@ -66,6 +75,24 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
 
     const updateConfig = useCallback((newConfig: Partial<DiceConfig>) => {
         setConfig(prev => ({ ...prev, ...newConfig }));
+    }, []);
+
+    // Open dicebox with weapon data without auto-rolling
+    const openDiceBoxWithWeapon = useCallback((weaponData: WeaponRollData) => {
+        setPendingWeaponData(weaponData);
+        setPendingImpulseData(null);
+    }, []);
+
+    // Open dicebox with impulse data without auto-rolling
+    const openDiceBoxWithImpulse = useCallback((impulseData: ImpulseRollData) => {
+        setPendingImpulseData(impulseData);
+        setPendingWeaponData(null);
+    }, []);
+
+    // Clear pending data (called after first roll or panel close)
+    const clearPendingData = useCallback(() => {
+        setPendingWeaponData(null);
+        setPendingImpulseData(null);
     }, []);
 
     // Parse dice formula (e.g., "1d20+5", "2d8+4", "4d6+6+1d12")
@@ -320,6 +347,11 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
         updateLastRollWith3DResults,
         config,
         updateConfig,
+        pendingWeaponData,
+        pendingImpulseData,
+        openDiceBoxWithWeapon,
+        openDiceBoxWithImpulse,
+        clearPendingData,
     };
 
     return (

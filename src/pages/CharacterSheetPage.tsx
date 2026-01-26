@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useLanguage } from '../hooks/useLanguage';
 import {
     DesktopCharacterLayout,
     AncestryBrowser,
@@ -21,6 +22,7 @@ import {
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName } from '../types';
 import { LoadedFeat, getClasses, getFeats, getSpells } from '../data/pf2e-loader';
 import { getDefaultSpecializationForClass, classHasSpecializations, getClassNameById, getBaseJunctionForElement, getKineticistElementFromGateId } from '../data/classSpecializations';
+import { getGrantedFeatsForSpecialization, getGrantedFeatIdsForLevel } from '../data/classGrantedFeats';
 import { backgrounds, skills as skillsData } from '../data';
 import { recalculateCharacter } from '../utils/characterRecalculator';
 import { initializeSpellcastingForClass, updateSpellSlotsForLevel } from '../utils/spellcastingInitializer';
@@ -31,6 +33,7 @@ type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSp
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const { t } = useLanguage();
     const [character, setCharacter] = useState<Character | null>(null);
     const [selectionType, setSelectionType] = useState<SelectionType>(null);
     const [selectionLevel, setSelectionLevel] = useState<number | null>(null);
@@ -391,6 +394,26 @@ const CharacterSheetPage: React.FC = () => {
                 }
             }
 
+            // Remove feats granted by the previous class specialization
+            // This is important when changing from a class with granted feats (like Bard) to another class
+            if (character.classSpecializationId && character.classId !== classId) {
+                // Only process if classSpecializationId is a string (single specialization)
+                if (typeof character.classSpecializationId === 'string') {
+                    const oldGrantedFeatIds = getGrantedFeatIdsForLevel(
+                        character.classId,
+                        character.classSpecializationId,
+                        20 // Get all granted feats regardless of level
+                    );
+                    if (oldGrantedFeatIds.length > 0) {
+                        updatedCharacter.feats = updatedCharacter.feats.filter(
+                            feat => !oldGrantedFeatIds.includes(feat.featId)
+                        );
+                    }
+                }
+                // Also clear the specialization since the new class may not have the same specialization options
+                updatedCharacter.classSpecializationId = undefined;
+            }
+
             // Automatically set class boost if class has only one key ability option
             if (classData?.keyAbility) {
                 const keyAbility = Array.isArray(classData.keyAbility) ? classData.keyAbility : [classData.keyAbility];
@@ -432,6 +455,43 @@ const CharacterSheetPage: React.FC = () => {
                     }
                 }
             }
+
+            // Handle granted feats from class specializations (e.g., Bard Muse feats)
+            // First, remove feats granted by the previous specialization (if any)
+            let updatedFeats = [...character.feats];
+            if (character.classSpecializationId && typeof character.classSpecializationId === 'string') {
+                const oldGrantedFeatIds = getGrantedFeatIdsForLevel(
+                    character.classId,
+                    character.classSpecializationId,
+                    20 // Get all granted feats regardless of level
+                );
+                updatedFeats = updatedFeats.filter(feat => !oldGrantedFeatIds.includes(feat.featId));
+            }
+
+            // Then, add feats granted by the new specialization
+            if (typeof specializationId === 'string') {
+                const newGrantedFeats = getGrantedFeatsForSpecialization(
+                    character.classId,
+                    specializationId
+                );
+                for (const grantedFeat of newGrantedFeats) {
+                    // Check if feat already exists
+                    const existingFeat = updatedFeats.find(
+                        f => f.featId === grantedFeat.featId && f.level === grantedFeat.grantedAtLevel
+                    );
+                    if (!existingFeat) {
+                        updatedFeats.push({
+                            featId: grantedFeat.featId,
+                            level: grantedFeat.grantedAtLevel,
+                            source: grantedFeat.source,
+                            slotType: grantedFeat.slotType,
+                            grantedBy: `specialization:${specializationId}`, // Mark as granted by specialization
+                        });
+                    }
+                }
+            }
+
+            updateData.feats = updatedFeats;
 
             const updated = recalculateCharacter(updateData);
             handleCharacterUpdate(updated);
@@ -583,11 +643,21 @@ const CharacterSheetPage: React.FC = () => {
                 // No matching feats - add new
                 updatedFeats = [...character.feats, newFeat];
             } else {
-                // Replace first matching feat
+                // Check if the existing feat was granted by a specialization (e.g., Bard Muse feat)
                 const existingIndex = character.feats.findIndex(
                     f => f.source === source && f.level === targetLevel && f.slotType === slotType
                 );
-                replacedFeatId = character.feats[existingIndex].featId;
+                const existingFeat = character.feats[existingIndex];
+
+                // If the feat was granted by a specialization, it cannot be replaced
+                if (existingFeat?.grantedBy?.startsWith('specialization:')) {
+                    console.warn('[handleSelectFeat] Cannot replace feat granted by specialization:', existingFeat);
+                    alert(t('errors.cannotReplaceGrantedFeat') || 'This feat was automatically granted by your class specialization and cannot be changed.');
+                    return; // Prevent the feat replacement
+                }
+
+                // Replace first matching feat
+                replacedFeatId = existingFeat.featId;
                 updatedFeats = [...character.feats];
                 updatedFeats[existingIndex] = newFeat;
             }

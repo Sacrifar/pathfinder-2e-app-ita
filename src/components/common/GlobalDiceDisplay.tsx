@@ -175,12 +175,13 @@ function rollWithDiceBox(
 
 export function GlobalDiceDisplay() {
     const { t } = useLanguage();
-    const { rolls, clearRolls, rollDice, updateLastRollWith3DResults } = useDiceRoller();
+    const { rolls, clearRolls, rollDice, updateLastRollWith3DResults, pendingWeaponData, pendingImpulseData, clearPendingData } = useDiceRoller();
     const [showPanel, setShowPanel] = useState(false);
     const [lastProcessedRoll, setLastProcessedRoll] = useState<number | null>(null);
     const diceBoxRef = useRef<DiceBox | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isRolling, setIsRolling] = useState(false);
 
     // Initialize DiceBox once on mount (after container exists)
     useEffect(() => {
@@ -228,6 +229,7 @@ export function GlobalDiceDisplay() {
                 // Set up the onRollComplete callback to sync results
                 diceBox.onRollComplete = (rollResult) => {
                     console.log('3D dice roll complete:', rollResult);
+                    setIsRolling(false);
                     if (Array.isArray(rollResult) && rollResult.length > 0) {
                         updateLastRollWith3DResults(rollResult);
                     }
@@ -237,6 +239,7 @@ export function GlobalDiceDisplay() {
                 if (rolls.length > 0) {
                     const latestRoll = rolls[rolls.length - 1];
                     console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula, 'element:', latestRoll.element, 'weaponData:', latestRoll.weaponData);
+                    setIsRolling(true);
                     setTimeout(() => {
                         // For weapons with elemental runes, use elementalRunesMode to only color elemental dice
                         const elementalRunesMode = latestRoll.weaponData !== undefined && latestRoll.element !== undefined;
@@ -264,6 +267,7 @@ export function GlobalDiceDisplay() {
 
                 // Roll 3D dice if initialized
                 if (diceBoxRef.current && isInitialized) {
+                    setIsRolling(true);
                     setTimeout(() => {
                         console.log('[GlobalDiceDisplay] Rolling with formula:', latestRoll.formula, 'element:', latestRoll.element, 'weaponData:', latestRoll.weaponData);
                         if (diceBoxRef.current) {
@@ -279,11 +283,20 @@ export function GlobalDiceDisplay() {
         }
     }, [rolls.length, lastProcessedRoll, isInitialized]);
 
+    // Show panel when pendingData is set (without auto-rolling)
+    useEffect(() => {
+        if (pendingWeaponData || pendingImpulseData) {
+            setShowPanel(true);
+        }
+    }, [pendingWeaponData, pendingImpulseData]);
+
     const handleClose = () => {
         setShowPanel(false);
         // Reset initialization state so it can reinitialize when reopened
         setIsInitialized(false);
         diceBoxRef.current = null;
+        // Clear pending data on close
+        clearPendingData();
     };
 
     const formatTime = (timestamp: number) => {
@@ -391,8 +404,8 @@ export function GlobalDiceDisplay() {
                         {/* Latest Roll Info */}
                         {rolls.length > 0 && (
                             <div className="dice-box-info">
-                                {/* Natural 20 Banner - Special Highlight */}
-                                {rolls[rolls.length - 1].isCritSuccess && (
+                                {/* Natural 20 Banner - Special Highlight (hidden while rolling) */}
+                                {!isRolling && rolls[rolls.length - 1].isCritSuccess && (
                                     <div className="dice-nat20-banner">
                                         <div className="nat20-icon">⚔️</div>
                                         <div className="nat20-text">
@@ -402,8 +415,8 @@ export function GlobalDiceDisplay() {
                                     </div>
                                 )}
 
-                                {/* Natural 1 Banner - Critical Failure */}
-                                {rolls[rolls.length - 1].isCritFailure && (
+                                {/* Natural 1 Banner - Critical Failure (hidden while rolling) */}
+                                {!isRolling && rolls[rolls.length - 1].isCritFailure && (
                                     <div className="dice-nat1-banner">
                                         <div className="nat1-icon">💀</div>
                                         <div className="nat1-text">
@@ -413,8 +426,8 @@ export function GlobalDiceDisplay() {
                                     </div>
                                 )}
 
-                                {/* Total Result */}
-                                <div className="dice-box-total">
+                                {/* Total Result - Hidden while dice are rolling */}
+                                <div className="dice-box-total" style={{ opacity: isRolling ? 0 : 1, transition: 'opacity 0.3s ease-in-out' }}>
                                     {/* Show D20 icon for d20 check rolls (attacks, saves, skills) */}
                                     {isD20CheckRoll(rolls[rolls.length - 1]) && (
                                         <img
@@ -443,8 +456,12 @@ export function GlobalDiceDisplay() {
                         )}
 
                         {/* Weapon Action Buttons */}
-                        {rolls.length > 0 && rolls[rolls.length - 1].weaponData && (() => {
-                            const weaponData = rolls[rolls.length - 1].weaponData!;
+                        {(() => {
+                            // Use weaponData from latest roll OR from pendingWeaponData
+                            const weaponData = (rolls.length > 0 && rolls[rolls.length - 1].weaponData)
+                                ? rolls[rolls.length - 1].weaponData!
+                                : pendingWeaponData;
+                            if (!weaponData) return null;
                             return (
                                 <div className="weapon-actions-section">
                                     <div className="weapon-actions-title">{weaponData.weaponName}</div>
@@ -495,8 +512,12 @@ export function GlobalDiceDisplay() {
                         })()}
 
                         {/* Impulse Action Buttons */}
-                        {rolls.length > 0 && rolls[rolls.length - 1].impulseData && (() => {
-                            const impulseData = rolls[rolls.length - 1].impulseData!;
+                        {(() => {
+                            // Use impulseData from latest roll OR from pendingImpulseData
+                            const impulseData = (rolls.length > 0 && rolls[rolls.length - 1].impulseData)
+                                ? rolls[rolls.length - 1].impulseData!
+                                : pendingImpulseData;
+                            if (!impulseData) return null;
                             return (
                                 <div className="weapon-actions-section">
                                     <div className="weapon-actions-title">{impulseData.impulseName}</div>

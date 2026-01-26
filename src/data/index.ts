@@ -56,6 +56,12 @@ export * from './tactics';
 // Export spell-granting items database
 export * from './spellGrantingItems';
 
+// Export class-granted spells database
+export * from './classGrantedSpells';
+
+// Export class-granted feats database
+export * from './classGrantedFeats';
+
 // Export class progressions
 export * from './classProgressions';
 

@@ -5,6 +5,9 @@ import type { Character } from '../types';
 import { createEmptyCharacter, migrateCharacter } from '../types';
 import { useLanguage, useLocalizedName, useLocalizedDescription } from '../hooks/useLanguage';
 import { calculateMaxHP } from '../utils/pf2e-math';
+import ZodiacSignModal from '../components/desktop/ZodiacSignModal';
+import HeritageSpellModal from '../components/desktop/HeritageSpellModal';
+import { isInnateSpellSource } from '../data/innateSpellSources';
 
 type WizardStep = 'ancestry' | 'heritage' | 'background' | 'class' | 'abilities' | 'summary';
 
@@ -26,6 +29,10 @@ export function CharacterBuilderPage() {
 
     const [currentStep, setCurrentStep] = useState<WizardStep>('ancestry');
     const [character, setCharacter] = useState<Character>(createEmptyCharacter);
+    const [showZodiacModal, setShowZodiacModal] = useState(false);
+    const [pendingBackgroundId, setPendingBackgroundId] = useState<string | null>(null);
+    const [showHeritageSpellModal, setShowHeritageSpellModal] = useState(false);
+    const [pendingHeritageId, setPendingHeritageId] = useState<string | null>(null);
 
     // Load existing character if editing
     useEffect(() => {
@@ -149,8 +156,14 @@ export function CharacterBuilderPage() {
                     <HeritageStep
                         character={character}
                         onSelect={(heritageId) => {
-                            updateCharacter({ heritageId });
-                            nextStep();
+                            // Check if this heritage requires spell selection
+                            if (heritageId && isInnateSpellSource(heritageId)) {
+                                setPendingHeritageId(heritageId);
+                                setShowHeritageSpellModal(true);
+                            } else {
+                                updateCharacter({ heritageId });
+                                nextStep();
+                            }
                         }}
                         t={t}
                         getName={getName}
@@ -161,8 +174,14 @@ export function CharacterBuilderPage() {
                     <BackgroundStep
                         character={character}
                         onSelect={(backgroundId) => {
-                            updateCharacter({ backgroundId });
-                            nextStep();
+                            // Check if this is Zodiac Bound background
+                            if (backgroundId === 'zodiac-bound') {
+                                setPendingBackgroundId(backgroundId);
+                                setShowZodiacModal(true);
+                            } else {
+                                updateCharacter({ backgroundId });
+                                nextStep();
+                            }
                         }}
                         t={t}
                         getName={getName}
@@ -218,6 +237,43 @@ export function CharacterBuilderPage() {
                     </button>
                 )}
             </div>
+
+            {/* Zodiac Sign Modal */}
+            <ZodiacSignModal
+                isOpen={showZodiacModal}
+                onClose={() => {
+                    setShowZodiacModal(false);
+                    setPendingBackgroundId(null);
+                }}
+                onApply={(zodiacSign) => {
+                    updateCharacter({
+                        backgroundId: pendingBackgroundId!,
+                        backgroundChoice: zodiacSign
+                    });
+                    setShowZodiacModal(false);
+                    setPendingBackgroundId(null);
+                    nextStep();
+                }}
+            />
+
+            {/* Heritage Spell Modal */}
+            <HeritageSpellModal
+                isOpen={showHeritageSpellModal}
+                heritageId={pendingHeritageId || ''}
+                onClose={() => {
+                    setShowHeritageSpellModal(false);
+                    setPendingHeritageId(null);
+                }}
+                onApply={(spellId) => {
+                    updateCharacter({
+                        heritageId: pendingHeritageId!,
+                        heritageChoice: spellId
+                    });
+                    setShowHeritageSpellModal(false);
+                    setPendingHeritageId(null);
+                    nextStep();
+                }}
+            />
         </div>
     );
 }

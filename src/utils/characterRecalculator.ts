@@ -36,6 +36,7 @@ import { getFeats, getArmor, getGear } from '../data/pf2e-loader';
 import { getAllKineticistJunctionSkills } from '../data/classFeatures';
 import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, getWeaponProficiencyAtLevel, proficiencyLevelToName } from '../data/classProgressions';
 import { getSpellGrantingItem, getSpellForItemChoice, getAllSpellGrantingItemIds } from '../data/spellGrantingItems';
+import { getAllInnateSpellsForCharacter } from '../data/innateSpellSources';
 import { getClassIdByName } from '../data/classSpecializations';
 
 /**
@@ -59,6 +60,7 @@ export function recalculateCharacter(character: Character): Character {
     updated = processFeatFlatModifiers(updated); // Process FlatModifier rules from feats (e.g., Incredible Initiative)
     updated = processEquipmentBonuses(updated); // Process FlatModifier rules from equipment
     updated = processSpellGrantingItems(updated); // Add spells from invested spell-granting items
+    updated = processInnateSpells(updated); // Add innate spells from backgrounds/feats
     updated = resetItemDailyUses(updated); // Reset daily uses for spell-granting items
 
     return updated;
@@ -1233,6 +1235,60 @@ export function processSpellGrantingItems(character: Character): Character {
             updated.spellcasting.knownSpells.push(spellId);
         }
     }
+
+    return updated;
+}
+
+/**
+ * Process innate spells from backgrounds and feats
+ * These are spells granted by sources like Zodiac Bound background or Efreeti Magic feat
+ */
+export function processInnateSpells(character: Character): Character {
+    const updated = { ...character };
+
+    // Initialize spellcasting if not present (for non-spellcasters with innate spells)
+    if (!updated.spellcasting) {
+        updated.spellcasting = {
+            tradition: 'arcane', // Default, may be overridden by class
+            spellcastingType: 'spontaneous',
+            keyAbility: 'int',
+            proficiency: 'untrained',
+            spellSlots: {},
+            knownSpells: [],
+            focusPool: { current: 0, max: 0 },
+        };
+    }
+
+    // Initialize innateSpells array if not present
+    if (!updated.spellcasting.innateSpells) {
+        updated.spellcasting.innateSpells = [];
+    }
+
+    // Get all innate spells from backgrounds and feats
+    const newInnateSpells = getAllInnateSpellsForCharacter(updated);
+
+    // Merge with existing innate spells, preserving current uses for matching spells
+    const existingInnateMap = new Map<string, { uses: number; maxUses: number }>();
+    for (const existing of updated.spellcasting.innateSpells) {
+        existingInnateMap.set(existing.spellId, {
+            uses: existing.uses,
+            maxUses: existing.maxUses,
+        });
+    }
+
+    // Update innate spells, preserving usage counts
+    updated.spellcasting.innateSpells = newInnateSpells.map(spell => {
+        const existing = existingInnateMap.get(spell.spellId);
+        if (existing) {
+            // Preserve current uses, but update maxUses if different
+            return {
+                ...spell,
+                uses: existing.uses,
+                maxUses: spell.maxUses,
+            };
+        }
+        return spell;
+    });
 
     return updated;
 }

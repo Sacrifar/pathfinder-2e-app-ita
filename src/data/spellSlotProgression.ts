@@ -382,3 +382,41 @@ export function getCantripsKnown(_classId: string, level: number): number {
     // All spellcasters get 4 cantrips + 1 at level 10 (total 5)
     return level >= 10 ? 5 : 4;
 }
+
+/**
+ * Get spells known for a spontaneous caster at a given level
+ * Returns the maximum number of spells the caster can know per spell level
+ *
+ * Spontaneous casters (Bard, Sorcerer, etc.) know a fixed repertoire of spells.
+ * The formula is: spells known = spell slots + 3 (for each spell level)
+ *
+ * This is based on PF2e Remastered rules (Player Core, Player Core 2)
+ */
+export function getSpellsKnown(classId: string, level: number): { [spellLevel: number]: number } {
+    const config = getSpellcasterConfig(classId);
+    if (!config || config.type !== 'spontaneous' || level < 1 || level > 20) {
+        return {};
+    }
+
+    const levelIndex = level - 1;
+    const levelSlots = config.slots[levelIndex];
+
+    if (!levelSlots || levelSlots.length === 0) {
+        return {};
+    }
+
+    // Calculate spells known for each spell level
+    // Formula: slots + 3, up to half character level rounded up
+    const spellsKnown: { [spellLevel: number]: number } = {};
+    const maxSpellLevel = Math.ceil(level / 2);
+
+    for (let spellLevel = 1; spellLevel <= levelSlots.length && spellLevel <= maxSpellLevel; spellLevel++) {
+        const slots = levelSlots[spellLevel - 1];
+        if (slots > 0) {
+            // Spells known = spell slots + 3
+            spellsKnown[spellLevel] = slots + 3;
+        }
+    }
+
+    return spellsKnown;
+}

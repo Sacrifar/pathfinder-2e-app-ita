@@ -85,18 +85,21 @@ export const heritageTranslations: Record<string, { nameIt: string }> = {
     'Seer Elf': { nameIt: 'Elfo Veggente' },
     'Whisper Elf': { nameIt: 'Elfo Sussurrante' },
     // Dwarf
-    'Rock Dwarf': { nameIt: 'Nano della Roccia' },
-    'Forge Dwarf': { nameIt: 'Nano della Forgia' },
-    'Strong-Blooded Dwarf': { nameIt: 'Nano dal Sangue Forte' },
     'Ancient-Blooded Dwarf': { nameIt: 'Nano dal Sangue Antico' },
+    'Forge Dwarf': { nameIt: 'Nano della Forgia' },
+    'Forge-Blessed Dwarf': { nameIt: 'Nano Benedetto dalla Fucina' },
+    'Rock Dwarf': { nameIt: 'Nano della Roccia' },
+    'Strong-Blooded Dwarf': { nameIt: 'Nano dal Sangue Forte' },
     // Gnome
     'Chameleon Gnome': { nameIt: 'Gnomo Camaleonte' },
     'Fey-Touched Gnome': { nameIt: 'Gnomo Toccato dai Fatati' },
     'Sensate Gnome': { nameIt: 'Gnomo Sensitivo' },
     'Umbral Gnome': { nameIt: 'Gnomo Umbrale' },
+    'Vivacious Gnome': { nameIt: 'Gnomo Vivace' },
     'Wellspring Gnome': { nameIt: 'Gnomo della Sorgente' },
     // Goblin
     'Charhide Goblin': { nameIt: 'Goblin Pellecarbone' },
+    'Dokkaebi Goblin': { nameIt: 'Goblin Dokkaebi' },
     'Irongut Goblin': { nameIt: 'Goblin Stomaco di Ferro' },
     'Razortooth Goblin': { nameIt: 'Goblin Denti Affilati' },
     'Snow Goblin': { nameIt: 'Goblin delle Nevi' },
@@ -118,6 +121,33 @@ export const heritageTranslations: Record<string, { nameIt: string }> = {
     'Deep Orc': { nameIt: 'Orco delle Profondità' },
     'Hold-Scarred Orc': { nameIt: 'Orco Segnato dalla Fortezza' },
     'Rainfall Orc': { nameIt: 'Orco della Pioggia' },
+    // Catfolk
+    'Liminal Catfolk': { nameIt: 'Felino Liminale' },
+    // Centaur
+    'Budding Speaker Centaur': { nameIt: 'Centauro Oratore Nascente' },
+    // Conrasu
+    'Rite of Invocation': { nameIt: 'Rito dell\'Invocazione' },
+    // Automaton
+    'Mage Automaton': { nameIt: 'Automaton Mago' },
+    // Minotaur
+    'Ghost Bull Minotaur': { nameIt: 'Minotauro Toro Fantasma' },
+    // Shisk
+    'Spellkeeper Shisk': { nameIt: 'Shisk Custode di Incantesimi' },
+    // Kholo
+    'Witch Kholo': { nameIt: 'Kholo Strega' },
+    // Lizardfolk
+    'Makari Lizardfolk': { nameIt: 'Lizardfolk Makari' },
+    // Dragonet
+    'Homing Drake': { nameIt: 'Drake Homing' },
+    // Samsaran
+    'Oracular Samsaran': { nameIt: 'Samsaran Oracolare' },
+    // Versatile Heritages
+    'Talos': { nameIt: 'Talos' },
+    // Yaoguai
+    'Born of Elements': { nameIt: 'Nato dagli Elementi' },
+    'Born of Celestial': { nameIt: 'Nato dal Celeste' },
+    // Yaksha
+    'Respite of Loam and Leaf': { nameIt: 'Refugio di Terra e Foglia' },
 };
 
 // Background translations
@@ -152,11 +182,19 @@ export const backgroundTranslations: Record<string, { nameIt: string; descriptio
     'Warrior': { nameIt: 'Guerriero' },
 };
 
+// Spell translations (common class-specific spells)
+export const spellTranslations: Record<string, { nameIt: string; descriptionIt?: string }> = {
+    // Bard composition spells
+    'Counter Performance': { nameIt: 'Controperformance', descriptionIt: 'La tua performance protegge te e i tuoi alleati. Tira un tiro di Performance per usare il risultato migliore tra il tuo tiro salvezza e quello dei tuoi alleati.' },
+    'Courageous Anthem': { nameIt: 'Inno Coraggioso', descriptionIt: 'Ispiri te stesso e i tuoi alleati con parole o melodie di incoraggiamento. Tu e tutti gli alleati nell\'area guadagnate un bonus di stato di +1 ai tiri per colpire, ai danni e ai tiri salvezza contro la paura.' },
+    // TODO: Add more spell translations as needed
+};
+
 /**
  * Get Italian translation for an entity
  */
 export function getItTranslation(
-    type: 'ancestry' | 'class' | 'heritage' | 'background',
+    type: 'ancestry' | 'class' | 'heritage' | 'background' | 'spell',
     name: string
 ): { nameIt?: string; descriptionIt?: string } {
     switch (type) {
@@ -168,6 +206,8 @@ export function getItTranslation(
             return heritageTranslations[name] || {};
         case 'background':
             return backgroundTranslations[name] || {};
+        case 'spell':
+            return spellTranslations[name] || {};
         default:
             return {};
     }
