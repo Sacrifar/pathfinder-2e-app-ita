@@ -227,6 +227,7 @@ export interface InnateSpell {
 export interface HeightenedSpell {
     spellId: string;          // Base spell ID
     heightenedLevel: number;  // The level to which it's heightened (must be > base rank)
+    _esotericPolymath?: boolean; // Internal flag: was this added by Esoteric Polymath?
 }
 
 export interface SpellSlots {
@@ -547,6 +548,7 @@ export interface Character {
     // Variant Rules (GMG Options)
     variantRules: {
         freeArchetype: boolean;          // Extra class feats for archetypes
+        freeArchetypeIgnoreDedicationRestriction: boolean; // FA: Can take multiple dedications without 2 feat requirement
         dualClass: boolean;               // Two classes at level 1
         ancestryParagon: boolean;         // Extra ancestry feats
         automaticBonusProgression: boolean; // ABP - built-in item bonuses
@@ -593,6 +595,14 @@ export interface Character {
     };
     commanderBanner?: string;  // Selected banner type (optional)
 
+    // Esoteric Polymath Spellbook (Bard feat)
+    spellbook?: {
+        esotericPolymath?: {
+            occultSpells: string[];  // All spells in the occult spellbook
+            dailyPreparation: string | null;  // Spell ID selected for today
+        };
+    };
+
     // Metadata
     notes?: string;
     biography?: CharacterBiography;  // Detailed character biography and appearance
@@ -614,6 +624,7 @@ export interface CharacterSummary {
 // Default variant rules object
 const DEFAULT_VARIANT_RULES = {
     freeArchetype: false,
+    freeArchetypeIgnoreDedicationRestriction: false,
     dualClass: false,
     ancestryParagon: false,
     automaticBonusProgression: false,
@@ -831,6 +842,11 @@ export function migrateCharacter(data: any): Character {
         if (!character.spellcasting.signatureSpells) {
             character.spellcasting.signatureSpells = [];
         }
+    }
+
+    // Migrate spellbook (added for Esoteric Polymath feat)
+    if (!character.spellbook) {
+        character.spellbook = {};
     }
 
     return character;

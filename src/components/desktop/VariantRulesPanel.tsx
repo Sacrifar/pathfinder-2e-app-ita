@@ -80,6 +80,7 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
     const handleToggleRule = (ruleKey: keyof Character['variantRules']) => {
         const currentVariantRules = character.variantRules || {
             freeArchetype: false,
+            freeArchetypeIgnoreDedicationRestriction: false,
             dualClass: false,
             ancestryParagon: false,
             automaticBonusProgression: false,
@@ -95,6 +96,11 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
             },
             updatedAt: new Date().toISOString(),
         };
+
+        // Special handling for disabling Free Archetype - also disable sub-option
+        if (ruleKey === 'freeArchetype' && currentVariantRules.freeArchetype) {
+            updatedCharacter.variantRules.freeArchetypeIgnoreDedicationRestriction = false;
+        }
 
         // Special handling for Dual Class
         if (ruleKey === 'dualClass' && !currentVariantRules.dualClass) {
@@ -131,7 +137,16 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
         }
     };
 
-    const activeCount = Object.values(character.variantRules || {}).filter(Boolean).length;
+    // Count active variant rules (excluding the sub-option if Free Archetype is not enabled)
+    const activeCount = Object.entries(character.variantRules || {})
+        .filter(([key, value]) => {
+            if (key === 'freeArchetypeIgnoreDedicationRestriction') {
+                // Only count this if Free Archetype is enabled
+                return value && character.variantRules?.freeArchetype;
+            }
+            return Boolean(value);
+        })
+        .length;
 
     return (
         <div
@@ -197,7 +212,7 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
                         >
                             {language === 'it'
                                 ? `Opzioni dal Gamemastery Guide. Attive: ${activeCount}/6`
-                                : `Options from Gamemastery Guide. Active: ${activeCount}/6`}
+                                : `Options from Gamemastery Guide. Active: ${activeCount}/7`}
                         </p>
                     </div>
                     <button
@@ -231,134 +246,255 @@ export const VariantRulesPanel: React.FC<VariantRulesPanelProps> = ({
                         const ruleName = language === 'it' ? rule.nameIt : rule.name;
                         const ruleDesc = language === 'it' ? rule.descriptionIt : rule.description;
 
+                        // Check if this is Free Archetype and the sub-option should be shown
+                        const showFreeArchetypeSubOption = rule.key === 'freeArchetype' && isActive;
+                        const subOptionActive = variantRules.freeArchetypeIgnoreDedicationRestriction;
+
                         return (
-                            <div
-                                key={rule.key}
-                                onClick={() => handleToggleRule(rule.key)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    gap: '16px',
-                                    padding: '16px',
-                                    marginBottom: '12px',
-                                    background: isActive
-                                        ? theme === 'dark'
-                                            ? 'rgba(16, 185, 129, 0.1)'
-                                            : 'rgba(16, 185, 129, 0.05)'
-                                        : theme === 'dark'
-                                            ? 'var(--bg-secondary, #2a2a2a)'
-                                            : 'var(--bg-secondary, #f5f5f5)',
-                                    border: `1px solid ${isActive
-                                        ? 'var(--color-success, #10b981)'
-                                        : theme === 'dark'
-                                            ? 'var(--border-primary, #333)'
-                                            : 'var(--border-primary, #ddd)'}`,
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!isActive) {
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'none';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                }}
-                            >
-                                {/* Toggle Switch */}
+                            <div key={rule.key}>
                                 <div
+                                    onClick={() => handleToggleRule(rule.key)}
                                     style={{
-                                        position: 'relative',
-                                        width: '48px',
-                                        height: '26px',
-                                        flexShrink: 0,
-                                        marginTop: '2px',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '16px',
+                                        padding: '16px',
+                                        marginBottom: '12px',
+                                        background: isActive
+                                            ? theme === 'dark'
+                                                ? 'rgba(16, 185, 129, 0.1)'
+                                                : 'rgba(16, 185, 129, 0.05)'
+                                            : theme === 'dark'
+                                                ? 'var(--bg-secondary, #2a2a2a)'
+                                                : 'var(--bg-secondary, #f5f5f5)',
+                                        border: `1px solid ${isActive
+                                            ? 'var(--color-success, #10b981)'
+                                            : theme === 'dark'
+                                                ? 'var(--border-primary, #333)'
+                                                : 'var(--border-primary, #ddd)'}`,
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'none';
+                                        e.currentTarget.style.boxShadow = 'none';
                                     }}
                                 >
+                                    {/* Toggle Switch */}
                                     <div
                                         style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            background: isActive
-                                                ? 'var(--color-success, #10b981)'
-                                                : theme === 'dark'
-                                                    ? 'var(--bg-tertiary, #333)'
-                                                    : 'var(--bg-tertiary, #ddd)',
-                                            borderRadius: '13px',
-                                            transition: 'background 0.3s',
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            top: '3px',
-                                            left: isActive ? '25px' : '3px',
-                                            width: '20px',
-                                            height: '20px',
-                                            background: 'white',
-                                            borderRadius: '50%',
-                                            transition: 'left 0.3s',
-                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Content */}
-                                <div style={{ flex: 1 }}>
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            marginBottom: '4px',
+                                            position: 'relative',
+                                            width: '48px',
+                                            height: '26px',
+                                            flexShrink: 0,
+                                            marginTop: '2px',
                                         }}
                                     >
-                                        <h4
+                                        <div
                                             style={{
-                                                margin: 0,
-                                                fontSize: '15px',
-                                                fontWeight: 600,
-                                                color: isActive
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                background: isActive
                                                     ? 'var(--color-success, #10b981)'
                                                     : theme === 'dark'
-                                                        ? 'var(--text-primary, #fff)'
-                                                        : 'var(--text-primary, #000)',
+                                                        ? 'var(--bg-tertiary, #333)'
+                                                        : 'var(--bg-tertiary, #ddd)',
+                                                borderRadius: '13px',
+                                                transition: 'background 0.3s',
                                             }}
-                                        >
-                                            {ruleName}
-                                        </h4>
-                                        <span
+                                        />
+                                        <div
                                             style={{
-                                                fontSize: '10px',
-                                                padding: '2px 8px',
-                                                borderRadius: '10px',
-                                                background: getLevelColor(rule.level),
-                                                color: 'white',
-                                                fontWeight: 600,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.5px',
+                                                position: 'absolute',
+                                                top: '3px',
+                                                left: isActive ? '25px' : '3px',
+                                                width: '20px',
+                                                height: '20px',
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.3s',
+                                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Content */}
+                                    <div style={{ flex: 1 }}>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                marginBottom: '4px',
                                             }}
                                         >
-                                            {getLevelLabel(rule.level)}
-                                        </span>
+                                            <h4
+                                                style={{
+                                                    margin: 0,
+                                                    fontSize: '15px',
+                                                    fontWeight: 600,
+                                                    color: isActive
+                                                        ? 'var(--color-success, #10b981)'
+                                                        : theme === 'dark'
+                                                            ? 'var(--text-primary, #fff)'
+                                                            : 'var(--text-primary, #000)',
+                                                }}
+                                            >
+                                                {ruleName}
+                                            </h4>
+                                            <span
+                                                style={{
+                                                    fontSize: '10px',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '10px',
+                                                    background: getLevelColor(rule.level),
+                                                    color: 'white',
+                                                    fontWeight: 600,
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                }}
+                                            >
+                                                {getLevelLabel(rule.level)}
+                                            </span>
+                                        </div>
+                                        <p
+                                            style={{
+                                                margin: 0,
+                                                fontSize: '13px',
+                                                lineHeight: '1.5',
+                                                color: 'var(--text-secondary, #888)',
+                                            }}
+                                        >
+                                            {ruleDesc}
+                                        </p>
                                     </div>
-                                    <p
+                                </div>
+
+                                {/* Free Archetype Sub-Option: Ignore Dedication Restriction */}
+                                {showFreeArchetypeSubOption && (
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleRule('freeArchetypeIgnoreDedicationRestriction');
+                                        }}
                                         style={{
-                                            margin: 0,
-                                            fontSize: '13px',
-                                            lineHeight: '1.5',
-                                            color: 'var(--text-secondary, #888)',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '16px',
+                                            padding: '12px 16px',
+                                            marginLeft: '64px', // Indent under parent
+                                            marginBottom: '12px',
+                                            background: subOptionActive
+                                                ? theme === 'dark'
+                                                    ? 'rgba(139, 0, 0, 0.1)'
+                                                    : 'rgba(139, 0, 0, 0.05)'
+                                                : theme === 'dark'
+                                                    ? 'var(--bg-tertiary, #1f1f1f)'
+                                                    : 'var(--bg-tertiary, #eee)',
+                                            border: `1px solid ${subOptionActive
+                                                ? 'var(--color-primary, #8B0000)'
+                                                : theme === 'dark'
+                                                    ? 'var(--border-secondary, #444)'
+                                                    : 'var(--border-secondary, #e0e0e0)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!subOptionActive) {
+                                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
                                         }}
                                     >
-                                        {ruleDesc}
-                                    </p>
-                                </div>
+                                        {/* Smaller Toggle Switch */}
+                                        <div
+                                            style={{
+                                                position: 'relative',
+                                                width: '38px',
+                                                height: '20px',
+                                                flexShrink: 0,
+                                                marginTop: '1px',
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    background: subOptionActive
+                                                        ? 'var(--color-primary, #8B0000)'
+                                                        : theme === 'dark'
+                                                            ? 'var(--bg-quaternary, #444)'
+                                                            : 'var(--bg-quaternary, #ccc)',
+                                                    borderRadius: '10px',
+                                                    transition: 'background 0.3s',
+                                                }}
+                                            />
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '2px',
+                                                    left: subOptionActive ? '18px' : '2px',
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    background: 'white',
+                                                    borderRadius: '50%',
+                                                    transition: 'left 0.3s',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Sub-option Content */}
+                                        <div style={{ flex: 1 }}>
+                                            <h5
+                                                style={{
+                                                    margin: '0 0 2px 0',
+                                                    fontSize: '13px',
+                                                    fontWeight: 500,
+                                                    color: subOptionActive
+                                                        ? 'var(--color-primary, #8B0000)'
+                                                        : theme === 'dark'
+                                                            ? 'var(--text-primary, #fff)'
+                                                            : 'var(--text-primary, #000)',
+                                                }}
+                                            >
+                                                {language === 'it'
+                                                    ? 'Ignora Restrizione Dedica'
+                                                    : 'Ignore Dedication Restriction'}
+                                            </h5>
+                                            <p
+                                                style={{
+                                                    margin: 0,
+                                                    fontSize: '12px',
+                                                    lineHeight: '1.4',
+                                                    color: 'var(--text-secondary, #888)',
+                                                }}
+                                            >
+                                                {language === 'it'
+                                                    ? 'Permette di prendere più dedicazioni di archetipo senza dover prendere prima 2 talenti da ogni archetipo.'
+                                                    : 'Allows taking multiple archetype dedications without needing 2 feats from each archetype first.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

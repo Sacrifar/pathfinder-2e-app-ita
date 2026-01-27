@@ -1,0 +1,455 @@
+/* ============ Esoteric Polymath Modal ============ */
+
+.esoteric-polymath-modal-content {
+    padding: 16px 0;
+}
+
+/* Tab Navigation */
+.esoteric-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--desktop-border);
+    padding-bottom: 12px;
+}
+
+.esoteric-tab {
+    padding: 10px 16px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.esoteric-tab:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+}
+
+.esoteric-tab.active {
+    background: var(--desktop-accent-red);
+    border-color: var(--desktop-accent-red);
+    color: white;
+}
+
+.active-badge {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* Spellbook Tab */
+.esoteric-spellbook-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spellbook-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.spellbook-description {
+    flex: 1;
+    margin: 0;
+    color: var(--desktop-text-secondary);
+    font-size: 14px;
+}
+
+.spellbook-header .btn-secondary {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: var(--desktop-accent-blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+
+.spellbook-header .btn-secondary:hover {
+    opacity: 0.9;
+}
+
+/* Spell List */
+.esoteric-spells-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+}
+
+.esoteric-spell-item {
+    padding: 12px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.esoteric-spell-item:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-accent-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.esoteric-spell-item.selected {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--desktop-accent-blue);
+    box-shadow: 0 0 0 1px var(--desktop-accent-blue);
+}
+
+.esoteric-spell-item .spell-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.esoteric-spell-item .spell-name {
+    margin: 0;
+    font-size: 16px;
+    color: var(--desktop-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.repertoire-badge {
+    background: var(--desktop-accent-green);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.esoteric-spell-item .spell-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.spell-rank {
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    padding: 4px 8px;
+    background: var(--desktop-bg-tertiary);
+    border-radius: 4px;
+}
+
+.daily-badge {
+    background: var(--desktop-accent-blue);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.remove-spell-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: var(--desktop-accent-red);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.remove-spell-btn:hover {
+    opacity: 0.8;
+}
+
+.esoteric-spell-item .spell-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.esoteric-spell-item .trait-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text-secondary);
+    border-radius: 4px;
+}
+
+.esoteric-spell-item .spell-effect {
+    margin: 0;
+    font-size: 13px;
+    color: var(--desktop-accent-blue);
+}
+
+.esoteric-spell-item .spell-description {
+    margin-top: auto;
+    /* Push to bottom if flex column */
+    padding-top: 8px;
+    border-top: 1px solid var(--desktop-border);
+    font-size: 12px;
+    color: var(--desktop-text-secondary);
+    line-height: 1.4;
+
+    /* Line clamp for compactness */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Spell Browser Overlay */
+.spell-browser-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.spell-browser-panel {
+    background: var(--desktop-bg-primary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.browser-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.browser-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--desktop-text);
+}
+
+.close-browser-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--desktop-text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.close-browser-btn:hover {
+    background: var(--desktop-bg-secondary);
+    color: var(--desktop-text);
+}
+
+.browser-filters {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--desktop-border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.browser-filters .search-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    color: var(--desktop-text);
+    font-size: 14px;
+}
+
+.browser-filters .search-input:focus {
+    outline: none;
+    border-color: var(--desktop-accent-blue);
+}
+
+.browser-filters .rank-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.browser-filters .filter-btn {
+    padding: 6px 10px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 4px;
+    color: var(--desktop-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.browser-filters .filter-btn:hover {
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text);
+}
+
+.browser-filters .filter-btn.active {
+    background: var(--desktop-accent-blue);
+    border-color: var(--desktop-accent-blue);
+    color: white;
+}
+
+.browser-spell-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.browser-spell-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--desktop-bg-secondary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.browser-spell-item:hover {
+    background: var(--desktop-bg-tertiary);
+    border-color: var(--desktop-accent-blue);
+}
+
+.browser-spell-item .spell-rank {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--desktop-accent-blue);
+}
+
+.browser-spell-item .spell-name {
+    flex: 1;
+    color: var(--desktop-text);
+}
+
+.browser-spell-item .spell-traits-mini {
+    display: flex;
+    gap: 4px;
+}
+
+.trait-badge-mini {
+    font-size: 9px;
+    padding: 2px 4px;
+    background: var(--desktop-bg-tertiary);
+    color: var(--desktop-text-secondary);
+    border-radius: 3px;
+}
+
+.no-results {
+    padding: 40px;
+    text-align: center;
+    color: var(--desktop-text-secondary);
+}
+
+/* Daily Preparation Tab */
+.esoteric-daily-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.daily-description {
+    margin: 0;
+    color: var(--desktop-text-secondary);
+    font-size: 14px;
+}
+
+.current-prep-card {
+    padding: 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid var(--desktop-accent-blue);
+    border-radius: 8px;
+}
+
+.current-prep-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--desktop-text-secondary);
+}
+
+.current-prep-spell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.current-prep-spell strong {
+    font-size: 16px;
+    color: var(--desktop-text);
+}
+
+.current-prep-card .btn-secondary {
+    padding: 8px 16px;
+    background: var(--desktop-bg-secondary);
+    color: var(--desktop-text);
+    border: 1px solid var(--desktop-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.current-prep-card .btn-secondary:hover {
+    background: var(--desktop-bg-tertiary);
+}
+
+.esoteric-daily-tab .esoteric-spells-list h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--desktop-text-secondary);
+}
+
+/* Empty States */
+.no-spells-message {
+    padding: 40px;
+    text-align: center;
+    color: var(--desktop-text-secondary);
+    font-size: 14px;
+}

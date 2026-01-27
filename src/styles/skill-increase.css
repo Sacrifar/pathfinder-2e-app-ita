@@ -1,0 +1,147 @@
+/* Skill Increase Modal Styles */
+
+.skill-increase-modal {
+    width: 600px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.skill-increase-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.skill-increase-info {
+    text-align: center;
+    color: var(--desktop-text-secondary);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--desktop-border);
+}
+
+.skill-increase-info p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.skill-increase-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 4px;
+    /* Space for scrollbar */
+}
+
+.skill-increase-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--desktop-bg-tertiary);
+    border: 1px solid var(--desktop-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+    color: var(--desktop-text);
+}
+
+.skill-increase-option:hover {
+    background: var(--desktop-bg-secondary);
+    border-color: var(--desktop-accent-blue);
+    transform: translateX(2px);
+}
+
+.skill-increase-option.selected {
+    background: rgba(74, 158, 255, 0.15);
+    /* Blue tint */
+    border-color: var(--desktop-accent-blue);
+    box-shadow: 0 0 0 1px var(--desktop-accent-blue);
+}
+
+.skill-increase-name {
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.skill-increase-progression {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.prof-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--desktop-bg);
+    border: 1px solid var(--desktop-border-light);
+    min-width: 85px;
+    text-align: center;
+}
+
+/* Proficiency Colors */
+.prof-badge.untrained {
+    color: var(--desktop-text-secondary);
+    border-color: var(--desktop-border);
+}
+
+.prof-badge.trained {
+    color: var(--desktop-text);
+    border-color: var(--desktop-text-secondary);
+}
+
+.prof-badge.expert {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    /* Emerald/Green */
+    border-color: #10b981;
+}
+
+.prof-badge.master {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    /* Amber/Orange */
+    border-color: #f59e0b;
+}
+
+.prof-badge.legendary {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    /* Violet */
+    border-color: #8b5cf6;
+}
+
+.arrow {
+    color: var(--desktop-text-secondary);
+    font-size: 16px;
+}
+
+/* Scrollbar tweaks for the list */
+.skill-increase-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.skill-increase-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.skill-increase-list::-webkit-scrollbar-thumb {
+    background: var(--desktop-border);
+    border-radius: 3px;
+}
+
+.skill-increase-list::-webkit-scrollbar-thumb:hover {
+    background: var(--desktop-text-secondary);
+}

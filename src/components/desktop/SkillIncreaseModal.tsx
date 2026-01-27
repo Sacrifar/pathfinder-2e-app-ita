@@ -3,6 +3,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { Character, Proficiency } from '../../types';
 import { skills as allSkills } from '../../data';
 import '../../styles/desktop.css';
+import '../../styles/skill-increase.css';
 
 interface SkillIncreaseModalProps {
     character: Character;

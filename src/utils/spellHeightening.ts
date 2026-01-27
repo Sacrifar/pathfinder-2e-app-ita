@@ -5,6 +5,7 @@
 
 import { LoadedSpell, SpellHeightening } from '@/data/pf2e-loader';
 import { Character, HeightenedSpell } from '@/types/character';
+import { canCastAsSignatureFromEsotericPolymath, getEffectiveSignatureSpells } from './esotericPolymath';
 
 /**
  * Get the available heightened levels for a spell based on character level
@@ -156,9 +157,15 @@ export function canSpellBeHeightened(spell: LoadedSpell): boolean {
 
 /**
  * Check if a spell is a signature spell (can be heightened freely)
+ * Includes Esoteric Polymath daily preparation if applicable
  */
 export function isSignatureSpell(character: Character, spellId: string): boolean {
-    return character.spellcasting?.signatureSpells?.includes(spellId) || false;
+    // Check base signature spells
+    const isBaseSignature = character.spellcasting?.signatureSpells?.includes(spellId) || false;
+    if (isBaseSignature) return true;
+
+    // Check Esoteric Polymath daily preparation
+    return canCastAsSignatureFromEsotericPolymath(character, spellId);
 }
 
 /**

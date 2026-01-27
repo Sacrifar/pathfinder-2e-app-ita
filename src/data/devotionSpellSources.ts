@@ -1,17 +1,20 @@
 /**
  * Devotion Spell Sources Database
  *
- * This file defines archetype dedication feats that grant devotion spells (focus spells).
- * Devotion spells are focus spells granted by archetype dedications like:
- * - Blessed One Dedication (grants Lay on Hands)
- * - Champion Dedication (grants Lay on Hands via Advanced Devotion)
- * - Other archetype dedications that grant focus spells
+ * This file defines feats that grant devotion spells (focus spells).
+ * Devotion spells are focus spells granted by:
+ * - Archetype dedication feats like:
+ *   - Blessed One Dedication (grants Lay on Hands)
+ *   - Champion Dedication (grants Lay on Hands via Advanced Devotion)
+ * - Class feats that grant focus spells like:
+ *   - Bard: Hymn of Healing, Inspire Heroics, etc.
+ *   - Other classes with focus spell-granting feats
  *
- * Unlike class-granted focus spells, devotion spells from archetypes:
+ * Unlike class-granted focus spells, devotion spells from feats:
  * - Use the character's Focus Pool (same as other focus spells)
  * - May require spellcasting initialization (if the character isn't already a spellcaster)
- * - Have specific traditions (divine, primal, etc.)
- * - May require specific key abilities (Charisma for Blessed One)
+ * - Have specific traditions (divine, primal, occult, arcane, etc.)
+ * - May require specific key abilities (Charisma for Blessed One/Bard)
  */
 
 import type { Character } from '../types';
@@ -26,10 +29,12 @@ export interface DevotionSpellGrant {
 }
 
 /**
- * Definition of an archetype dedication that grants devotion spells
+ * Definition of a feat that grants devotion spells
+ * IMPORTANT: featId must use the slug-based ID (e.g., 'hymn-of-healing')
+ * NOT the Foundry _id (e.g., 'jGTRRCqxn1FIBxE2')
  */
 export interface DevotionSpellSource {
-    featId: string;            // The feat ID (e.g., 'blessed-one-dedication')
+    featId: string;            // The feat ID using slug format (e.g., 'hymn-of-healing', 'blessed-one-dedication')
     featName: string;          // Feat name for display (English)
     featNameIt?: string;       // Feat name (Italian)
     grantsFocusPoint: boolean; // Whether this feat grants a Focus Point
@@ -38,9 +43,12 @@ export interface DevotionSpellSource {
 }
 
 /**
- * Database of all archetype dedication feats that grant devotion spells
+ * Database of all feats that grant devotion spells (focus spells)
+ * Includes both archetype dedications and class feats
  */
 export const DEVOTION_SPELL_SOURCES: Record<string, DevotionSpellSource> = {
+    // ============ ARCHETYPE DEDICATIONS ============
+
     // BLESSED ONE ARCHETYPE
     'blessed-one-dedication': {
         featId: 'blessed-one-dedication',
@@ -69,12 +77,53 @@ export const DEVOTION_SPELL_SOURCES: Record<string, DevotionSpellSource> = {
         },
     },
 
+    // ============ CLASS FEATS ============
+
+    // BARD - Composition Spells that are Focus Spells
+    // These are optional feats that grant additional focus spells beyond the default ones
+    // IMPORTANT: featId uses slug format (name.toLowerCase().replace(/\s+/g, '-'))
+    'hymn-of-healing': {
+        featId: 'hymn-of-healing', // Hymn of Healing (feat)
+        featName: 'Hymn of Healing',
+        featNameIt: 'Inno di Guarigione',
+        grantsFocusPoint: true, // Grants 1 Focus Point
+        devotionSpell: {
+            spellId: 'gSUQlTDYoLDGAsCP', // Hymn of Healing (focus spell)
+            tradition: 'occult',
+            keyAbility: 'cha',
+        },
+    },
+    'lingering-composition': {
+        featId: 'lingering-composition', // Lingering Composition (feat)
+        featName: 'Lingering Composition',
+        featNameIt: 'Composizione Persistente',
+        grantsFocusPoint: true, // Grants 1 Focus Point
+        devotionSpell: {
+            spellId: 'irTdhxTixU9u9YUm', // Lingering Composition (focus spell)
+            tradition: 'occult',
+            keyAbility: 'cha',
+        },
+    },
+    'soothing-ballad': {
+        featId: 'soothing-ballad', // Soothing Ballad (feat)
+        featName: 'Soothing Ballad',
+        featNameIt: 'Ballata Calmante',
+        grantsFocusPoint: true, // Grants 1 Focus Point
+        devotionSpell: {
+            spellId: '0JigNJDRwevZOyjI', // Soothing Ballad (focus spell)
+            tradition: 'occult',
+            keyAbility: 'cha',
+        },
+    },
+
     // TODO: Add other archetype dedications that grant devotion spells
     // - Cleric Dedication (Domain Initiate grants domain spell)
     // - Druid Dedication (Wild Order grants wild spell)
     // - Sorcerer Dedication (might grant bloodline spells)
     // - Bard Dedication (might grant muse spells)
-    // etc.
+    // TODO: Add other class feats that grant focus spells
+    // - Bard: Inspire Heroics, Lingering Composition, etc.
+    // - Other classes with focus spell-granting feats
 };
 
 /**

@@ -32,7 +32,9 @@
       "Bash(for:*)",
       "Bash(do grep:*)",
       "Bash(done:*)",
-      "Bash(do find src/data/pf2e/spells -name \"*.json\" -type f -exec grep -l \"\"\"name\"\": \"\"$spell\"\"\" {} ;)"
+      "Bash(do find src/data/pf2e/spells -name \"*.json\" -type f -exec grep -l \"\"\"name\"\": \"\"$spell\"\"\" {} ;)",
+      "Bash(exit:*)",
+      "Bash(tsc:*)"
     ]
   }
 }

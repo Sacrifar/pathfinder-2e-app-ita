@@ -309,6 +309,11 @@ export function canSelectFeatWithDedicationConstraint(
     feat: LoadedFeat,
     _featLevel: number
 ): { allowed: boolean; reason?: string } {
+    // Check if Free Archetype with dedication restriction bypass is enabled
+    if (character.variantRules?.freeArchetypeIgnoreDedicationRestriction) {
+        return { allowed: true };
+    }
+
     const constraint = getActiveDedicationConstraint(character);
 
     // No active constraint - all feats allowed

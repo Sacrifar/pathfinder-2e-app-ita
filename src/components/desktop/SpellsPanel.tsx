@@ -16,6 +16,8 @@ import {
     isSignatureSpell,
     getSignatureSpellCount
 } from '../../utils/spellHeightening';
+import { hasEsotericPolymath, getEsotericPolymathAvailableSpells } from '../../utils/esotericPolymath';
+import { EsotericPolymathModal } from './EsotericPolymathModal';
 
 interface SpellsPanelProps {
     character: Character;
@@ -72,12 +74,29 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
     const [activeSubTab, setActiveSubTab] = useState<SpellSubTab>(getInitialTab());
     const [showBrowser, setShowBrowser] = useState(false);
+    const [showEsotericPolymathModal, setShowEsotericPolymathModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState<number | 'all'>('all');
     const [traditionFilter, setTraditionFilter] = useState<string>('all');
     const [selectedSpell, setSelectedSpell] = useState<LoadedSpell | null>(null);
     const [viewingSpell, setViewingSpell] = useState<LoadedSpell | null>(null);  // For spell description modal
     const [selectedHeightenedLevel, setSelectedHeightenedLevel] = useState<number | null>(null);  // For heightening selection
+
+    // Check if character has Esoteric Polymath feat
+    const hasEsotericPolymathFeat = useMemo(() => {
+        return hasEsotericPolymath(character);
+    }, [character.feats]);
+
+    // Get Esoteric Polymath daily preparation info
+    const esotericPolymathInfo = useMemo(() => {
+        if (!hasEsotericPolymathFeat) return null;
+        const availableSpells = getEsotericPolymathAvailableSpells(character);
+        const currentPrep = character.spellbook?.esotericPolymath?.dailyPreparation;
+        const currentSpell = currentPrep
+            ? availableSpells.find(s => s.spell.id === currentPrep)
+            : null;
+        return { availableSpells, currentSpell };
+    }, [hasEsotericPolymathFeat, character]);
 
     // Calculate signature spell limit for this character
     const signatureSpellLimit = useMemo(() => {
@@ -722,11 +741,11 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     };
 
     // Render a spell row in Pathbuilder style
-    const renderSpellRow = (spell: LoadedSpell | null, isPlaceholder = false) => {
+    const renderSpellRow = (spell: LoadedSpell | null, isPlaceholder = false, key?: string) => {
         // Handle placeholder rendering first to avoid null access errors
         if (isPlaceholder || !spell) {
             return (
-                <div className="spell-row placeholder" onClick={() => setShowBrowser(true)}>
+                <div key={key} className="spell-row placeholder" onClick={() => setShowBrowser(true)}>
                     <span className="spell-row-name">{t('spell.notSelected') || 'Not Selected'}</span>
                     <span className="spell-row-actions">—</span>
                     <span className="spell-row-duration">—</span>
@@ -763,7 +782,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
         return (
             <>
-                <div className={`spell-row ${isMuseSpell ? 'locked-spell' : ''}`}>
+                <div key={key} className={`spell-row ${isMuseSpell ? 'locked-spell' : ''}`}>
                     {/* Spell name - click to view description */}
                     <span
                         className="spell-row-name clickable"
@@ -842,7 +861,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                     )}
 
                     {/* Heightened versions display/add */}
-                    {canBeHeightened && !isCantrip && spellcasting.spellcastingType === 'spontaneous' && (
+                    {canBeHeightened && !isCantrip && spellcasting.spellcastingType === 'spontaneous' && !isSignature && (
                         <span className="spell-row-heightened">
                             <div className="heightened-versions">
                                 {knownHeightenedLevels.map(level => (
@@ -882,13 +901,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     };
 
     // Render spell level group with fire icons for slots
-    const renderSpellLevelGroup = (level: number, spells: LoadedSpell[], limit: number) => {
+    const renderSpellLevelGroup = (level: number, spells: LoadedSpell[], limit: number, extraSpells: LoadedSpell[] = []) => {
         const slotData = spellcasting.spellSlots[level];
         const slotsAvailable = slotData ? slotData.max - slotData.used : 0;
         const slotsMax = slotData?.max || 0;
 
-        // Calculate empty slots (placeholders)
+        // Calculate empty slots (placeholders) - based only on actual known spells
         const emptySlots = Math.max(0, limit - spells.length);
+
+        // Combine spells for display
+        const displaySpells = [...spells, ...extraSpells];
 
         return (
             <div key={level} className="spell-level-group">
@@ -919,17 +941,13 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                         <span></span>
                         {spellcasting.spellcastingType === 'spontaneous' && (
                             <>
-                                <span className="spell-row-signature" title={t('spell.signatureSpell') || 'Signature Spell'}>⭐</span>
-                                <span className="spell-row-heightened" title={t('spell.heightenedVersions') || 'Heightened Versions'}>H</span>
+                                <span key="signature" className="spell-row-signature" title={t('spell.signatureSpell') || 'Signature Spell'}>⭐</span>
+                                <span key="heightened" className="spell-row-heightened" title={t('spell.heightenedVersions') || 'Heightened Versions'}>H</span>
                             </>
                         )}
                     </div>
-                    {spells.map(spell => renderSpellRow(spell))}
-                    {Array.from({ length: emptySlots }, (_, i) => (
-                        <div key={`empty-${i}`}>
-                            {renderSpellRow(null as any, true)}
-                        </div>
-                    ))}
+                    {displaySpells.map(spell => renderSpellRow(spell, false, `${spell.id}-${level}`))}
+                    {Array.from({ length: emptySlots }, (_, i) => renderSpellRow(null as any, true, `empty-${i}`))}
                 </div>
             </div>
         );
@@ -974,6 +992,19 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                 <button className="spell-action-btn" onClick={() => setShowBrowser(true)}>
                     + {t('actions.addSpell') || 'Add Spell'}
                 </button>
+                {hasEsotericPolymathFeat && (
+                    <button
+                        className="spell-action-btn esoteric-polymath-btn"
+                        onClick={() => setShowEsotericPolymathModal(true)}
+                    >
+                        📕 {t('esotericPolymath.dailyPreparation') || 'Daily Preparation'}
+                        {esotericPolymathInfo?.currentSpell && (
+                            <span className="current-prep-badge" style={{ marginLeft: '8px' }}>
+                                {esotericPolymathInfo.currentSpell.spell.name}
+                            </span>
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Spell Level Groups */}
@@ -984,7 +1015,28 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                 {/* Ranked Spells */}
                 {slotLevels.filter(l => l > 0).map(level => {
                     const limit = spellsKnownLimits[level] || spellcasting.spellSlots[level]?.max || 0;
-                    return renderSpellLevelGroup(level, knownSpellsByLevel[level] || [], limit);
+
+                    // Get signature spells applicable for this level (from lower ranks)
+                    const signatureSpellsForLevel = validKnownSpells
+                        .map(id => getSpellFromSlug(id))
+                        .filter((s): s is LoadedSpell => !!s)
+                        .filter(s => {
+                            // Check if signature spell
+                            if (!isSignatureSpell(character, s.id)) return false;
+
+                            const isLower = s.rank < level;
+                            const duplicate = knownSpellsByLevel[level]?.some(k => k.id === s.id);
+                            const canHeighten = canSpellBeHeightened(s);
+
+                            return isLower && canHeighten && !duplicate;
+                        })
+                        .map(s => ({
+                            ...s,
+                            rank: level,
+                            ...getHeightenedSpellData(s, level)
+                        }));
+
+                    return renderSpellLevelGroup(level, knownSpellsByLevel[level] || [], limit, signatureSpellsForLevel);
                 })}
             </div>
         </div>
@@ -1208,6 +1260,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
             {/* Spell Browser Modal */}
             {showBrowser && renderSpellBrowser()}
+
+            {/* Esoteric Polymath Modal */}
+            {hasEsotericPolymathFeat && (
+                <EsotericPolymathModal
+                    isOpen={showEsotericPolymathModal}
+                    onClose={() => setShowEsotericPolymathModal(false)}
+                    character={character}
+                    onCharacterUpdate={onCharacterUpdate}
+                />
+            )}
 
             {/* Spell Details Modal */}
             {viewingSpell && (

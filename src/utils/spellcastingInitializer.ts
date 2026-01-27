@@ -114,6 +114,12 @@ export function initializeSpellcastingForClass(character: Character): Character 
             focusPool: existingSpellcasting?.focusPool || { current: 1, max: 1 },
             focusSpells: updatedFocusSpells,
             rituals: existingSpellcasting?.rituals || [],
+            // Preserve innate spells from heritage/background/feats
+            innateSpells: existingSpellcasting?.innateSpells,
+            // Preserve heightened spells
+            heightenedSpells: existingSpellcasting?.heightenedSpells,
+            // Preserve signature spells
+            signatureSpells: existingSpellcasting?.signatureSpells,
         },
     };
 

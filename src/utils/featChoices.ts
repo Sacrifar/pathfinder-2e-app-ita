@@ -742,6 +742,10 @@ export function getChoiceDisplayValue(
     if (choice.options && Array.isArray(choice.options)) {
         const option = choice.options.find(o => o.value === value);
         if (option) {
+            // Handle undefined label
+            if (!option.label) {
+                return value;
+            }
             // Convert PF2E localization keys to readable names
             // e.g., "PF2E.Actor.Character.Proficiency.Defense.LightShort" -> "Light Armor"
             if (option.label.includes('.')) {

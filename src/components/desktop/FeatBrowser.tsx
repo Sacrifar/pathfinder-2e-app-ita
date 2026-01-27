@@ -736,7 +736,7 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
                                                             }));
                                                         }}
                                                     >
-                                                        <option value="">{t('actions.select') || 'Select...'}</option>
+                                                        <option key="placeholder" value="">{t('actions.select') || 'Select...'}</option>
                                                         {options.map(option => (
                                                             <option key={option} value={option}>
                                                                 {getChoiceDisplayValue(option, choice)}
