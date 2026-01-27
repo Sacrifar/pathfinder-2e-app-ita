@@ -163,3 +163,48 @@ export function getAllClassGrantedSpells(classId: string, level: number): ClassG
 
     return allSpells;
 }
+
+/**
+ * Get the spell granted by the Bard's Muse
+ * Checks for specific Muse feats and returns the corresponding spell slug
+ */
+export function getBardMuseSpell(character: any): string | undefined {
+    if (!character.feats) return undefined;
+
+    // Muse Feat IDs (Legacy fallback)
+    const ENIGMA_ID = '4ripp6EfdVpS0d60';
+    const MAESTRO_ID = 'YMBsi4bndRAk5CX4';
+    const POLYMATH_ID = 'y0jGimYdMGDJWrEq';
+    const WARRIOR_ID = 'N03BtRvjX9TeHRa4';
+
+    // Spell IDs (checked from source files)
+    const SURE_STRIKE_ID = 'Gb7SeieEvd0pL2Eh';
+    const SOOTHE_ID = 'szIyEsvihc5e1w8n';
+    const PHANTASMAL_MINION_ID = 'xqmHD8JIjak15lRk';
+    const FEAR_ID = '4koZzrnMXhhosn0D';
+
+    // Check class specialization first (New system)
+    if (character.classSpecializationId) {
+        // classSpecializationId can be a string or array of strings
+        const specs = Array.isArray(character.classSpecializationId)
+            ? character.classSpecializationId
+            : [character.classSpecializationId];
+
+        for (const spec of specs) {
+            if (spec === 'muse_enigma') return SURE_STRIKE_ID;
+            if (spec === 'muse_maestro') return SOOTHE_ID;
+            if (spec === 'muse_polymath') return PHANTASMAL_MINION_ID;
+            if (spec === 'muse_warrior') return FEAR_ID;
+        }
+    }
+
+    // Fallback: Check feats (Old system / Multifarious Muse)
+    for (const feat of character.feats) {
+        if (feat.featId === ENIGMA_ID) return SURE_STRIKE_ID;
+        if (feat.featId === MAESTRO_ID) return SOOTHE_ID;
+        if (feat.featId === POLYMATH_ID) return PHANTASMAL_MINION_ID;
+        if (feat.featId === WARRIOR_ID) return FEAR_ID;
+    }
+
+    return undefined;
+}

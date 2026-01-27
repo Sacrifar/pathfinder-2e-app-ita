@@ -25,6 +25,18 @@ export interface ImpulseRollData {
     isTwoActions: boolean;  // For blast: whether it's 2-action version (affects damage mod)
 }
 
+export interface SpellRollData {
+    spellId: string;
+    spellName: string;
+    rank: number;  // 0 for cantrips
+    damage?: string;  // Damage formula if any
+    element?: string;  // For elemental spells
+    spellAttack: number;  // Spell attack bonus
+    spellDC: number;  // Spell DC
+    castTime: string;  // Action cost
+    requiresAttackRoll?: boolean;  // True if spell requires an attack roll (has 'attack' trait)
+}
+
 export interface DiceRoll {
     formula: string;
     label: string;
@@ -42,6 +54,7 @@ export interface DiceRoll {
     element?: string;  // Optional: for kineticist elemental blasts (air, fire, earth, metal, water, wood)
     weaponData?: WeaponRollData;  // Optional: weapon data for weapon-specific dicebox actions
     impulseData?: ImpulseRollData;  // Optional: impulse data for impulse-specific dicebox actions
+    spellData?: SpellRollData;  // Optional: spell data for spell-specific dicebox actions
 }
 
 export interface DiceConfig {

@@ -73,11 +73,11 @@ export const RestModal: React.FC<RestModalProps> = ({
                 spellSlots: Object.keys(updatedSpellcasting!.spellSlots).reduce((acc, level) => {
                     const lvl = parseInt(level);
                     acc[lvl] = {
-                        max: updatedSpellcasting!.spellSlots![lvl].max,
+                        ...updatedSpellcasting!.spellSlots![lvl],
                         used: 0,
                     };
                     return acc;
-                }, {} as Record<number, { max: number; used: number }>),
+                }, {} as Record<number, any>),
             };
         }
 

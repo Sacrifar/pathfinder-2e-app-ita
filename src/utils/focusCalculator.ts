@@ -4,6 +4,28 @@
  */
 
 import { Character } from '../types/character';
+import { getClassIdByName } from '../data/classSpecializations';
+
+/**
+ * List of classes that grant Focus Points through their class features
+ * (Bard Muse, Champion Cause, Cleric Domain, etc.)
+ */
+const FOCUS_SPELL_CLASS_NAMES: string[] = [
+    'Bard',      // Bard Muse
+    'Champion',  // Champion Cause
+    'Cleric',    // Cleric Domain
+    'Druid',     // Druid Order
+    'Monk',      // Monk Ki
+    'Oracle',    // Oracle Mystery
+    'Psychic',   // Psychic Conscious Mind
+    'Sorcerer',  // Sorcerer Bloodline
+    'Summoner',  // Summoner Eidolon
+    'Swashbuckler', // Swashbuckler Panache
+    'Thaumaturge', // Thaumaturge Implement
+    'Wizard',    // Wizard Focus Spell
+    'Gunslinger', // Gunslinger Implement
+    'Kineticist', // Kineticist Impulse
+];
 
 /**
  * List of feats that grant Focus Points
@@ -28,7 +50,7 @@ const FOCUS_FEATS: Record<string, number> = {
     // Druid Order
     'druid-order': 1,
 
-    // Monki Ki
+    // Monk Ki
     'monk-ki': 1,
 
     // Oracle Mystery
@@ -54,6 +76,10 @@ const FOCUS_FEATS: Record<string, number> = {
 
     // Gortle's Yip Sigil
     'gortle-yip-sigil': 1,
+
+    // Archetype Dedications with Devotion Spells
+    'blessed-one-dedication': 1,
+    'champion-advanced-devotion': 1, // Note: doesn't grant additional point, but grants focus spell
 };
 
 /**
@@ -63,6 +89,20 @@ const ADDITIONAL_FOCUS_FEATS: Record<string, number> = {
     'additional-focus': 1,
     'expanded-focus': 1,
 };
+
+/**
+ * Check if a character's class grants Focus Points
+ */
+function classGrantsFocusPoints(classId: string): boolean {
+    // Try to find class by ID first, then by name
+    for (const className of FOCUS_SPELL_CLASS_NAMES) {
+        const id = getClassIdByName(className);
+        if (id && id === classId) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * Calculate the maximum Focus Points for a character
@@ -75,8 +115,20 @@ export function calculateMaxFocusPoints(character: Character): number {
     // Count Focus feats from the character's feat list
     const focusFeatIds = new Set<string>();
 
+    console.log('[FocusCalculator] Calculating focus points for character:', {
+        classId: character.classId,
+        feats: character.feats?.map(f => ({ id: f.featId, level: f.level })),
+    });
+
+    // Check if character's class grants Focus Points (Bard Muse, Champion Cause, etc.)
+    if (classGrantsFocusPoints(character.classId)) {
+        console.log('[FocusCalculator] Found focus spell class:', character.classId);
+        focusPoints += 1;
+    }
+
     for (const feat of character.feats) {
         if (FOCUS_FEATS[feat.featId]) {
+            console.log('[FocusCalculator] Found focus feat:', feat.featId);
             focusFeatIds.add(feat.featId);
         }
         // Check for additional focus feats
@@ -87,6 +139,13 @@ export function calculateMaxFocusPoints(character: Character): number {
 
     // Add 1 point per unique Focus feat
     focusPoints += focusFeatIds.size;
+
+    console.log('[FocusCalculator] Total focus points:', {
+        classGrant: classGrantsFocusPoints(character.classId) ? 1 : 0,
+        uniqueFeats: focusFeatIds.size,
+        additional: focusPoints - focusFeatIds.size - (classGrantsFocusPoints(character.classId) ? 1 : 0),
+        total: focusPoints,
+    });
 
     // Maximum of 3 Focus Points by default (Core Rulebook)
     // Some GM games may allow higher limits via house rules

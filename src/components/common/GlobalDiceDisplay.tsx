@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { useLanguage } from '../../hooks/useLanguage';
 import DiceBox from '@3d-dice/dice-box';
-import { WeaponRollData, ImpulseRollData } from '../../types/dice';
+import { WeaponRollData, ImpulseRollData, SpellRollData } from '../../types/dice';
 
 /**
  * Helper function to extract element from traits for dice coloring
@@ -175,7 +175,7 @@ function rollWithDiceBox(
 
 export function GlobalDiceDisplay() {
     const { t } = useLanguage();
-    const { rolls, clearRolls, rollDice, updateLastRollWith3DResults, pendingWeaponData, pendingImpulseData, clearPendingData } = useDiceRoller();
+    const { rolls, clearRolls, rollDice, updateLastRollWith3DResults, pendingWeaponData, pendingImpulseData, pendingSpellData, clearPendingData } = useDiceRoller();
     const [showPanel, setShowPanel] = useState(false);
     const [lastProcessedRoll, setLastProcessedRoll] = useState<number | null>(null);
     const diceBoxRef = useRef<DiceBox | null>(null);
@@ -285,10 +285,10 @@ export function GlobalDiceDisplay() {
 
     // Show panel when pendingData is set (without auto-rolling)
     useEffect(() => {
-        if (pendingWeaponData || pendingImpulseData) {
+        if (pendingWeaponData || pendingImpulseData || pendingSpellData) {
             setShowPanel(true);
         }
-    }, [pendingWeaponData, pendingImpulseData]);
+    }, [pendingWeaponData, pendingImpulseData, pendingSpellData]);
 
     const handleClose = () => {
         setShowPanel(false);
@@ -374,6 +374,25 @@ export function GlobalDiceDisplay() {
         const formula = doubleDamage ? doubleDamageFormula(impulseData.damage) : impulseData.damage;
         const label = `${impulseData.impulseName}${doubleDamage ? ' (Critical)' : ''}`;
         rollDice(formula, label, { impulseData, element: impulseData.element });
+    };
+
+    // Handle spell attack roll
+    const handleSpellAttackRoll = (spellData: SpellRollData) => {
+        const formula = `1d20+${spellData.spellAttack}`;
+        // Spells typically don't have MAP in the same way, but if needed we can add it later
+        const attackLabel = spellData.requiresAttackRoll
+            ? (t('spell.spellAttack') || 'Spell Attack')
+            : (t('spell.attack') || 'Spell Attack');
+        const label = `${attackLabel}: ${spellData.spellName}`;
+        rollDice(formula, label, { element: spellData.element, spellData });
+    };
+
+    // Handle spell damage roll
+    const handleSpellDamageRoll = (spellData: SpellRollData, doubleDamage: boolean = false) => {
+        if (!spellData.damage) return;
+        const formula = doubleDamage ? doubleDamageFormula(spellData.damage) : spellData.damage;
+        const label = `${t('weapons.damageRoll') || 'Damage'}: ${spellData.spellName}${doubleDamage ? ' (Critical)' : ''}`;
+        rollDice(formula, label, { element: spellData.element, spellData });
     };
 
     return (
@@ -566,6 +585,64 @@ export function GlobalDiceDisplay() {
                                         >
                                             💥 {t('weapons.critical') || 'Crit'}
                                         </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Spell Action Buttons */}
+                        {(() => {
+                            // Use spellData from latest roll OR from pendingSpellData
+                            // Note: We need to check if the latest roll HAS spellData
+                            const latestRoll = rolls.length > 0 ? rolls[rolls.length - 1] : null;
+                            const spellData = (latestRoll && latestRoll.spellData)
+                                ? latestRoll.spellData
+                                : pendingSpellData;
+
+                            if (!spellData) return null;
+
+                            return (
+                                <div className="weapon-actions-section">
+                                    <div className="weapon-actions-title">{spellData.spellName}</div>
+                                    <div className="weapon-actions-grid">
+                                        {/* Attack button (only for spells with attack roll trait) */}
+                                        {spellData.spellAttack > 0 && spellData.requiresAttackRoll && (
+                                            <button
+                                                className="weapon-action-btn attack-btn"
+                                                onClick={() => handleSpellAttackRoll(spellData)}
+                                                title={`${t('spell.spellAttack') || 'Spell Attack'} (1d20+${spellData.spellAttack})`}
+                                            >
+                                                <img src="/assets/icon_d20_orange_small.png" alt="D20" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                                {t('spell.spellAttack') || 'Spell Attack'} (+{spellData.spellAttack})
+                                            </button>
+                                        )}
+
+                                        {/* DC display (non-interactive but informative) */}
+                                        {spellData.spellDC > 0 && (
+                                            <div className="weapon-action-btn" style={{ cursor: 'default', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                                {t('stats.spellDC') || 'DC'} {spellData.spellDC}
+                                            </div>
+                                        )}
+
+                                        {/* Damage buttons (if has damage) */}
+                                        {spellData.damage && (
+                                            <>
+                                                <button
+                                                    className="weapon-action-btn damage-btn"
+                                                    onClick={() => handleSpellDamageRoll(spellData, false)}
+                                                    title={`${t('weapons.damageRoll') || 'Damage'}: ${spellData.damage}`}
+                                                >
+                                                    🎲 {t('weapons.damage') || 'Damage'}
+                                                </button>
+                                                <button
+                                                    className="weapon-action-btn damage-btn crit-btn"
+                                                    onClick={() => handleSpellDamageRoll(spellData, true)}
+                                                    title={`${t('weapons.criticalDamage') || 'Critical Damage'}: 2× ${spellData.damage}`}
+                                                >
+                                                    💥 {t('weapons.critical') || 'Crit'}
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             );

@@ -38,6 +38,13 @@ import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel
 import { getSpellGrantingItem, getSpellForItemChoice, getAllSpellGrantingItemIds } from '../data/spellGrantingItems';
 import { getAllInnateSpellsForCharacter } from '../data/innateSpellSources';
 import { getClassIdByName } from '../data/classSpecializations';
+import {
+    getDevotionSpellsForCharacter,
+    hasArchetypeSpellcasting,
+    getArchetypeSpellTradition,
+    getArchetypeSpellKeyAbility,
+} from '../data/devotionSpellSources';
+import { calculateMaxFocusPoints } from './focusCalculator';
 
 /**
  * Recalculate ALL character data from scratch
@@ -61,6 +68,8 @@ export function recalculateCharacter(character: Character): Character {
     updated = processEquipmentBonuses(updated); // Process FlatModifier rules from equipment
     updated = processSpellGrantingItems(updated); // Add spells from invested spell-granting items
     updated = processInnateSpells(updated); // Add innate spells from backgrounds/feats
+    updated = processDevotionSpells(updated); // Add devotion spells from archetype dedications
+    updated = updateFocusPool(updated); // Update focus pool for all characters
     updated = resetItemDailyUses(updated); // Reset daily uses for spell-granting items
 
     return updated;
@@ -698,6 +707,11 @@ export function recalculateSpeed(character: Character): Character {
                 // Check for FlatModifier rules that affect land-speed
                 for (const rule of feat.rules) {
                     if (rule.key === 'FlatModifier' && rule.selector === 'land-speed') {
+                        // Skip rules with predicates (like Scamper which requires toggle to be active)
+                        // These are conditional bonuses, not permanent speed increases
+                        if (rule.predicate && Array.isArray(rule.predicate) && rule.predicate.length > 0) {
+                            continue;
+                        }
                         const value = parseInt(rule.value);
                         if (!isNaN(value)) {
                             // Take only the highest speed increase (not cumulative)
@@ -831,6 +845,11 @@ export function processFeatFlatModifiers(character: Character): Character {
 
         for (const rule of feat.rules) {
             if (rule.key === 'FlatModifier' && rule.selector && rule.value) {
+                // Skip rules with predicates (like Scamper which requires toggle to be active)
+                // These are conditional bonuses, not permanent buffs
+                if (rule.predicate && Array.isArray(rule.predicate) && rule.predicate.length > 0) {
+                    continue;
+                }
                 // Map the selector to our BonusSelector type
                 let selector: string;
                 switch (rule.selector) {
@@ -1289,6 +1308,89 @@ export function processInnateSpells(character: Character): Character {
         }
         return spell;
     });
+
+    return updated;
+}
+
+/**
+ * Process devotion spells from archetype dedication feats
+ * These are focus spells granted by archetype dedications like Blessed One Dedication
+ *
+ * This function:
+ * 1. Initializes spellcasting data for non-spellcasters if needed
+ * 2. Adds devotion spells to the focusSpells array
+ * 3. Updates focus pool max for feats that grant Focus Points
+ */
+export function processDevotionSpells(character: Character): Character {
+    const updated = { ...character };
+
+    // Check if character has any archetype dedication that grants devotion spells
+    if (!hasArchetypeSpellcasting(updated)) {
+        return updated;
+    }
+
+    // Initialize spellcasting if not present (for non-spellcasters with archetype devotion spells)
+    if (!updated.spellcasting) {
+        const tradition = getArchetypeSpellTradition(updated) || 'divine';
+        const keyAbility = getArchetypeSpellKeyAbility(updated) || 'cha';
+
+        updated.spellcasting = {
+            tradition,
+            spellcastingType: 'spontaneous',
+            keyAbility,
+            proficiency: 'trained', // Archetype dedications grant trained proficiency
+            spellSlots: {},
+            knownSpells: [],
+            focusPool: { current: 0, max: 0 },
+        };
+    }
+
+    // Initialize focusSpells array if not present
+    if (!updated.spellcasting.focusSpells) {
+        updated.spellcasting.focusSpells = [];
+    }
+
+    // Get all devotion spells from archetype dedication feats
+    const devotionSpellIds = getDevotionSpellsForCharacter(updated);
+
+    // Add devotion spells to focusSpells (avoiding duplicates)
+    for (const spellId of devotionSpellIds) {
+        if (!updated.spellcasting.focusSpells.includes(spellId)) {
+            updated.spellcasting.focusSpells.push(spellId);
+        }
+    }
+
+    // Note: Focus pool is updated by updateFocusPool() which is called after this function
+
+    return updated;
+}
+
+/**
+ * Update focus pool for all characters
+ * Calculates Focus Points from all sources (class features, archetype dedications, etc.)
+ * This should be called for ALL characters, not just those with archetype spellcasting
+ */
+export function updateFocusPool(character: Character): Character {
+    const updated = { ...character };
+
+    // Only update if character has spellcasting
+    if (!updated.spellcasting) {
+        return updated;
+    }
+
+    // Calculate max Focus Points from all sources
+    const maxFocusPoints = calculateMaxFocusPoints(updated);
+
+    // Initialize focusPool if not present
+    if (!updated.spellcasting.focusPool) {
+        updated.spellcasting.focusPool = { current: maxFocusPoints, max: maxFocusPoints };
+    } else {
+        // Update max, preserving current uses (cap at new max)
+        updated.spellcasting.focusPool.max = maxFocusPoints;
+        if (updated.spellcasting.focusPool.current > maxFocusPoints) {
+            updated.spellcasting.focusPool.current = maxFocusPoints;
+        }
+    }
 
     return updated;
 }

@@ -158,9 +158,11 @@ export function CharacterBuilderPage() {
                         onSelect={(heritageId) => {
                             // Check if this heritage requires spell selection
                             if (heritageId && isInnateSpellSource(heritageId)) {
+                                console.log('[CharacterBuilder] Heritage requires spell selection:', heritageId);
                                 setPendingHeritageId(heritageId);
                                 setShowHeritageSpellModal(true);
                             } else {
+                                console.log('[CharacterBuilder] Heritage does NOT require spell selection:', heritageId);
                                 updateCharacter({ heritageId });
                                 nextStep();
                             }
@@ -371,7 +373,10 @@ function HeritageStep({ character, onSelect, t, getName, getDescription }: {
                     <SelectableCard
                         key={heritage.id}
                         selected={character.heritageId === heritage.id}
-                        onClick={() => onSelect(heritage.id)}
+                        onClick={() => {
+                            console.log('[HeritageStep] Card clicked:', heritage.id, heritage.name);
+                            onSelect(heritage.id);
+                        }}
                         title={getName(heritage)}
                         subtitle={heritage.name}
                         badges={heritage.traits}

@@ -18,6 +18,7 @@ import {
     KineticistJunctionBrowser,
     SkillOverlapBonusModal,
     IntBonusSkillModal,
+    HeritageSpellModal,
 } from '../components/desktop';
 import { Character, createEmptyCharacter, migrateCharacter, CharacterFeat, SkillProficiency, AbilityName } from '../types';
 import { LoadedFeat, getClasses, getFeats, getSpells } from '../data/pf2e-loader';
@@ -28,8 +29,9 @@ import { recalculateCharacter } from '../utils/characterRecalculator';
 import { initializeSpellcastingForClass, updateSpellSlotsForLevel } from '../utils/spellcastingInitializer';
 import { getAllKineticistJunctionGrantedFeats } from '../data/classFeatures';
 import { updateDedicationTrackingOnAdd, updateDedicationTrackingOnRemove, recalculateDedicationTracking, removeDedicationAndArchetypeFeats, isArchetypeDedication, migrateFeatIds } from '../utils/archetypeDedication';
+import { hasSpellSelection } from '../data/innateSpellSources';
 
-type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | 'kineticistImpulse' | 'kineticistJunction' | 'intBonusSkills' | null;
+type SelectionType = 'ancestry' | 'heritage' | 'background' | 'class' | 'classSpecialization' | 'secondaryClass' | 'boost' | 'ancestryFeat' | 'classFeat' | 'archetypeFeat' | 'skillTraining' | 'boost2' | 'boost3' | 'boost4' | 'boost5' | 'boost6' | 'boost7' | 'boost8' | 'boost9' | 'boost10' | 'boost11' | 'boost12' | 'boost13' | 'boost14' | 'boost15' | 'boost16' | 'boost17' | 'boost18' | 'boost19' | 'boost20' | 'skillFeat' | 'generalFeat' | 'skillIncrease' | 'tactics' | 'kineticistImpulse' | 'kineticistJunction' | 'intBonusSkills' | 'heritageSpell' | null;
 
 const CharacterSheetPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -42,6 +44,9 @@ const CharacterSheetPage: React.FC = () => {
     const [pendingBackgroundId, setPendingBackgroundId] = useState<string | null>(null);
     const [pendingClassId, setPendingClassId] = useState<string | null>(null);
     const [overlappingSkill, setOverlappingSkill] = useState<string | null>(null);
+
+    // State for heritage spell selection
+    const [pendingHeritageId, setPendingHeritageId] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -168,13 +173,35 @@ const CharacterSheetPage: React.FC = () => {
     };
 
     const handleSelectHeritage = (heritageId: string) => {
-        if (character) {
+        if (hasSpellSelection(heritageId)) {
+            // Heritage requires spell selection (e.g. Spellhorn Kobold)
+            // Save heritage ID and show modal
+            setPendingHeritageId(heritageId);
+            setSelectionType('heritageSpell');
+        } else {
+            // Normal heritage selection
+            if (character) {
+                const updated = recalculateCharacter({
+                    ...character,
+                    heritageId,
+                    heritageChoice: undefined, // Clear any previous choice
+                });
+                handleCharacterUpdate(updated);
+            }
+            setSelectionType(null);
+        }
+    };
+
+    const handleApplyHeritageSpell = (spellId: string) => {
+        if (character && pendingHeritageId) {
             const updated = recalculateCharacter({
                 ...character,
-                heritageId,
+                heritageId: pendingHeritageId,
+                heritageChoice: spellId,
             });
             handleCharacterUpdate(updated);
         }
+        setPendingHeritageId(null);
         setSelectionType(null);
     };
 
@@ -1644,6 +1671,18 @@ const CharacterSheetPage: React.FC = () => {
                     level={selectionLevel ?? undefined}
                     onClose={handleCloseSelection}
                     onApply={handleApplyIntBonusSkills}
+                />
+            )}
+
+            {selectionType === 'heritageSpell' && pendingHeritageId && (
+                <HeritageSpellModal
+                    isOpen={true}
+                    heritageId={pendingHeritageId}
+                    onClose={() => {
+                        setPendingHeritageId(null);
+                        setSelectionType(null);
+                    }}
+                    onApply={handleApplyHeritageSpell}
                 />
             )}
         </>

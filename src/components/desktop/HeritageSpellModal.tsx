@@ -2,7 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { getSpells } from '../../data/pf2e-loader';
 import type { LoadedSpell } from '../../data/pf2e-loader';
-import { isInnateSpellSource, INNATE_SPELL_SOURCES } from '../../data/innateSpellSources';
+import {
+    getInnateSpellSource,
+    hasSpellSelection,
+    getSpellSelection,
+    filterSpellsByConfig,
+} from '../../data/innateSpellSources';
 
 interface HeritageSpellModalProps {
     isOpen: boolean;
@@ -28,114 +33,44 @@ export const HeritageSpellModal: React.FC<HeritageSpellModalProps> = ({
 
     // Get the heritage configuration
     const heritageConfig = useMemo(() => {
-        return INNATE_SPELL_SOURCES[heritageId];
+        return getInnateSpellSource(heritageId);
     }, [heritageId]);
 
-    // Filter cantrips based on heritage requirements
+    // Filter cantrips based on heritage spell selection configuration
     const availableSpells = useMemo(() => {
-        if (!heritageConfig) return [];
+        if (!heritageConfig || !hasSpellSelection(heritageId)) return [];
 
-        const heritageName = heritageId;
+        const selection = getSpellSelection(heritageId);
+        if (!selection) return [];
 
-        // Fey-Touched Gnome: any primal cantrip
-        if (heritageName === 'fey-touched-gnome') {
-            return allCantrips.filter(s => s.traditions.includes('primal'));
-        }
+        // Get the filtered spell IDs using the configuration
+        const filteredIds = filterSpellsByConfig(allCantrips, selection.filter);
 
-        // Wellspring Gnome: any arcane, divine, or occult cantrip
-        if (heritageName === 'wellspring-gnome') {
-            return allCantrips.filter(s =>
-                s.traditions.includes('arcane') ||
-                s.traditions.includes('divine') ||
-                s.traditions.includes('occult')
-            );
-        }
-
-        // Budding Speaker Centaur: divine or primal cantrip
-        if (heritageName === 'budding-speaker-centaur') {
-            return allCantrips.filter(s =>
-                s.traditions.includes('divine') ||
-                s.traditions.includes('primal')
-            );
-        }
-
-        // Makari Lizardfolk: Divine Lance or Forbidding Ward only
-        if (heritageName === 'makari-lizardfolk') {
-            return allCantrips.filter(s =>
-                s.id === 'rLyDaYQDEP0eTmCU' || // Divine Lance
-                s.id === 'm2nqgMfHJLhmDxLQ'  // Forbidding Ward
-            );
-        }
-
-        // Born of Elements: 8 specific primal cantrips
-        if (heritageName === 'born-of-elements') {
-            const elementalCantrips = [
-                'GmgcigXsYuHQBycY', // Electric Arc
-                'VSqoZOdBBdnadMAy', // Frostbite
-                '6DfLZBl8wKIV03Iq', // Ignition
-                'xMzVFcex3tBQVYvM', // Needle Darts
-                'Rnm5T6b0YTXWR8Cu', // Timber
-                'hRk79AWmEc3mzJus', // Scatter Scree
-                'DYYl1L5HgDh0T9vD', // Slashing Gust
-                'dA4k8qvqsLDStQsZ', // Spout
-            ];
-            return allCantrips.filter(s => elementalCantrips.includes(s.id));
-        }
-
-        // Born of Celestial: any divine cantrip
-        if (heritageName === 'born-of-celestial') {
-            return allCantrips.filter(s => s.traditions.includes('divine'));
-        }
-
-        // Respite of Loam and Leaf: any primal cantrip
-        if (heritageName === 'respite-of-loam-and-leaf') {
-            return allCantrips.filter(s => s.traditions.includes('primal'));
-        }
-
-        // Rite of Invocation: arcane or occult cantrip
-        if (heritageName === 'rite-of-invocation') {
-            return allCantrips.filter(s =>
-                s.traditions.includes('arcane') ||
-                s.traditions.includes('occult')
-            );
-        }
-
-        // Mage Automaton: any arcane cantrip
-        if (heritageName === 'mage-automaton') {
-            return allCantrips.filter(s => s.traditions.includes('arcane'));
-        }
-
-        // Oracular Samsaran: arcane, divine, or occult cantrip
-        if (heritageName === 'oracular-samsaran') {
-            return allCantrips.filter(s =>
-                s.traditions.includes('arcane') ||
-                s.traditions.includes('divine') ||
-                s.traditions.includes('occult')
-            );
-        }
-
-        // Spellkeeper Shisk: occult or primal cantrip
-        if (heritageName === 'spellkeeper-shisk') {
-            return allCantrips.filter(s =>
-                s.traditions.includes('occult') ||
-                s.traditions.includes('primal')
-            );
-        }
-
-        // Forge-Blessed Dwarf: specific spells based on deity
-        // This would need deity selection, so for now return empty
-        if (heritageName === 'forge-blessed-dwarf') {
-            return [];
-        }
-
-        return [];
-    }, [heritageConfig, allCantrips, heritageId]);
+        // Return the full spell objects for the filtered IDs
+        return allCantrips.filter(s => filteredIds.includes(s.id));
+    }, [heritageConfig, heritageId, allCantrips]);
 
     // Group spells by tradition for display
     const spellsByTradition = useMemo(() => {
         const groups: Record<string, LoadedSpell[]> = {};
+        const allowedTraditions = heritageConfig?.spellSelection?.filter?.traditions;
+
+        // If a specific output tradition is forced (e.g. "Cast as arcane innate spell"),
+        // use that for grouping instead of the spell's original traditions?
+        // Actually, usually we catch the original tradition.
+        // But if we filter by traditions, we should only show those buckets.
+
         for (const spell of availableSpells) {
             for (const tradition of spell.traditions) {
+                // If strict tradition filtering is active, only show allowed traditions
+                // This prevents multi-tradition spells (e.g. Arcane/Divine) from showing up under Divine
+                // when we only asked for Arcane spells.
+                if (allowedTraditions && allowedTraditions.length > 0) {
+                    if (!allowedTraditions.includes(tradition as any)) {
+                        continue;
+                    }
+                }
+
                 if (!groups[tradition]) {
                     groups[tradition] = [];
                 }
@@ -145,7 +80,7 @@ export const HeritageSpellModal: React.FC<HeritageSpellModalProps> = ({
             }
         }
         return groups;
-    }, [availableSpells]);
+    }, [availableSpells, heritageConfig]);
 
     if (!isOpen || !heritageConfig) return null;
 

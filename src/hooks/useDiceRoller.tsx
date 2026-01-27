@@ -4,7 +4,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { DiceRoll, DiceConfig, WeaponRollData, ImpulseRollData } from '../types/dice';
+import { DiceRoll, DiceConfig, WeaponRollData, ImpulseRollData, SpellRollData } from '../types/dice';
 
 interface DiceRollOptions {
     isCrit?: boolean;
@@ -12,7 +12,10 @@ interface DiceRollOptions {
     element?: string;
     weaponData?: WeaponRollData;
     impulseData?: ImpulseRollData;
+    spellData?: SpellRollData;
 }
+
+
 
 interface DiceRollerContextType {
     rolls: DiceRoll[];
@@ -34,8 +37,10 @@ interface DiceRollerContextType {
     // New: Open dicebox without auto-rolling
     pendingWeaponData: WeaponRollData | null;
     pendingImpulseData: ImpulseRollData | null;
+    pendingSpellData: SpellRollData | null;
     openDiceBoxWithWeapon: (weaponData: WeaponRollData) => void;
     openDiceBoxWithImpulse: (impulseData: ImpulseRollData) => void;
+    openDiceBoxWithSpell: (spellData: SpellRollData) => void;
     clearPendingData: () => void;
 }
 
@@ -64,6 +69,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
     // Pending data for opening dicebox without rolling
     const [pendingWeaponData, setPendingWeaponData] = useState<WeaponRollData | null>(null);
     const [pendingImpulseData, setPendingImpulseData] = useState<ImpulseRollData | null>(null);
+    const [pendingSpellData, setPendingSpellData] = useState<SpellRollData | null>(null);
 
     const addRoll = useCallback((roll: DiceRoll) => {
         setRolls(prev => [...prev, roll]);
@@ -87,12 +93,21 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
     const openDiceBoxWithImpulse = useCallback((impulseData: ImpulseRollData) => {
         setPendingImpulseData(impulseData);
         setPendingWeaponData(null);
+        setPendingSpellData(null);
+    }, []);
+
+    // Open dicebox with spell data without auto-rolling
+    const openDiceBoxWithSpell = useCallback((spellData: SpellRollData) => {
+        setPendingSpellData(spellData);
+        setPendingWeaponData(null);
+        setPendingImpulseData(null);
     }, []);
 
     // Clear pending data (called after first roll or panel close)
     const clearPendingData = useCallback(() => {
         setPendingWeaponData(null);
         setPendingImpulseData(null);
+        setPendingSpellData(null);
     }, []);
 
     // Parse dice formula (e.g., "1d20+5", "2d8+4", "4d6+6+1d12")
@@ -222,6 +237,7 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
             element: options?.element,  // Pass element for colored dice
             weaponData: options?.weaponData,  // Pass weapon data for weapon-specific actions
             impulseData: options?.impulseData,  // Pass impulse data for impulse-specific actions
+            spellData: options?.spellData,  // Pass spell data for spell actions
         };
 
         addRoll(roll);
@@ -349,8 +365,10 @@ export const DiceRollerProvider: React.FC<DiceRollerProviderProps> = ({ children
         updateConfig,
         pendingWeaponData,
         pendingImpulseData,
+        pendingSpellData,
         openDiceBoxWithWeapon,
         openDiceBoxWithImpulse,
+        openDiceBoxWithSpell,
         clearPendingData,
     };
 

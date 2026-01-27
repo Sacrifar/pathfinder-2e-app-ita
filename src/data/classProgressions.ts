@@ -301,7 +301,7 @@ export const classProgressions: Record<string, ClassProgression> = {
     // Level 15: Tempered Reflexes (Reflex Master), Greater Weapon Specialization
     // Level 17: Armor Mastery (all → Master)
     // Level 19: Versatile Legend (Fort Legendary)
-    'HZbrRRVzW7wL2W': { // Fighter Foundry ID
+    '8zn3cD6GSmoo1LW4': { // Fighter Foundry ID
         armorProficiencies: {
             light: setFromLevel(fillArray(20, 1), 16, 3),    // Master at 17
             medium: setFromLevel(setFromLevel(fillArray(20, 1), 10, 2), 16, 3),  // Expert at 11, Master at 17
@@ -456,7 +456,7 @@ export const classProgressions: Record<string, ClassProgression> = {
     // Level 13: Graceful Mastery (Perception Master), Master Strikes
     // Level 15: Greater Weapon Specialization, Third Path to Perfection
     // Level 17: Graceful Legend (Perception Legendary), Adamantine Strikes
-    'gk7qizRH1v4mUm9b': { // Monk Foundry ID
+    'YPxpk9JbMnKjbNLc': { // Monk Foundry ID
         armorProficiencies: {
             light: fillArray(20, 0),
             medium: fillArray(20, 0),
@@ -532,7 +532,7 @@ export const classProgressions: Record<string, ClassProgression> = {
     // Level 15: Greater Natural Reflexes (Ref Master), Greater Weapon Specialization, Perception Legend
     // Level 17: Masterful Hunter
     // Level 19: Medium Armor Mastery, Swift Prey
-    'TmOy8TIPxcRMPqD': { // Ranger Foundry ID
+    'Yix76sfxrIlltSTJ': { // Ranger Foundry ID
         armorProficiencies: {
             light: fillArray(20, 1),
             medium: setFromLevel(fillArray(20, 1), 12, 2),    // Expert at 13
@@ -570,7 +570,7 @@ export const classProgressions: Record<string, ClassProgression> = {
     // Level 17: Agile Mind
     // Level 19: Light Armor Mastery, Master Strike
     // UNIQUE: Skill feats at EVERY level (1-20), skill increases at even levels
-    'GaQ2WOa80S1n8dxI': { // Rogue Foundry ID
+    'LO9STvskJemPkiAI': { // Rogue Foundry ID
         armorProficiencies: {
             light: setFromLevel(setFromLevel(fillArray(20, 1), 12, 2), 18, 3), // Expert at 13, Master at 19
             medium: fillArray(20, 0),
@@ -1079,20 +1079,18 @@ export const foundryIdToClassName: Record<string, string> = {
     '4wrSCyX6akmyo7Wj': 'investigator',
     'RggQN3bX5SEcsffR': 'kineticist',
     'HQBA9Yx2s8ycvz3C': 'magus',
-    'gk7qizRH1v4mUm9b': 'monk',
+    'YPxpk9JbMnKjbNLc': 'monk',
     'pWHx4SXcft9O2udP': 'oracle',
     'Inq4gH3P5PYjSQbD': 'psychic',
-    'TmOy8TIPxcRMPqD': 'ranger',
-    'GaQ2WOa80S1n8dxI': 'rogue',
+    'Yix76sfxrIlltSTJ': 'ranger',
+    'LO9STvskJemPkiAI': 'rogue',
     '15Yc1r6s9CEhSTMe': 'sorcerer',
     'YtOm245r8GFSFYeD': 'summoner',
     'uJ5aCzlw34GGdWjp': 'swashbuckler',
     'Y5GsHqzCzJlKka6x': 'thaumaturge',
     'bYDXk9HUMKOuym9h': 'witch',
-    'HZbrRRVzW7wL2W': 'fighter',
+    '8zn3cD6GSmoo1LW4': 'fighter',
     'RwjIZzIxzPpUglnK': 'wizard',
-    'LO9STvskJemPkiAI': 'rogue',
-    'YPxpk9JbMnKjbNLc': 'monk',
 };
 
 /**

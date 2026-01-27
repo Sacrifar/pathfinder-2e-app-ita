@@ -115,6 +115,18 @@ interface RawSpellSystem {
     damage: Record<string, { formula: string; type: string }>;
     defense: { save: { statistic: string; basic: boolean } | null } | null;
     description: { value: string };
+    ritual?: {
+        primary?: { check: string };
+        secondary?: { casters: number; checks: string };
+    };
+    publication?: { title: string; license: string; remaster: boolean };
+    heightening?: {
+        type: 'fixed' | 'interval';
+        interval?: number;
+        levels?: Record<string, { damage?: Record<string, { formula: string; type: string }>; area?: { type: string; value: number } }>;
+        damage?: Record<string, string>;
+        area?: number;
+    };
 }
 
 interface RawFeatSystem {
@@ -285,6 +297,31 @@ export interface LoadedSpell {
     save: string | null;
     description: string;
     rawDescription?: string;
+    isRitual?: boolean;
+    source: string;
+    heightening?: SpellHeightening;
+}
+
+export interface SpellHeightening {
+    type: 'fixed' | 'interval';
+    interval?: number;  // For interval type: e.g., 2 = every 2 levels
+    levels?: Record<string, HeighteningLevelData>;  // For fixed type: specific levels
+    damage?: Record<string, string>;  // For interval type: damage increase per interval
+    area?: number;  // Area increase per interval (for interval type)
+}
+
+export interface HeighteningLevelData {
+    damage?: Record<string, DamageData>;  // Damage changes at this level
+    area?: { type: string; value: number };  // Area changes at this level
+    target?: string;  // Target changes at this level
+    duration?: string;  // Duration changes at this level
+}
+
+export interface DamageData {
+    applyMod?: boolean;
+    category?: string | null;
+    formula: string;
+    type: string;
 }
 
 export interface LoadedFeat {
@@ -569,6 +606,27 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
     const traits = sys.traits?.value || [];
     const isCantrip = traits.includes('cantrip');
 
+    // Check if this is a ritual (rituals have the ritual property in system)
+    const isRitual = sys.ritual !== undefined && sys.ritual !== null;
+
+    // Parse heightening data
+    let heightening: SpellHeightening | undefined;
+    if (sys.heightening) {
+        heightening = {
+            type: sys.heightening.type,
+            interval: sys.heightening.interval,
+            levels: sys.heightening.levels ? Object.entries(sys.heightening.levels).reduce((acc, [level, data]) => {
+                acc[level] = {
+                    damage: data.damage,
+                    area: data.area,
+                };
+                return acc;
+            }, {} as Record<string, HeighteningLevelData>) : undefined,
+            damage: sys.heightening.damage,
+            area: sys.heightening.area,
+        };
+    }
+
     return {
         id: raw._id,
         name: raw.name,
@@ -584,6 +642,9 @@ function transformSpell(raw: RawPF2eItem): LoadedSpell | null {
         save,
         description: stripHtml(sys.description?.value || ''),
         rawDescription: sys.description?.value || '', // Keep original HTML with all FoundryVTT tags
+        isRitual,
+        source: sys.publication?.title || '',
+        heightening,
     };
 }
 

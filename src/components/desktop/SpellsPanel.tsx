@@ -2,45 +2,174 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useDiceRoller } from '../../hooks/useDiceRoller';
 import { Character, Proficiency, InnateSpell } from '../../types';
+import { SpellRollData } from '../../types/dice';
 import { getSpells, LoadedSpell, cleanDescriptionForDisplay } from '../../data/pf2e-loader';
 import { extractDamageFromDescription, simplifyFoundryFormula } from '../../utils/pf2e-math';
-import { getCantripsKnown, getSpellsKnown } from '../../data/spellSlotProgression';
+import { getCantripsKnown, getSpellsKnown, isSpellcasterClass } from '../../data/spellSlotProgression';
 import { getClassNameById } from '../../data/classSpecializations';
+import { getBardMuseSpell } from '../../data/classGrantedSpells';
+import { ActionIcon } from '../../utils/actionIcons';
+import {
+    getAvailableHeightenedLevels,
+    getHeightenedSpellData,
+    canSpellBeHeightened,
+    isSignatureSpell,
+    getSignatureSpellCount
+} from '../../utils/spellHeightening';
 
 interface SpellsPanelProps {
     character: Character;
-    onCastSpell: (spellId: string) => void;
-    onAddSpell: () => void;
+    onCharacterUpdate: (character: Character) => void;
 }
 
 type SpellSubTab = 'class' | 'focus' | 'rituals' | 'innate';
 
-// Action icon mapping
-const getActionIcon = (castTime: string): string => {
+// Action icon mapping - returns the cost type for ActionIcon component
+const getSpellActionCost = (castTime: string): '1' | '2' | '3' | 'free' | 'reaction' | null => {
     const time = castTime.toLowerCase();
-    if (time === '1' || time === 'single action') return '◆';
-    if (time === '2' || time === 'two actions' || time === '2 actions') return '◆◆';
-    if (time === '3' || time === 'three actions' || time === '3 actions') return '◆◆◆';
-    if (time === 'free' || time === 'free action') return '◇';
-    if (time === 'reaction') return '⟳';
-    // For longer cast times like "1 minute", "10 minutes", etc.
-    if (time.includes('minute') || time.includes('hour')) return '⏱';
-    return '◆◆'; // Default to 2 actions
+    if (time === '1' || time === 'single action') return '1';
+    if (time === '2' || time === 'two actions' || time === '2 actions') return '2';
+    if (time === '3' || time === 'three actions' || time === '3 actions') return '3';
+    if (time === 'free' || time === 'free action') return 'free';
+    if (time === 'reaction') return 'reaction';
+    // For longer cast times like "1 minute", "10 minutes", etc. - return null to show text
+    return null;
+};
+
+// Render spell action icon or text for non-standard cast times
+const renderSpellActionIcon = (castTime: string) => {
+    const cost = getSpellActionCost(castTime);
+    if (cost) {
+        return <ActionIcon cost={cost} />;
+    }
+    // For longer cast times, show a truncated version
+    const time = castTime.toLowerCase();
+    if (time.includes('minute') || time.includes('hour')) {
+        return <span className="spell-cast-time-text">{castTime}</span>;
+    }
+    return <span className="spell-cast-time-text">{castTime}</span>;
 };
 
 export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     character,
-    onCastSpell,
-    onAddSpell: _onAddSpell,
+    onCharacterUpdate,
 }) => {
     const { t } = useLanguage();
-    const { rollDice } = useDiceRoller();
-    const [activeSubTab, setActiveSubTab] = useState<SpellSubTab>('class');
+    const { openDiceBoxWithSpell } = useDiceRoller();
+
+    // Check if character has class spellcasting
+    const hasClassSpellcasting = useMemo(() => {
+        return character.classId ? isSpellcasterClass(character.classId) : false;
+    }, [character.classId]);
+
+    // Determines default tab: 'class' (if spellcaster) -> 'innate' (if has innate) -> 'focus' (if has focus)
+    const getInitialTab = (): SpellSubTab => {
+        if (hasClassSpellcasting) return 'class';
+        if (character.spellcasting?.innateSpells && character.spellcasting.innateSpells.length > 0) return 'innate';
+        if (character.spellcasting?.focusSpells && character.spellcasting.focusSpells.length > 0) return 'focus';
+        return 'innate'; // Fallback
+    };
+
+    const [activeSubTab, setActiveSubTab] = useState<SpellSubTab>(getInitialTab());
     const [showBrowser, setShowBrowser] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState<number | 'all'>('all');
     const [traditionFilter, setTraditionFilter] = useState<string>('all');
     const [selectedSpell, setSelectedSpell] = useState<LoadedSpell | null>(null);
+    const [viewingSpell, setViewingSpell] = useState<LoadedSpell | null>(null);  // For spell description modal
+    const [selectedHeightenedLevel, setSelectedHeightenedLevel] = useState<number | null>(null);  // For heightening selection
+
+    // Calculate signature spell limit for this character
+    const signatureSpellLimit = useMemo(() => {
+        return getSignatureSpellCount(character.classId, character.level || 1);
+    }, [character.classId, character.level]);
+
+    const currentSignatureSpells = useMemo(() => {
+        return character.spellcasting?.signatureSpells || [];
+    }, [character.spellcasting?.signatureSpells]);
+
+    const canAddSignatureSpell = currentSignatureSpells.length < signatureSpellLimit;
+
+    // Get known heightened levels for a specific spell
+    const getKnownHeightenedLevels = (spellId: string): number[] => {
+        const heightenedSpells = character.spellcasting?.heightenedSpells || [];
+        return heightenedSpells
+            .filter(h => h.spellId === spellId)
+            .map(h => h.heightenedLevel);
+    };
+
+    // Handle toggling signature spell status
+    const handleToggleSignatureSpell = (spellId: string, event: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => {
+        event.stopPropagation();
+
+        const isCurrentlySignature = currentSignatureSpells.includes(spellId);
+        let updatedSignatureSpells: string[];
+
+        if (isCurrentlySignature) {
+            // Remove from signature spells
+            updatedSignatureSpells = currentSignatureSpells.filter(id => id !== spellId);
+        } else {
+            // Add to signature spells (if limit not reached)
+            if (!canAddSignatureSpell) return;
+            updatedSignatureSpells = [...currentSignatureSpells, spellId];
+        }
+
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...character.spellcasting!,
+                signatureSpells: updatedSignatureSpells,
+            },
+        };
+
+        onCharacterUpdate(updatedCharacter);
+    };
+
+    // Handle adding a heightened version of a spell
+    const handleAddHeightenedVersion = (spellId: string, heightenedLevel: number) => {
+        const currentHeightened = character.spellcasting?.heightenedSpells || [];
+
+        // Check if already exists
+        if (currentHeightened.some(h => h.spellId === spellId && h.heightenedLevel === heightenedLevel)) {
+            return;
+        }
+
+        const updatedHeightened = [
+            ...currentHeightened,
+            { spellId, heightenedLevel }
+        ];
+
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...character.spellcasting!,
+                heightenedSpells: updatedHeightened,
+            },
+        };
+
+        onCharacterUpdate(updatedCharacter);
+        setSelectedHeightenedLevel(null);
+    };
+
+    // Handle removing a heightened version
+    const handleRemoveHeightenedVersion = (spellId: string, heightenedLevel: number, event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        const currentHeightened = character.spellcasting?.heightenedSpells || [];
+        const updatedHeightened = currentHeightened.filter(
+            h => !(h.spellId === spellId && h.heightenedLevel === heightenedLevel)
+        );
+
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...character.spellcasting!,
+                heightenedSpells: updatedHeightened,
+            },
+        };
+
+        onCharacterUpdate(updatedCharacter);
+    };
 
     // Load all spells from pf2e data
     const allSpells = useMemo(() => getSpells(), []);
@@ -59,10 +188,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             spells = spells.filter(s => s.rank === rankFilter);
         }
 
-        // Filter by tradition (default to character's tradition)
-        const tradToFilter = traditionFilter !== 'all' ? traditionFilter : character.spellcasting?.tradition;
-        if (tradToFilter) {
-            spells = spells.filter(s => s.traditions.includes(tradToFilter));
+        // Filter for rituals only when on rituals tab (before tradition filter)
+        if (activeSubTab === 'rituals') {
+            // Show all rituals except unique ones (matching AON reference)
+            spells = spells.filter(s => s.isRitual === true && s.rarity !== 'unique');
+        } else {
+            // Filter by tradition (default to character's tradition) - skip for rituals
+            const tradToFilter = traditionFilter !== 'all' ? traditionFilter : character.spellcasting?.tradition;
+            if (tradToFilter) {
+                spells = spells.filter(s => s.traditions.includes(tradToFilter));
+            }
         }
 
         // Filter by search
@@ -75,7 +210,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         }
 
         return spells.slice(0, 50); // Limit for performance
-    }, [allSpells, rankFilter, traditionFilter, searchQuery, character.spellcasting?.tradition]);
+    }, [allSpells, rankFilter, traditionFilter, searchQuery, character.spellcasting?.tradition, activeSubTab]);
 
     // Check if character has spellcasting
     if (!character.spellcasting) {
@@ -144,21 +279,43 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
     // Filter known spells to only include actual spells (not feats/actions)
     const validKnownSpells = useMemo(() => {
-        return spellcasting.knownSpells.filter(spellId => {
+        const museSpellId = getBardMuseSpell(character);
+        const knownList = [...spellcasting.knownSpells];
+
+        // Inject Muse spell if not already learned
+        if (museSpellId && !knownList.includes(museSpellId)) {
+            // Only add if we are a Bard (double check to be safe, though getBardMuseSpell checks feats)
+            if (character.classId && getClassNameById(character.classId) === 'Bard') {
+                knownList.push(museSpellId);
+            }
+        }
+
+        return knownList.filter(spellId => {
             const normalizedId = spellId.toLowerCase().replace(/\s+/g, '-');
             // Check if this ID exists in the actual spell database
             return validSpellIds.has(normalizedId) ||
                 allSpells.some(s => s.id.toLowerCase() === normalizedId);
         });
-    }, [spellcasting.knownSpells, validSpellIds, allSpells]);
+    }, [spellcasting.knownSpells, validSpellIds, allSpells, character.feats, character.classId]);
 
     // Calculate spells known limits for spontaneous casters
     const spellsKnownLimits = useMemo(() => {
         if (spellcasting.spellcastingType === 'spontaneous') {
-            return getSpellsKnown(character.classId, character.level || 1);
+            const limits = { ...getSpellsKnown(character.classId, character.level || 1) };
+
+            // Bard Muse Spell Logic:
+            // If the character is a Bard and has a Muse spell, increase Rank 1 limit by 1
+            // This allows the Muse spell to be "known" without taking up a standard repertoire slot
+            // (Technically it takes a slot but the limit is effectively N+1 where 1 is fixed)
+            const museSpell = getBardMuseSpell(character);
+            if (museSpell && character.classId && getClassNameById(character.classId) === 'Bard') {
+                limits[1] = (limits[1] || 0) + 1;
+            }
+
+            return limits;
         }
         return {};
-    }, [character.classId, character.level, spellcasting.spellcastingType]);
+    }, [character.classId, character.level, spellcasting.spellcastingType, character.feats]); // Added feats dependency for Muse check
 
     // Calculate cantrips known limit
     const cantripsKnownLimit = useMemo(() => {
@@ -231,34 +388,131 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         return traits.find(t => elementalTraits.includes(t.toLowerCase()));
     };
 
-    // Handle spell casting with damage rolls
-    const handleSpellCast = (spellId: string) => {
-        const spell = getSpellFromSlug(spellId);
-        if (!spell) return;
+    // Handle consuming a spell slot when casting
+    const handleConsumeSpellSlot = (spellRank: number, event: React.MouseEvent) => {
+        event.stopPropagation();
 
-        // Call the original onCastSpell callback
-        onCastSpell(spellId);
+        // Cantrips don't use spell slots
+        if (spellRank === 0) return;
 
-        // Extract damage from spell description if present
-        const description = spell.rawDescription || spell.description;
-        const damages = extractDamageFromDescription(description);
+        const slotData = spellcasting.spellSlots[spellRank];
+        if (!slotData || slotData.used >= slotData.max) return; // No slots available
 
-        if (damages && damages.length > 0) {
-            // Simplify damage formulas using character data
-            const simplifiedDamages = damages.map(d => simplifyFoundryFormula(d, character));
+        // Update spell slots
+        const updatedSpellSlots = {
+            ...spellcasting.spellSlots,
+            [spellRank]: {
+                ...slotData,
+                used: slotData.used + 1
+            }
+        };
 
-            // Extract element from traits for colored dice
-            const element = extractElementFromTraits(spell.traits);
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...spellcasting,
+                spellSlots: updatedSpellSlots
+            }
+        };
 
-            if (simplifiedDamages.length === 1) {
-                // Single damage type
-                rollDice(simplifiedDamages[0], `${spell.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
-            } else {
-                // Multiple damage types - combine them
-                const combinedDamage = simplifiedDamages.join(' + ');
-                rollDice(combinedDamage, `${spell.name} - ${t('weapons.damageRoll') || 'Damage'}`, { element });
+        onCharacterUpdate(updatedCharacter);
+    };
+
+    // Handle consuming a Focus Point when casting a focus spell
+    const handleConsumeFocusPoint = (event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        if (!spellcasting.focusPool || spellcasting.focusPool.current <= 0) return; // No focus points available
+
+        // Update focus pool
+        const updatedFocusPool = {
+            ...spellcasting.focusPool,
+            current: spellcasting.focusPool.current - 1,
+        };
+
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...spellcasting,
+                focusPool: updatedFocusPool,
+            },
+        };
+        onCharacterUpdate(updatedCharacter);
+    };
+
+    // Handle consuming an innate spell use
+    const handleConsumeInnateSpellUse = (spellId: string, event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        const innateSpells = spellcasting.innateSpells || [];
+        const innateSpellIndex = innateSpells.findIndex(is => is.spellId === spellId);
+
+        if (innateSpellIndex === -1) return; // Spell not found
+
+        const innateSpell = innateSpells[innateSpellIndex];
+
+        // Cantrips (unlimited uses) don't consume uses
+        if (innateSpell.maxUses >= 999) return;
+
+        if (innateSpell.uses <= 0) return; // No uses available
+
+        // Update innate spell uses
+        const updatedInnateSpells = [...innateSpells];
+        updatedInnateSpells[innateSpellIndex] = {
+            ...innateSpell,
+            uses: innateSpell.uses - 1,
+        };
+
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...spellcasting,
+                innateSpells: updatedInnateSpells,
+            },
+        };
+        onCharacterUpdate(updatedCharacter);
+    };
+
+    // Check if spell requires an attack roll (has 'attack' trait and no save)
+    const spellRequiresAttackRoll = (spell: LoadedSpell): boolean => {
+        return spell.traits.includes('attack');
+    };
+
+    // Handle opening the dicebox with spell data (without auto-rolling)
+    const handleOpenDiceBoxForSpell = (spell: LoadedSpell, event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        const element = extractElementFromTraits(spell.traits);
+        // Use spell.damage directly (already contains formula and type like "2d4 cold")
+        // If spell.damage is not available, try extracting from description
+        let damageFormula = spell.damage || undefined;
+        if (!damageFormula) {
+            const description = spell.rawDescription || spell.description;
+            const damages = extractDamageFromDescription(description);
+            if (damages && damages.length > 0) {
+                damageFormula = damages.map(d => simplifyFoundryFormula(d, character)).join(' + ');
             }
         }
+
+        const spellData: SpellRollData = {
+            spellId: spell.id,
+            spellName: spell.name,
+            rank: spell.rank,
+            damage: damageFormula,
+            element,
+            spellAttack,
+            spellDC,
+            castTime: spell.castTime,
+            requiresAttackRoll: spellRequiresAttackRoll(spell)
+        };
+
+        openDiceBoxWithSpell(spellData);
+    };
+
+    // Handle showing spell description
+    const handleViewSpellDetails = (spell: LoadedSpell, event: React.MouseEvent) => {
+        event.stopPropagation();
+        setViewingSpell(spell);
     };
 
     // Spell slots display
@@ -342,69 +596,107 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
 
                         {selectedSpell && (
                             <div className="spell-detail">
-                                <div className="spell-detail-header">
-                                    <h4>{selectedSpell.name}</h4>
-                                    <span className="spell-rank-badge">
-                                        {selectedSpell.rank === 0 ? 'Cantrip' : `Rank ${selectedSpell.rank}`}
-                                    </span>
-                                </div>
-                                <div className="spell-traditions-row">
-                                    {selectedSpell.traditions.map(trad => (
-                                        <span key={trad} className={`tradition-tag ${trad}`}>{trad}</span>
-                                    ))}
-                                </div>
-                                <div className="spell-detail-grid">
-                                    <div className="detail-row">
-                                        <span className="detail-label">{t('spell.cast') || 'Cast'}</span>
-                                        <span className="detail-value">{getActionIcon(selectedSpell.castTime)} {selectedSpell.castTime}</span>
+                                <div className="spell-detail-header-row">
+                                    <div className="spell-detail-title-section">
+                                        <h4>{selectedSpell.name}</h4>
+                                        <div className="spell-badges">
+                                            <span className="spell-rank-badge">
+                                                {selectedSpell.rank === 0 ? 'Cantrip' : `Rank ${selectedSpell.rank}`}
+                                            </span>
+                                            {selectedSpell.traditions.map(trad => (
+                                                <span key={trad} className={`tradition-tag ${trad}`}>{trad}</span>
+                                            ))}
+                                        </div>
                                     </div>
-                                    {selectedSpell.range && (
-                                        <div className="detail-row">
-                                            <span className="detail-label">{t('spell.range') || 'Range'}</span>
-                                            <span className="detail-value">{selectedSpell.range}</span>
-                                        </div>
-                                    )}
-                                    {selectedSpell.area && (
-                                        <div className="detail-row">
-                                            <span className="detail-label">{t('spell.area') || 'Area'}</span>
-                                            <span className="detail-value">{selectedSpell.area}</span>
-                                        </div>
-                                    )}
-                                    {selectedSpell.duration && (
-                                        <div className="detail-row">
-                                            <span className="detail-label">{t('spell.duration') || 'Duration'}</span>
-                                            <span className="detail-value">{selectedSpell.duration}</span>
-                                        </div>
-                                    )}
-                                    {selectedSpell.save && (
-                                        <div className="detail-row">
-                                            <span className="detail-label">{t('spell.save') || 'Save'}</span>
-                                            <span className="detail-value">{selectedSpell.save}</span>
-                                        </div>
-                                    )}
-                                    {selectedSpell.damage && (
-                                        <div className="detail-row">
-                                            <span className="detail-label">{t('spell.damage') || 'Damage'}</span>
-                                            <span className="detail-value damage-value">{selectedSpell.damage}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                {selectedSpell.traits.length > 0 && (
-                                    <div className="spell-traits-section">
-                                        <div className="traits-list">
+
+                                    {selectedSpell.traits.length > 0 && (
+                                        <div className="spell-detail-traits">
                                             {selectedSpell.traits.map(trait => (
                                                 <span key={trait} className="trait-tag">{trait}</span>
                                             ))}
                                         </div>
+                                    )}
+                                </div>
+
+                                <div className="spell-detail-stats-grid">
+                                    <div className="detail-stat-box">
+                                        <span className="stat-label">{t('spell.cast') || 'Cast'}</span>
+                                        <div className="stat-value-row">
+                                            {renderSpellActionIcon(selectedSpell.castTime)}
+                                            {/* Only show text if it's not a standard action icon or if we want to reinforce it */}
+                                            {(!['1', '2', '3', 'free', 'reaction'].includes(getSpellActionCost(selectedSpell.castTime) || '')) && (
+                                                <span className="cast-text">{selectedSpell.castTime}</span>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+
+                                    {selectedSpell.range && (
+                                        <div className="detail-stat-box">
+                                            <span className="stat-label">{t('spell.range') || 'Range'}</span>
+                                            <span className="stat-value">{selectedSpell.range}</span>
+                                        </div>
+                                    )}
+
+                                    {selectedSpell.area && (
+                                        <div className="detail-stat-box">
+                                            <span className="stat-label">{t('spell.area') || 'Area'}</span>
+                                            <span className="stat-value">{selectedSpell.area}</span>
+                                        </div>
+                                    )}
+
+                                    {selectedSpell.duration && (
+                                        <div className="detail-stat-box">
+                                            <span className="stat-label">{t('spell.duration') || 'Duration'}</span>
+                                            <span className="stat-value">{selectedSpell.duration}</span>
+                                        </div>
+                                    )}
+
+                                    {selectedSpell.save && (
+                                        <div className="detail-stat-box">
+                                            <span className="stat-label">{t('spell.save') || 'Save'}</span>
+                                            <span className="stat-value">{selectedSpell.save}</span>
+                                        </div>
+                                    )}
+
+                                    {selectedSpell.damage && (
+                                        <div className="detail-stat-box full-width">
+                                            <span className="stat-label">{t('spell.damage') || 'Damage'}</span>
+                                            <span className="stat-value damage-text">{selectedSpell.damage}</span>
+                                        </div>
+                                    )}
+                                </div>
                                 <p className="spell-description">{cleanDescriptionForDisplay(selectedSpell.rawDescription || selectedSpell.description)}</p>
                                 <button className="add-spell-btn" onClick={() => {
-                                    // TODO: Add spell to character
+                                    // Add spell to appropriate list based on active tab
+                                    if (activeSubTab === 'rituals') {
+                                        // Add to rituals
+                                        const updatedRituals = [...(character.spellcasting?.rituals || []), selectedSpell.id];
+                                        const updatedCharacter = {
+                                            ...character,
+                                            spellcasting: {
+                                                ...character.spellcasting!,
+                                                rituals: updatedRituals,
+                                            },
+                                        };
+                                        onCharacterUpdate(updatedCharacter);
+                                    } else {
+                                        // Add to knownSpells
+                                        const updatedKnownSpells = [...(character.spellcasting?.knownSpells || []), selectedSpell.id];
+                                        const updatedCharacter = {
+                                            ...character,
+                                            spellcasting: {
+                                                ...character.spellcasting!,
+                                                knownSpells: updatedKnownSpells,
+                                            },
+                                        };
+                                        onCharacterUpdate(updatedCharacter);
+                                    }
                                     setShowBrowser(false);
                                     setSelectedSpell(null);
                                 }}>
-                                    + {t('actions.learnSpell') || 'Learn Spell'}
+                                    + {activeSubTab === 'rituals'
+                                        ? (t('actions.learnRitual') || 'Learn Ritual')
+                                        : (t('actions.learnSpell') || 'Learn Spell')}
                                 </button>
                             </div>
                         )}
@@ -414,26 +706,178 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         );
     }
 
+    // Handle removing a learned spell
+    const handleRemoveSpell = (spellId: string, event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        const updatedKnownSpells = spellcasting.knownSpells.filter(id => id !== spellId);
+        const updatedCharacter = {
+            ...character,
+            spellcasting: {
+                ...spellcasting,
+                knownSpells: updatedKnownSpells,
+            },
+        };
+        onCharacterUpdate(updatedCharacter);
+    };
+
     // Render a spell row in Pathbuilder style
-    const renderSpellRow = (spell: LoadedSpell, isPlaceholder = false) => {
-        if (isPlaceholder) {
+    const renderSpellRow = (spell: LoadedSpell | null, isPlaceholder = false) => {
+        // Handle placeholder rendering first to avoid null access errors
+        if (isPlaceholder || !spell) {
             return (
                 <div className="spell-row placeholder" onClick={() => setShowBrowser(true)}>
                     <span className="spell-row-name">{t('spell.notSelected') || 'Not Selected'}</span>
                     <span className="spell-row-actions">—</span>
                     <span className="spell-row-duration">—</span>
                     <span className="spell-row-range">—</span>
+                    <span className="spell-row-damage">—</span>
+                    <span className="spell-row-area">—</span>
+                    <span className="spell-row-cast"></span>
+                    <span></span>
+                    <span className="spell-row-signature"></span>
+                    <span className="spell-row-heightened"></span>
                 </div>
             );
         }
 
+        const museSpellId = getBardMuseSpell(character);
+        const isMuseSpell = spell.id === museSpellId;
+        const isCantrip = spell.rank === 0;
+        const isSignature = isSignatureSpell(character, spell.id);
+        const knownHeightenedLevels = getKnownHeightenedLevels(spell.id);
+        const canBeHeightened = canSpellBeHeightened(spell);
+        const availableHeightenedLevels = canBeHeightened
+            ? getAvailableHeightenedLevels(spell, character.level || 1, knownHeightenedLevels)
+            : [];
+
+        // Check if this is a focus spell (from focusSpells array)
+        const isFocusSpell = focusSpells.some(fs => fs?.id === spell.id);
+
+        // Check if spell slot available for this rank (for regular spells)
+        const slotData = spellcasting.spellSlots[spell.rank];
+        const hasSlotAvailable = isCantrip || (slotData && slotData.used < slotData.max);
+
+        // Check if focus point available (for focus spells)
+        const hasFocusPointAvailable = spellcasting.focusPool && spellcasting.focusPool.current > 0;
+
         return (
-            <div className="spell-row" onClick={() => handleSpellCast(spell.id)}>
-                <span className="spell-row-name">{spell.name}</span>
-                <span className="spell-row-actions">{getActionIcon(spell.castTime)}</span>
-                <span className="spell-row-duration">{spell.duration || '—'}</span>
-                <span className="spell-row-range">{spell.range || '—'}</span>
-            </div>
+            <>
+                <div className={`spell-row ${isMuseSpell ? 'locked-spell' : ''}`}>
+                    {/* Spell name - click to view description */}
+                    <span
+                        className="spell-row-name clickable"
+                        onClick={(e) => handleViewSpellDetails(spell, e)}
+                        title={t('actions.viewSpellDetails') || 'View spell details'}
+                    >
+                        {spell.name}
+                        {isMuseSpell && <span className="locked-icon" title="Granted by Muse">🔒</span>}
+                        {isSignature && <span className="signature-icon" title="Signature Spell">⭐</span>}
+                    </span>
+
+                    {/* Actions - click to open dicebox */}
+                    <span
+                        className="spell-row-actions clickable"
+                        onClick={(e) => handleOpenDiceBoxForSpell(spell, e)}
+                        title={t('actions.openDicebox') || 'Open dice box'}
+                    >
+                        {renderSpellActionIcon(spell.castTime)}
+                    </span>
+
+                    <span className="spell-row-duration">{spell.duration || '—'}</span>
+                    <span className="spell-row-range">{spell.range || '—'}</span>
+                    <span className="spell-row-damage">{spell.damage || '—'}</span>
+                    <span className="spell-row-area">{spell.area || '—'}</span>
+
+                    {/* Cast button - consumes spell slot for regular spells, Focus Point for focus spells */}
+                    <span className="spell-row-cast">
+                        {!isMuseSpell && (
+                            <button
+                                className={`spell-cast-btn ${isFocusSpell ? 'focus-spell' : ''} ${!hasSlotAvailable && !isFocusSpell ? 'disabled' : ''} ${isFocusSpell && !hasFocusPointAvailable ? 'disabled' : ''}`}
+                                onClick={(e) => isFocusSpell ? handleConsumeFocusPoint(e) : handleConsumeSpellSlot(spell.rank, e)}
+                                disabled={isFocusSpell ? !hasFocusPointAvailable : !hasSlotAvailable}
+                                title={isFocusSpell
+                                    ? (hasFocusPointAvailable
+                                        ? (t('actions.castFocusSpell') || 'Cast focus spell (1 Focus Point)')
+                                        : (t('spell.noFocusPointsAvailable') || 'No Focus Points available'))
+                                    : (isCantrip
+                                        ? (t('actions.castCantrip') || 'Cast cantrip')
+                                        : hasSlotAvailable
+                                            ? (t('actions.castSpell') || 'Cast spell')
+                                            : (t('spell.noSlotsAvailable') || 'No spell slots available'))
+                                }
+                            >
+                                {t('actions.cast') || 'Cast'}
+                            </button>
+                        )}
+                    </span>
+
+                    {/* Remove button */}
+                    {!isMuseSpell && (
+                        <button
+                            className="spell-remove-btn"
+                            onClick={(e) => handleRemoveSpell(spell.id, e)}
+                            title={t('actions.removeSpell') || 'Remove Spell'}
+                        >
+                            ×
+                        </button>
+                    )}
+
+                    {/* Signature spell checkbox */}
+                    {!isMuseSpell && !isCantrip && spellcasting.spellcastingType === 'spontaneous' && (
+                        <span className="spell-row-signature">
+                            <input
+                                type="checkbox"
+                                checked={isSignature}
+                                onChange={(e) => handleToggleSignatureSpell(spell.id, e)}
+                                disabled={!canAddSignatureSpell && !isSignature}
+                                title={isSignature
+                                    ? (t('spell.removeSignature') || 'Remove as signature spell')
+                                    : canAddSignatureSpell
+                                        ? (t('spell.makeSignature') || 'Make signature spell')
+                                        : (t('spell.signatureLimitReached') || 'Signature spell limit reached')
+                                }
+                            />
+                        </span>
+                    )}
+
+                    {/* Heightened versions display/add */}
+                    {canBeHeightened && !isCantrip && spellcasting.spellcastingType === 'spontaneous' && (
+                        <span className="spell-row-heightened">
+                            <div className="heightened-versions">
+                                {knownHeightenedLevels.map(level => (
+                                    <span key={level} className="heightened-badge">
+                                        {level}
+                                        <button
+                                            className="heightened-remove"
+                                            onClick={(e) => handleRemoveHeightenedVersion(spell.id, level, e)}
+                                            title={t('actions.removeHeightened') || 'Remove heightened version'}
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                ))}
+                                {availableHeightenedLevels.length > 0 && (
+                                    <select
+                                        className="heightened-add-select"
+                                        onChange={(e) => {
+                                            const level = parseInt(e.target.value);
+                                            if (level) handleAddHeightenedVersion(spell.id, level);
+                                        }}
+                                        value=""
+                                        title={t('spell.addHeightened') || 'Add heightened version'}
+                                    >
+                                        <option value="">+{t('spell.heightened') || 'Heightened'}</option>
+                                        {availableHeightenedLevels.map(level => (
+                                            <option key={level} value={level}>Rank {level}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+                        </span>
+                    )}
+                </div>
+            </>
         );
     };
 
@@ -469,6 +913,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                         <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
                         <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
                         <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                        <span className="spell-row-damage">{t('spell.damage') || 'Damage'}</span>
+                        <span className="spell-row-area">{t('spell.area') || 'Area'}</span>
+                        <span className="spell-row-cast"></span>
+                        <span></span>
+                        {spellcasting.spellcastingType === 'spontaneous' && (
+                            <>
+                                <span className="spell-row-signature" title={t('spell.signatureSpell') || 'Signature Spell'}>⭐</span>
+                                <span className="spell-row-heightened" title={t('spell.heightenedVersions') || 'Heightened Versions'}>H</span>
+                            </>
+                        )}
                     </div>
                     {spells.map(spell => renderSpellRow(spell))}
                     {Array.from({ length: emptySlots }, (_, i) => (
@@ -568,6 +1022,9 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                             <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
                             <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
                             <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                            <span className="spell-row-damage">{t('spell.damage') || 'Damage'}</span>
+                            <span className="spell-row-area">{t('spell.area') || 'Area'}</span>
+                            <span></span>
                         </div>
                         {focusCantrips.map(spell => renderSpellRow(spell))}
                     </div>
@@ -586,6 +1043,9 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                             <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
                             <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
                             <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                            <span className="spell-row-damage">{t('spell.damage') || 'Damage'}</span>
+                            <span className="spell-row-area">{t('spell.area') || 'Area'}</span>
+                            <span></span>
                         </div>
                         {focusSpellsNonCantrip.map(spell => renderSpellRow(spell))}
                     </div>
@@ -617,6 +1077,9 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                             <span className="spell-row-actions">{t('spell.rank') || 'Rank'}</span>
                             <span className="spell-row-duration">{t('spell.castTime') || 'Cast Time'}</span>
                             <span className="spell-row-range">{t('spell.cost') || 'Cost'}</span>
+                            <span className="spell-row-damage">{t('spell.damage') || 'Damage'}</span>
+                            <span className="spell-row-area">{t('spell.area') || 'Area'}</span>
+                            <span></span>
                         </div>
                         {rituals.map(spell => (
                             <div key={spell.id} className="spell-row">
@@ -624,6 +1087,9 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                                 <span className="spell-row-actions">{spell.rank}</span>
                                 <span className="spell-row-duration">{spell.castTime}</span>
                                 <span className="spell-row-range">—</span>
+                                <span className="spell-row-damage">—</span>
+                                <span className="spell-row-area">—</span>
+                                <span></span>
                             </div>
                         ))}
                     </div>
@@ -653,22 +1119,45 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                             <span className="spell-row-actions">{t('spell.actions') || 'Actions'}</span>
                             <span className="spell-row-duration">{t('spell.duration') || 'Duration'}</span>
                             <span className="spell-row-range">{t('spell.range') || 'Range'}</span>
+                            <span className="spell-row-damage">{t('spell.damage') || 'Damage'}</span>
+                            <span className="spell-row-area">{t('spell.area') || 'Area'}</span>
                             <span className="spell-row-uses">{t('spell.uses') || 'Uses'}</span>
+                            <span className="spell-row-cast">{t('actions.cast') || 'Cast'}</span>
                         </div>
-                        {innateSpells.map(({ spell, uses, maxUses, source }) => (
-                            <div key={spell.id} className="spell-row">
-                                <span className="spell-row-name">
-                                    {spell.name}
-                                    <span className="spell-source">{source}</span>
-                                </span>
-                                <span className="spell-row-actions">{getActionIcon(spell.castTime)}</span>
-                                <span className="spell-row-duration">{spell.duration || '—'}</span>
-                                <span className="spell-row-range">{spell.range || '—'}</span>
-                                <span className="spell-row-uses">
-                                    {uses}/{maxUses}
-                                </span>
-                            </div>
-                        ))}
+                        {innateSpells.map(({ spell, uses, maxUses }) => {
+                            const hasUseAvailable = uses > 0;
+                            const isUnlimited = maxUses >= 999;
+
+                            return (
+                                <div key={spell.id} className="spell-row" onClick={(e) => handleOpenDiceBoxForSpell(spell, e)}>
+                                    <span className="spell-row-name">
+                                        <span className="spell-name-text">{spell.name}</span>
+                                    </span>
+                                    <span className="spell-row-actions">{renderSpellActionIcon(spell.castTime)}</span>
+                                    <span className="spell-row-duration">{spell.duration || '—'}</span>
+                                    <span className="spell-row-range">{spell.range || '—'}</span>
+                                    <span className="spell-row-damage">{spell.damage || '—'}</span>
+                                    <span className="spell-row-area">{spell.area || '—'}</span>
+                                    <span className="spell-row-uses">
+                                        {isUnlimited ? <span className="cantrip-indicator">∞</span> : `${uses}/${maxUses}`}
+                                    </span>
+                                    <span className="spell-row-cast">
+                                        <button
+                                            className={`spell-cast-btn innate-spell ${!hasUseAvailable && !isUnlimited ? 'disabled' : ''}`}
+                                            onClick={(e) => handleConsumeInnateSpellUse(spell.id, e)}
+                                            disabled={!hasUseAvailable && !isUnlimited}
+                                            title={isUnlimited
+                                                ? (t('actions.castInnateSpell') || 'Cast innate spell')
+                                                : hasUseAvailable
+                                                    ? (t('actions.castInnateSpell') || `Cast innate spell (1 use)`)
+                                                    : (t('spell.noUsesAvailable') || 'No uses available')}
+                                        >
+                                            {t('actions.cast') || 'Cast'}
+                                        </button>
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ) : (
@@ -683,12 +1172,14 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         <div className="spells-panel pathbuilder-style">
             {/* Sub-tabs Navigation */}
             <div className="spell-subtabs">
-                <button
-                    className={`subtab-btn ${activeSubTab === 'class' ? 'active' : ''}`}
-                    onClick={() => setActiveSubTab('class')}
-                >
-                    {className}
-                </button>
+                {hasClassSpellcasting && (
+                    <button
+                        className={`subtab-btn ${activeSubTab === 'class' ? 'active' : ''}`}
+                        onClick={() => setActiveSubTab('class')}
+                    >
+                        {className}
+                    </button>
+                )}
                 <button
                     className={`subtab-btn ${activeSubTab === 'focus' ? 'active' : ''}`}
                     onClick={() => setActiveSubTab('focus')}
@@ -710,13 +1201,96 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             </div>
 
             {/* Tab Content */}
-            {activeSubTab === 'class' && renderClassSpellsTab()}
+            {activeSubTab === 'class' && hasClassSpellcasting && renderClassSpellsTab()}
             {activeSubTab === 'focus' && renderFocusSpellsTab()}
             {activeSubTab === 'rituals' && renderRitualsTab()}
             {activeSubTab === 'innate' && renderInnateSpellsTab()}
 
             {/* Spell Browser Modal */}
             {showBrowser && renderSpellBrowser()}
+
+            {/* Spell Details Modal */}
+            {viewingSpell && (
+                <div className="modal-overlay" onClick={() => setViewingSpell(null)}>
+                    <div className="spell-detail-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>{viewingSpell.name}</h3>
+                            <button className="modal-close" onClick={() => setViewingSpell(null)}>×</button>
+                        </div>
+                        <div className="spell-detail-content">
+                            <div className="spell-detail-header-row">
+                                <div className="spell-detail-title-section">
+                                    <div className="spell-badges">
+                                        <span className="spell-rank-badge">
+                                            {viewingSpell.rank === 0 ? 'Cantrip' : `Rank ${viewingSpell.rank}`}
+                                        </span>
+                                        {viewingSpell.traditions.map(trad => (
+                                            <span key={trad} className={`tradition-tag ${trad}`}>{trad}</span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {viewingSpell.traits.length > 0 && (
+                                    <div className="spell-detail-traits">
+                                        {viewingSpell.traits.map(trait => (
+                                            <span key={trait} className="trait-tag">{trait}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="spell-detail-stats-grid">
+                                <div className="detail-stat-box">
+                                    <span className="stat-label">{t('spell.cast') || 'Cast'}</span>
+                                    <div className="stat-value-row">
+                                        {renderSpellActionIcon(viewingSpell.castTime)}
+                                        {(!['1', '2', '3', 'free', 'reaction'].includes(getSpellActionCost(viewingSpell.castTime) || '')) && (
+                                            <span className="cast-text">{viewingSpell.castTime}</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {viewingSpell.range && (
+                                    <div className="detail-stat-box">
+                                        <span className="stat-label">{t('spell.range') || 'Range'}</span>
+                                        <span className="stat-value">{viewingSpell.range}</span>
+                                    </div>
+                                )}
+
+                                {viewingSpell.area && (
+                                    <div className="detail-stat-box">
+                                        <span className="stat-label">{t('spell.area') || 'Area'}</span>
+                                        <span className="stat-value">{viewingSpell.area}</span>
+                                    </div>
+                                )}
+
+                                {viewingSpell.duration && (
+                                    <div className="detail-stat-box">
+                                        <span className="stat-label">{t('spell.duration') || 'Duration'}</span>
+                                        <span className="stat-value">{viewingSpell.duration}</span>
+                                    </div>
+                                )}
+
+                                {viewingSpell.save && (
+                                    <div className="detail-stat-box">
+                                        <span className="stat-label">{t('spell.save') || 'Save'}</span>
+                                        <span className="stat-value">{viewingSpell.save}</span>
+                                    </div>
+                                )}
+
+                                {viewingSpell.damage && (
+                                    <div className="detail-stat-box full-width">
+                                        <span className="stat-label">{t('spell.damage') || 'Damage'}</span>
+                                        <span className="stat-value damage-text">{viewingSpell.damage}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="spell-description">{cleanDescriptionForDisplay(viewingSpell.rawDescription || viewingSpell.description)}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

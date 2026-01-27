@@ -220,6 +220,15 @@ export interface InnateSpell {
     sourceType: 'heritage' | 'background' | 'feat' | 'item'; // Where the spell comes from
 }
 
+/**
+ * Heightened spells are higher-rank versions of spells that spontaneous casters (like Bards)
+ * can add to their repertoire as they gain levels.
+ */
+export interface HeightenedSpell {
+    spellId: string;          // Base spell ID
+    heightenedLevel: number;  // The level to which it's heightened (must be > base rank)
+}
+
 export interface SpellSlots {
     [level: number]: {
         max: number;
@@ -558,6 +567,9 @@ export interface Character {
         focusSpells?: string[];
         rituals?: string[];  // IDs of known rituals (time-based spells that don't use slots)
         innateSpells?: InnateSpell[];  // Spells granted by backgrounds/feats/items with daily uses
+        // Heightening system for spontaneous casters (Bard, Sorcerer, etc.)
+        heightenedSpells?: HeightenedSpell[];  // Higher-rank versions of spells in repertoire
+        signatureSpells?: string[];  // Spell IDs that can be heightened freely without adding to repertoire
     };
 
     // Formula Book & Crafting
@@ -809,6 +821,16 @@ export function migrateCharacter(data: any): Character {
     // Migrate heroPoints (added for interactive hero points)
     if (character.heroPoints === undefined) {
         character.heroPoints = 1;
+    }
+
+    // Migrate spellcasting.heightenedSpells and signatureSpells (added for Heightening system)
+    if (character.spellcasting) {
+        if (!character.spellcasting.heightenedSpells) {
+            character.spellcasting.heightenedSpells = [];
+        }
+        if (!character.spellcasting.signatureSpells) {
+            character.spellcasting.signatureSpells = [];
+        }
     }
 
     return character;

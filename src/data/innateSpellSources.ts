@@ -6,6 +6,60 @@
  *
  * Unlike spell-granting items, innate spells from backgrounds/feats are permanent
  * character abilities and don't require investment.
+ *
+ * ================================
+ * MODULAR REGISTRATION SYSTEM
+ * ================================
+ *
+ * New in this version: You can now register innate spell sources from separate files!
+ *
+ * To add a new innate spell source from a separate file:
+ *
+ * ```typescript
+ * import { registerInnateSpellSource } from '@/data/innateSpellSources';
+ *
+ * registerInnateSpellSource({
+ *     id: 'my-new-heritage',
+ *     type: 'heritage',
+ *     name: 'My New Heritage',
+ *     nameIt: 'La Mia Nuova Eredità',
+ *     spells: [], // No fixed spells
+ *     spellSelection: {
+ *         frequency: 'at-will',
+ *         tradition: 'primal',
+ *         filter: {
+ *             traditions: ['primal'],
+ *             rank: 0,
+ *         },
+ *     },
+ * });
+ * ```
+ *
+ * This approach allows:
+ * - Separating innate spell data by ancestry/feature
+ * - Adding new sources without editing this file
+ * - Better code organization and maintainability
+ *
+ * ================================
+ * SPELL SELECTION CONFIGURATION
+ * ================================
+ *
+ * For sources that require the user to choose spells (like heritage cantrips),
+ * use the `spellSelection` property:
+ *
+ * ```typescript
+ * spellSelection: {
+ *     frequency: 'at-will',           // How often the spell can be cast
+ *     tradition: 'primal',            // The spell's tradition (optional)
+ *     filter: {
+ *         traditions: ['primal'],     // Filter by available traditions
+ *         rank: 0,                    // 0 = cantrips, 1+ = spell rank
+ *         rarity: 'common',           // Optional: filter by rarity
+ *         spellIds: ['id1', 'id2'],   // Optional: specific spells only
+ *         excludeSpellIds: ['id3'],   // Optional: exclude specific spells
+ *     },
+ * }
+ * ```
  */
 
 import type { InnateSpell } from '../types';
@@ -25,6 +79,17 @@ export interface InnateSpellGrant {
 }
 
 /**
+ * Spell filter for innate spell sources that require user selection
+ */
+export interface InnateSpellFilter {
+    traditions?: ('arcane' | 'divine' | 'occult' | 'primal')[]; // Required traditions
+    rank?: number;              // Spell rank (0 for cantrips)
+    rarity?: 'common' | 'uncommon' | 'rare' | 'unique'; // Rarity filter
+    spellIds?: string[];        // Specific spell IDs (when limited to certain spells)
+    excludeSpellIds?: string[]; // Spells to exclude from the list
+}
+
+/**
  * Definition of an innate spell source (heritage, background, or feat)
  */
 export interface InnateSpellSource {
@@ -33,7 +98,14 @@ export interface InnateSpellSource {
     name: string;              // Source name (English)
     nameIt?: string;           // Source name (Italian)
     spells: InnateSpellGrant[] | // Fixed spells granted
-            ((choiceValue: string) => InnateSpellGrant[]); // Or function for choice-based grants
+    ((choiceValue: string) => InnateSpellGrant[]); // Or function for choice-based grants
+
+    // NEW: Spell selection configuration for sources that require user choice
+    spellSelection?: {
+        frequency: InnateSpellFrequency; // Frequency of the selected spell
+        tradition?: 'arcane' | 'divine' | 'occult' | 'primal'; // Tradition of the selected spell
+        filter?: InnateSpellFilter; // Filter for available spells
+    };
 }
 
 /**
@@ -173,7 +245,12 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Fey-Touched Gnome',
         nameIt: 'Gnome Toccato dalla Fatata',
-        spells: [], // User selects any primal cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'primal',
+            filter: { traditions: ['primal'], rank: 0 },
+        },
     },
 
     'wellspring-gnome': {
@@ -181,7 +258,11 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Wellspring Gnome',
         nameIt: 'Gnome Sorgente',
-        spells: [], // User selects tradition and cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: { traditions: ['arcane', 'divine', 'occult'], rank: 0 },
+        },
     },
 
     // ELF HERITAGES
@@ -201,7 +282,7 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Forge-Blessed Dwarf',
         nameIt: 'Nano Benedetto dalla Fucina',
-        spells: [], // Spell depends on chosen deity - handled via heritageChoice
+        spells: [], // Requires deity selection - handled separately
     },
 
     // VERSATILE HERITAGES
@@ -232,7 +313,11 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Budding Speaker Centaur',
         nameIt: 'Centauro Oratore Nascente',
-        spells: [], // User selects tradition and cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: { traditions: ['divine', 'primal'], rank: 0 },
+        },
     },
 
     // DRAGONET HERITAGES
@@ -263,7 +348,13 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Makari Lizardfolk',
         nameIt: 'Lizardfolk Makari',
-        spells: [], // User chooses Divine Lance or Forbidding Ward - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: {
+                spellIds: ['rLyDaYQDEP0eTmCU', 'm2nqgMfHJLhmDxLQ'], // Divine Lance, Forbidding Ward
+            },
+        },
     },
 
     // KHOLO HERITAGES
@@ -283,7 +374,23 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Born of Elements',
         nameIt: 'Nato dagli Elementi',
-        spells: [], // User selects from 8 primal cantrips - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'primal',
+            filter: {
+                spellIds: [
+                    'GmgcigXsYuHQBycY', // Electric Arc
+                    'VSqoZOdBBdnadMAy', // Frostbite
+                    '6DfLZBl8wKIV03Iq', // Ignition
+                    'xMzVFcex3tBQVYvM', // Needle Darts
+                    'Rnm5T6b0YTXWR8Cu', // Timber
+                    'hRk79AWmEc3mzJus', // Scatter Scree
+                    'DYYl1L5HgDh0T9vD', // Slashing Gust
+                    'dA4k8qvqsLDStQsZ', // Spout
+                ],
+            },
+        },
     },
 
     'born-of-celestial': {
@@ -291,7 +398,12 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Born of Celestial',
         nameIt: 'Nato dal Celeste',
-        spells: [], // User selects any divine cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'divine',
+            filter: { traditions: ['divine'], rank: 0 },
+        },
     },
 
     // YAKSHA HERITAGES
@@ -300,7 +412,12 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Respite of Loam and Leaf',
         nameIt: 'Refugio di Terra e Foglia',
-        spells: [], // User selects any primal cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'primal',
+            filter: { traditions: ['primal'], rank: 0 },
+        },
     },
 
     // CONRASU HERITAGES
@@ -309,7 +426,11 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Rite of Invocation',
         nameIt: 'Rito dell\'Invocazione',
-        spells: [], // User selects cantrip from arcane or occult - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: { traditions: ['arcane', 'occult'], rank: 0 },
+        },
     },
 
     // AUTOMATON HERITAGES
@@ -318,7 +439,12 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Mage Automaton',
         nameIt: 'Automaton Mago',
-        spells: [], // User selects any arcane cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'arcane',
+            filter: { traditions: ['arcane'], rank: 0 },
+        },
     },
 
     // SAMSARAN HERITAGES
@@ -327,7 +453,11 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Oracular Samsaran',
         nameIt: 'Samsaran Oracolare',
-        spells: [], // User selects tradition and cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: { traditions: ['arcane', 'divine', 'occult'], rank: 0 },
+        },
     },
 
     // MINOTAUR HERITAGES
@@ -347,7 +477,25 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'heritage',
         name: 'Spellkeeper Shisk',
         nameIt: 'Shisk Custode di Incantesimi',
-        spells: [], // User selects tradition and cantrip - handled via heritageChoice
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            filter: { traditions: ['occult', 'primal'], rank: 0 },
+        },
+    },
+
+    // KOBOLD HERITAGES
+    'VRyX00OuPGsJSurM': { // spellhorn-kobold
+        id: 'VRyX00OuPGsJSurM',
+        type: 'heritage',
+        name: 'Spellhorn Kobold',
+        nameIt: 'Kobold Corno Incantato',
+        spells: [],
+        spellSelection: {
+            frequency: 'at-will',
+            tradition: 'arcane',
+            filter: { traditions: ['arcane'], rank: 0, rarity: 'common' },
+        },
     },
 
     // ================================
@@ -387,7 +535,7 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
         type: 'feat',
         name: 'Core Attunement',
         nameIt: 'Sintonizzazione del Nucleo',
-        spells: [], // Requires spell selection via UI - user chooses spells
+        spells: [], // Requires spell selection via UI - handled separately
     },
 
     'arcane-camouflage': {
@@ -430,6 +578,93 @@ export const INNATE_SPELL_SOURCES: Record<string, InnateSpellSource> = {
     // And many more...
 };
 
+// ================================
+// MODULAR REGISTRATION SYSTEM
+// ================================
+
+/**
+ * Internal registry for all innate spell sources
+ * Uses a Map for O(1) lookups and easy extension
+ */
+const innateSpellRegistry = new Map<string, InnateSpellSource>();
+
+/**
+ * Register an innate spell source
+ * Can be called multiple times to build up the registry from multiple files
+ */
+export function registerInnateSpellSource(source: InnateSpellSource): void {
+    innateSpellRegistry.set(source.id, source);
+}
+
+/**
+ * Register multiple innate spell sources at once
+ */
+export function registerInnateSpellSources(sources: InnateSpellSource[]): void {
+    for (const source of sources) {
+        innateSpellRegistry.set(source.id, source);
+    }
+}
+
+/**
+ * Get all registered innate spell sources as a Record
+ * Provides backward compatibility with code expecting INNATE_SPELL_SOURCES object
+ */
+export function getInnateSpellSources(): Record<string, InnateSpellSource> {
+    return Object.fromEntries(innateSpellRegistry);
+}
+
+/**
+ * Get a single innate spell source by ID
+ */
+export function getInnateSpellSource(sourceId: string): InnateSpellSource | undefined {
+    return innateSpellRegistry.get(sourceId);
+}
+
+/**
+ * Check if a source has spell selection (requires user to choose spells)
+ */
+export function hasSpellSelection(sourceId: string): boolean {
+    const source = innateSpellRegistry.get(sourceId);
+    return source?.spellSelection !== undefined;
+}
+
+/**
+ * Get spell selection configuration for a source
+ */
+export function getSpellSelection(sourceId: string): InnateSpellSource['spellSelection'] | undefined {
+    const source = innateSpellRegistry.get(sourceId);
+    return source?.spellSelection;
+}
+
+// ================================
+// AUTO-REGISTRATION
+// ================================
+
+// Automatically register all sources from INNATE_SPELL_SOURCES
+// This maintains backward compatibility while enabling the modular system
+// NOTE: This must come AFTER the registry and registration functions are defined
+Object.values(INNATE_SPELL_SOURCES).forEach(source => {
+    registerInnateSpellSource(source);
+});
+
+// Debug log to verify registration
+console.log('[innateSpellSources] Auto-registration complete:', {
+    sourcesCount: Object.keys(INNATE_SPELL_SOURCES).length,
+    registrySize: innateSpellRegistry.size,
+    registeredIds: Array.from(innateSpellRegistry.keys()),
+    spellhornRegistered: innateSpellRegistry.has('VRyX00OuPGsJSurM'),
+});
+
+// Expose to global scope for debugging (only in development)
+if (import.meta.env.DEV) {
+    (globalThis as any).__innateSpellRegistry = innateSpellRegistry;
+    (globalThis as any).__INNATE_SPELL_SOURCES = INNATE_SPELL_SOURCES;
+    console.log('[innateSpellSources] Debug info available at window.__innateSpellRegistry');
+}
+
+// Export for backward compatibility (read-only view of registry)
+export const INNATE_SPELL_SOURCES_READONLY = getInnateSpellSources();
+
 /**
  * Get innate spells from a source
  * Returns array of InnateSpell objects for character
@@ -439,16 +674,28 @@ export function getInnateSpellsFromSource(
     sourceType: 'heritage' | 'background' | 'feat',
     choiceValue?: string
 ): InnateSpell[] {
-    const source = INNATE_SPELL_SOURCES[sourceId];
+    const source = innateSpellRegistry.get(sourceId);
     if (!source) return [];
 
     let spellGrants: InnateSpellGrant[];
 
-    if (typeof source.spells === 'function') {
-        // Choice-based source - requires choiceValue
+    if (source.spellSelection) {
+        // If source has spellSelection, the choiceValue IS the spellId
+        if (choiceValue) {
+            spellGrants = [{
+                spellId: choiceValue,
+                frequency: source.spellSelection.frequency,
+                tradition: source.spellSelection.tradition || 'arcane' // Fallback, though tradition usually comes from spell
+            }];
+        } else {
+            spellGrants = [];
+        }
+    } else if (typeof source.spells === 'function') {
+        // Choice-based source (function) - requires choiceValue
         if (!choiceValue) return [];
         spellGrants = source.spells(choiceValue);
     } else {
+        // Fixed spells
         spellGrants = source.spells;
     }
 
@@ -463,7 +710,15 @@ export function getInnateSpellsFromSource(
  * Check if a source grants innate spells
  */
 export function isInnateSpellSource(sourceId: string): boolean {
-    return sourceId in INNATE_SPELL_SOURCES;
+    const result = innateSpellRegistry.has(sourceId);
+    // Debug log to see what IDs are being checked
+    console.log('[isInnateSpellSource] Checking heritage:', {
+        sourceId,
+        found: result,
+        // Show if this might be a spell-related heritage
+        isKnownSource: INNATE_SPELL_SOURCES[sourceId] ? INNATE_SPELL_SOURCES[sourceId].name : 'unknown',
+    });
+    return result;
 }
 
 /**
@@ -512,4 +767,52 @@ export function getAllInnateSpellsForCharacter(character: {
     }
 
     return innateSpells;
+}
+
+/**
+ * Apply spell filter to get matching spells from a list
+ * Used by HeritageSpellModal and similar components
+ */
+export function filterSpellsByConfig(
+    spells: Array<{ id: string; traditions: string[]; rank: number; rarity: string }>,
+    filter?: InnateSpellFilter
+): string[] {
+    if (!filter) return spells.map(s => s.id);
+
+    return spells
+        .filter(spell => {
+            // Filter by tradition
+            if (filter.traditions && filter.traditions.length > 0) {
+                if (!filter.traditions.some(t => spell.traditions.includes(t))) {
+                    return false;
+                }
+            }
+
+            // Filter by rank
+            if (filter.rank !== undefined && spell.rank !== filter.rank) {
+                return false;
+            }
+
+            // Filter by rarity
+            if (filter.rarity && spell.rarity !== filter.rarity) {
+                return false;
+            }
+
+            // Filter by specific spell IDs
+            if (filter.spellIds && filter.spellIds.length > 0) {
+                if (!filter.spellIds.includes(spell.id)) {
+                    return false;
+                }
+            }
+
+            // Exclude specific spell IDs
+            if (filter.excludeSpellIds && filter.excludeSpellIds.length > 0) {
+                if (filter.excludeSpellIds.includes(spell.id)) {
+                    return false;
+                }
+            }
+
+            return true;
+        })
+        .map(s => s.id);
 }

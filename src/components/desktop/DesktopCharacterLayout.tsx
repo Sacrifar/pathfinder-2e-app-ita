@@ -1360,7 +1360,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                     <CharacterTabs
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
-                        hasSpells={selectedClass?.spellcasting !== undefined}
+                        hasSpells={selectedClass?.spellcasting !== undefined || (character.spellcasting?.innateSpells && character.spellcasting.innateSpells.length > 0)}
                         hasPets={character.pets && character.pets.length > 0}
                         hasImpulses={hasImpulses()}
                     />
@@ -1417,8 +1417,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                                 <Suspense fallback={<LoadingFallback />}>
                                     <SpellsPanel
                                         character={character}
-                                        onCastSpell={(spellId) => console.log('Cast:', spellId)}
-                                        onAddSpell={() => console.log('Add spell')}
+                                        onCharacterUpdate={onCharacterUpdate}
                                     />
                                 </Suspense>
                             )}
