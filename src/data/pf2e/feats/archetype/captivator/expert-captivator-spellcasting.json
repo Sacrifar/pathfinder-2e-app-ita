@@ -29,7 +29,68 @@
             "remaster": false,
             "title": "Pathfinder Lost Omens The Grand Bazaar"
         },
-        "rules": [],
+        "rules": [
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:4",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:illusion",
+                                "item:trait:mental"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell4",
+                "key": "ChoiceSet",
+                "minLevel": 10,
+                "prompt": "Choose 4th-rank occult spell (enchantment/illusion)"
+            },
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:5",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:illusion",
+                                "item:trait:mental"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell5",
+                "key": "ChoiceSet",
+                "minLevel": 12,
+                "prompt": "Choose 5th-rank occult spell (enchantment/illusion)"
+            },
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:6",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:illusion",
+                                "item:trait:mental"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell6",
+                "key": "ChoiceSet",
+                "minLevel": 14,
+                "prompt": "Choose 6th-rank occult spell (enchantment/illusion)"
+            }
+        ],
         "subfeatures": {
             "proficiencies": {
                 "spellcasting": {

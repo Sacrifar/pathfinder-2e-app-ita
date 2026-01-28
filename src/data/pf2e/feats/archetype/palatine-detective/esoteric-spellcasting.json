@@ -30,7 +30,26 @@
             "remaster": true,
             "title": "Pathfinder Lost Omens Divine Mysteries"
         },
-        "rules": [],
+        "rules": [
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:1",
+                        {
+                            "or": [
+                                "item:tradition:occult",
+                                "item:tradition:divine"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell1",
+                "key": "ChoiceSet",
+                "prompt": "Choose 1st-rank occult or divine spell"
+            }
+        ],
         "traits": {
             "rarity": "common",
             "value": [

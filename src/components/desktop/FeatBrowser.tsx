@@ -97,18 +97,26 @@ export const FeatBrowser: React.FC<FeatBrowserProps> = ({
         const baseChoices = parseFeatChoices(selectedFeat);
         console.log(`[FeatBrowser] ${selectedFeat?.name || 'unknown'} base choices:`, baseChoices.map(c => ({ flag: c.flag, prompt: c.prompt, type: c.type })));
 
+        // Filter choices by character level (for level-gated choices like spell scaling)
+        const levelFilteredChoices = baseChoices.filter(choice => {
+            // If no minLevel specified, always show
+            if (choice.minLevel === undefined) return true;
+            // Only show if character level >= minLevel
+            return characterLevel >= choice.minLevel;
+        });
+
         // For archetype dedication feats, also calculate additional conditional choices
         // (e.g., "if already trained in X, gain additional skill choice")
         if (character && selectedFeat.traits.includes('archetype') && selectedFeat.traits.includes('dedication')) {
             const additionalChoices = calculateDedicationAdditionalChoices(selectedFeat, character);
             console.log(`[FeatBrowser] ${selectedFeat.name} has ${additionalChoices.length} additional choices`, additionalChoices.map(c => ({ flag: c.flag, prompt: c.prompt, type: c.type })));
-            const merged = [...baseChoices, ...additionalChoices];
+            const merged = [...levelFilteredChoices, ...additionalChoices];
             console.log(`[FeatBrowser] ${selectedFeat.name} total choices:`, merged.map(c => ({ flag: c.flag, prompt: c.prompt, type: c.type })));
             return merged;
         }
 
-        return baseChoices;
-    }, [selectedFeat, character]);
+        return levelFilteredChoices;
+    }, [selectedFeat, character, characterLevel]);
 
     // Parse granted items for selected feat
     const grantedItems = useMemo(() => {

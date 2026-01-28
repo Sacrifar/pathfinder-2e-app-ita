@@ -31,7 +31,7 @@
 
 import { Character, SkillProficiency, AbilityName, Buff, BonusType } from '../types';
 import { ancestries, backgrounds, classes, skills, shouldResetDailyUses } from '../data';
-import { recalculateSkillsFromFeats, applySubfeaturesProficiencies, applyDeitySkillsFromDedications } from './featChoices';
+import { recalculateSkillsFromFeats, applySubfeaturesProficiencies, applyDeitySkillsFromDedications, processInnateSpellsFromFeats } from './featChoices';
 import { getFeats, getArmor, getGear } from '../data/pf2e-loader';
 import { getAllKineticistJunctionSkills } from '../data/classFeatures';
 import { getArmorProficiencyAtLevel, getSavingThrowAtLevel, getPerceptionAtLevel, getHitPointsPerLevel, getWeaponProficiencyAtLevel, proficiencyLevelToName } from '../data/classProgressions';
@@ -1283,33 +1283,65 @@ export function processInnateSpells(character: Character): Character {
         updated.spellcasting.innateSpells = [];
     }
 
-    // Get all innate spells from backgrounds and feats
+    // Get all innate spells from backgrounds and feats (static sources)
     const newInnateSpells = getAllInnateSpellsForCharacter(updated);
+
+    // Process innate spells from feat choices (dynamic sources like Captivator Dedication cantrips)
+    // This must be done AFTER static sources to properly merge
+    let result = processInnateSpellsFromFeats(updated);
 
     // Merge with existing innate spells, preserving current uses for matching spells
     const existingInnateMap = new Map<string, { uses: number; maxUses: number }>();
-    for (const existing of updated.spellcasting.innateSpells) {
-        existingInnateMap.set(existing.spellId, {
-            uses: existing.uses,
-            maxUses: existing.maxUses,
+    if (result.spellcasting?.innateSpells) {
+        for (const existing of result.spellcasting.innateSpells) {
+            existingInnateMap.set(existing.spellId, {
+                uses: existing.uses,
+                maxUses: existing.maxUses,
+            });
+        }
+    }
+
+    // Combine static innate spells with dynamic feat choice spells
+    // Use a Map to avoid duplicates by spellId
+    const combinedInnateSpells = new Map<string, {
+        spellId: string;
+        uses: number;
+        maxUses: number;
+        source: string;
+        sourceType: 'heritage' | 'background' | 'feat' | 'item';
+    }>();
+
+    // Add static innate spells first
+    for (const spell of newInnateSpells) {
+        const existing = existingInnateMap.get(spell.spellId);
+        combinedInnateSpells.set(spell.spellId, {
+            ...spell,
+            uses: existing?.uses ?? spell.uses,
+            maxUses: spell.maxUses,
         });
     }
 
-    // Update innate spells, preserving usage counts
-    updated.spellcasting.innateSpells = newInnateSpells.map(spell => {
-        const existing = existingInnateMap.get(spell.spellId);
-        if (existing) {
-            // Preserve current uses, but update maxUses if different
-            return {
-                ...spell,
-                uses: existing.uses,
-                maxUses: spell.maxUses,
-            };
+    // Add/update dynamic feat choice innate spells (from processInnateSpellsFromFeats)
+    if (result.spellcasting?.innateSpells) {
+        for (const spell of result.spellcasting.innateSpells) {
+            const existing = existingInnateMap.get(spell.spellId);
+            if (!combinedInnateSpells.has(spell.spellId)) {
+                // Only add if not already in static sources
+                combinedInnateSpells.set(spell.spellId, {
+                    ...spell,
+                    uses: existing?.uses ?? spell.uses,
+                    maxUses: spell.maxUses,
+                });
+            }
         }
-        return spell;
-    });
+    }
 
-    return updated;
+    // Convert back to array
+    if (result.spellcasting) {
+        result.spellcasting.innateSpells = Array.from(combinedInnateSpells.values()) as typeof result.spellcasting.innateSpells;
+    }
+
+    return result;
 }
 
 /**

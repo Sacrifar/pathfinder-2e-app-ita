@@ -1659,6 +1659,7 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                             onClose={() => setSkillActionsModal(null)}
                             skillName={skillActionsModal.skillName}
                             characterProficiency={skillActionsModal.proficiency}
+                            character={character}
                         />
                     </Suspense>
                 )

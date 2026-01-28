@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { Character } from '../../types';
+import { recalculateCharacter } from '../../utils/characterRecalculator';
+import { calculateMaxFocusPoints } from '../../utils/focusCalculator';
 
 type DegreeOfSuccess = 'criticalFailure' | 'failure' | 'success' | 'criticalSuccess';
 type DC = 15 | 20 | 30 | 40;
@@ -20,6 +22,11 @@ export const RestModal: React.FC<RestModalProps> = ({
     const [activeTab, setActiveTab] = useState<'short' | 'long'>('short');
     const [treatWoundsDC, setTreatWoundsDC] = useState<DC>(20);
     const [selectedDegree, setSelectedDegree] = useState<DegreeOfSuccess>('success');
+
+    // Calculate the actual current max focus points (may have changed with new feats)
+    const actualMaxFocusPoints = useMemo(() => calculateMaxFocusPoints(character), [character]);
+    const currentFocusPoints = character.spellcasting?.focusPool?.current || 0;
+    const displayMaxFocusPoints = character.spellcasting?.focusPool?.max || actualMaxFocusPoints;
 
     // Calculate cooldown for Treat Wounds (50 minutes = 3000000 ms)
     const treatWoundsCooldown = 50 * 60 * 1000;
@@ -58,15 +65,18 @@ export const RestModal: React.FC<RestModalProps> = ({
     };
 
     const handleLongRest = () => {
+        // First recalculate to ensure max values are correct
+        let updated = recalculateCharacter(character);
+
         // Reset HP to max, remove temporary HP
         const updatedHP = {
-            current: character.hitPoints.max,
-            max: character.hitPoints.max,
+            current: updated.hitPoints.max,
+            max: updated.hitPoints.max,
             temporary: 0,
         };
 
         // Reset spell slots
-        let updatedSpellcasting = character.spellcasting;
+        let updatedSpellcasting = updated.spellcasting;
         if (updatedSpellcasting?.spellSlots) {
             updatedSpellcasting = {
                 ...updatedSpellcasting,
@@ -81,25 +91,25 @@ export const RestModal: React.FC<RestModalProps> = ({
             };
         }
 
-        // Reset focus pool
+        // Reset focus pool to max (using recalculated max)
         if (updatedSpellcasting?.focusPool) {
             updatedSpellcasting.focusPool.current = updatedSpellcasting.focusPool.max;
         }
 
         // Reset daily custom resources
-        const updatedResources = (character.customResources || []).map(r =>
+        const updatedResources = (updated.customResources || []).map(r =>
             r.frequency === 'daily' ? { ...r, current: r.max } : r
         );
 
         // Remove or reduce certain conditions (e.g., Fatigued, Drained)
-        const updatedConditions = (character.conditions || []).filter(c => {
+        const updatedConditions = (updated.conditions || []).filter(c => {
             // Conditions that persist through a full rest
             const persistentConditions = ['cursed', 'doomed', 'drained', 'dying'];
             return persistentConditions.includes(c.id);
         });
 
         onCharacterUpdate({
-            ...character,
+            ...updated,
             hitPoints: updatedHP,
             spellcasting: updatedSpellcasting,
             customResources: updatedResources,
@@ -130,22 +140,25 @@ export const RestModal: React.FC<RestModalProps> = ({
     };
 
     const handleRefocus = () => {
-        if (!character.spellcasting?.focusPool) return;
+        // First recalculate to ensure max focus points is correct
+        const updated = recalculateCharacter(character);
 
-        const focusPool = character.spellcasting.focusPool;
+        if (!updated.spellcasting?.focusPool) return;
+
+        const focusPool = updated.spellcasting.focusPool;
         const newCurrent = Math.min(focusPool.current + 1, focusPool.max);
 
         onCharacterUpdate({
-            ...character,
+            ...updated,
             spellcasting: {
-                ...character.spellcasting,
+                ...updated.spellcasting,
                 focusPool: {
                     ...focusPool,
                     current: newCurrent,
                 },
             },
             restCooldowns: {
-                ...character.restCooldowns,
+                ...updated.restCooldowns,
                 lastRefocusTime: Date.now(),
             },
         });
@@ -153,7 +166,7 @@ export const RestModal: React.FC<RestModalProps> = ({
     };
 
     const canRefocus = character.spellcasting?.focusPool
-        && character.spellcasting.focusPool.current < character.spellcasting.focusPool.max;
+        && currentFocusPoints < actualMaxFocusPoints;
 
     return (
         <div
@@ -352,7 +365,7 @@ export const RestModal: React.FC<RestModalProps> = ({
                                 }}>
                                     <span style={{ color: 'var(--text-secondary, #888)', fontSize: '14px' }}>
                                         {t('rest.focusPoints') || 'Focus Points'}: <strong style={{ color: 'var(--color-primary, #3b82f6)' }}>
-                                            {character.spellcasting.focusPool.current} / {character.spellcasting.focusPool.max}
+                                            {currentFocusPoints} / {actualMaxFocusPoints}
                                         </strong>
                                     </span>
                                 </div>
@@ -402,7 +415,7 @@ export const RestModal: React.FC<RestModalProps> = ({
                                     <li>{t('rest.spellSlots') || 'Spell Slots'}: {t('rest.allSlots') || 'All slots restored'}</li>
                                 )}
                                 {character.spellcasting?.focusPool && (
-                                    <li>{t('rest.focusPoints') || 'Focus Points'}: {character.spellcasting.focusPool.max} / {character.spellcasting.focusPool.max}</li>
+                                    <li>{t('rest.focusPoints') || 'Focus Points'}: {actualMaxFocusPoints} / {actualMaxFocusPoints}</li>
                                 )}
                                 {(character.customResources?.filter(r => r.frequency === 'daily').length || 0) > 0 && (
                                     <li>{t('rest.dailyResources') || 'Daily Resources'}: {t('rest.allRestored') || 'All restored'}</li>

@@ -32,7 +32,68 @@
             "remaster": false,
             "title": "Pathfinder Lost Omens The Grand Bazaar"
         },
-        "rules": [],
+        "rules": [
+            {
+                "adjustName": false,
+                "choices": [
+                    {
+                        "label": "PF2E.Skill.Deception",
+                        "value": "deception"
+                    },
+                    {
+                        "label": "PF2E.Skill.Diplomacy",
+                        "value": "diplomacy"
+                    }
+                ],
+                "flag": "skill",
+                "key": "ChoiceSet",
+                "prompt": "PF2E.SpecificRule.Prompt.Skill"
+            },
+            {
+                "key": "ActiveEffectLike",
+                "mode": "upgrade",
+                "path": "system.skills.{item|flags.pf2e.rulesSelections.skill}.rank",
+                "value": 1
+            },
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:1",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:illusion",
+                                "item:trait:mental"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "cantrip1",
+                "key": "ChoiceSet",
+                "prompt": "Choose first cantrip (occult, Illusion/Mental)"
+            },
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:1",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:illusion",
+                                "item:trait:mental"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "cantrip2",
+                "key": "ChoiceSet",
+                "prompt": "Choose second cantrip (occult, Illusion/Mental)"
+            }
+        ],
         "subfeatures": {
             "proficiencies": {
                 "spellcasting": {

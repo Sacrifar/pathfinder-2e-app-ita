@@ -5,6 +5,7 @@
 
 import { Character } from '../types/character';
 import { getClassIdByName } from '../data/classSpecializations';
+import { getFeats } from '../data/pf2e-loader';
 
 /**
  * List of classes that grant Focus Points through their class features
@@ -28,67 +29,125 @@ const FOCUS_SPELL_CLASS_NAMES: string[] = [
 ];
 
 /**
- * List of feats that grant Focus Points
- * Each entry maps feat IDs to the number of Focus Points granted
+ * List of feat names that grant Focus Points
+ * Using feat names instead of IDs to handle both UUID and name-based IDs
  */
-const FOCUS_FEATS: Record<string, number> = {
+const FOCUS_FEAT_NAMES: string[] = [
     // Cleric Domains
-    'cleric-domain': 1,
+    'Cleric Domain',
 
     // Sorcerer Blood Magic
-    'sorcerer-blood-magic': 1,
+    'Sorcerer Blood Magic',
 
     // Wizard Focus Spell
-    'wizard-focus-spell': 1,
-
-    // Bard Muse
-    'bard-muse': 1,
+    'Wizard Focus Spell',
 
     // Champion Cause
-    'champion-cause': 1,
+    'Champion Cause',
 
     // Druid Order
-    'druid-order': 1,
+    'Druid Order',
 
     // Monk Ki
-    'monk-ki': 1,
+    'Monk Ki',
 
     // Oracle Mystery
-    'oracle-mystery': 1,
+    'Oracle Mystery',
 
     // Psychic Conscious Mind
-    'psychic-conscious-mind': 1,
+    'Psychic Conscious Mind',
 
     // Summoner Eidolon
-    'summoner-eidolon': 1,
+    'Summoner Eidolon',
 
     // Swashbuckler Panache
-    'swashbuckler-panache': 1,
+    'Swashbuckler Panache',
 
     // Thaumaturge Implement
-    'thaumaturge-implement': 1,
+    'Thaumaturge Implement',
 
     // Geniekin Versatility
-    'geniekin-versatility': 1,
+    'Geniekin Versatility',
 
     // Chosen One
-    'chosen-one': 1,
+    'Chosen One',
 
     // Gortle's Yip Sigil
-    'gortle-yip-sigil': 1,
+    'Gortle\'s Yip Sigil',
 
     // Archetype Dedications with Devotion Spells
-    'blessed-one-dedication': 1,
-    'champion-advanced-devotion': 1, // Note: doesn't grant additional point, but grants focus spell
-};
+    'Blessed One Dedication',
+    'Advanced Devotion',
+];
 
 /**
- * List of feats that grant additional Focus Points (beyond the base)
+ * List of feat names that grant additional Focus Points (beyond the base)
  */
-const ADDITIONAL_FOCUS_FEATS: Record<string, number> = {
-    'additional-focus': 1,
-    'expanded-focus': 1,
-};
+const ADDITIONAL_FOCUS_FEAT_NAMES: string[] = [
+    'Additional Focus',
+    'Expanded Focus',
+];
+
+/**
+ * Cache for feat lookups to avoid repeated getFeats() calls
+ */
+let allFeatsCache: Map<string, { name: string; id: string; rawId?: string }> | null = null;
+
+function buildFeatCache(): Map<string, { name: string; id: string; rawId?: string }> {
+    if (allFeatsCache) {
+        return allFeatsCache;
+    }
+
+    const cache = new Map<string, { name: string; id: string; rawId?: string }>();
+    const allFeats = getFeats();
+
+    for (const feat of allFeats) {
+        // Index by both ID and rawId for lookup
+        cache.set(feat.id, { name: feat.name, id: feat.id, rawId: feat.rawId });
+        if (feat.rawId) {
+            cache.set(feat.rawId, { name: feat.name, id: feat.id, rawId: feat.rawId });
+        }
+    }
+
+    allFeatsCache = cache;
+    return cache;
+}
+
+/**
+ * Check if a feat grants a Focus Point by looking up its name
+ */
+function featGrantsFocusPoint(featId: string): boolean {
+    const cache = buildFeatCache();
+    const feat = cache.get(featId);
+
+    if (!feat) {
+        return false;
+    }
+
+    // Check if the feat's name matches any focus-granting feat name
+    return FOCUS_FEAT_NAMES.some(focusFeatName =>
+        feat.name === focusFeatName
+    );
+}
+
+/**
+ * Check if a feat grants additional Focus Points (beyond the base)
+ */
+function featGrantsAdditionalFocus(featId: string): number {
+    const cache = buildFeatCache();
+    const feat = cache.get(featId);
+
+    if (!feat) {
+        return 0;
+    }
+
+    // Check if the feat's name matches any additional focus-granting feat name
+    if (ADDITIONAL_FOCUS_FEAT_NAMES.some(featName => feat.name === featName)) {
+        return 1;
+    }
+
+    return 0;
+}
 
 /**
  * Check if a character's class grants Focus Points
@@ -127,13 +186,20 @@ export function calculateMaxFocusPoints(character: Character): number {
     }
 
     for (const feat of character.feats) {
-        if (FOCUS_FEATS[feat.featId]) {
-            console.log('[FocusCalculator] Found focus feat:', feat.featId);
+        // Check if this feat grants a focus point (by looking up its name)
+        if (featGrantsFocusPoint(feat.featId)) {
+            const cache = buildFeatCache();
+            const featData = cache.get(feat.featId);
+            console.log('[FocusCalculator] Found focus feat:', feat.featId, '→', featData?.name);
             focusFeatIds.add(feat.featId);
         }
         // Check for additional focus feats
-        if (ADDITIONAL_FOCUS_FEATS[feat.featId]) {
-            focusPoints += ADDITIONAL_FOCUS_FEATS[feat.featId];
+        const additionalPoints = featGrantsAdditionalFocus(feat.featId);
+        if (additionalPoints > 0) {
+            const cache = buildFeatCache();
+            const featData = cache.get(feat.featId);
+            console.log('[FocusCalculator] Found additional focus feat:', feat.featId, '→', featData?.name, `(+${additionalPoints})`);
+            focusPoints += additionalPoints;
         }
     }
 
@@ -159,7 +225,7 @@ export function calculateMaxFocusPoints(character: Character): number {
  */
 export function hasFocusAbilities(character: Character): boolean {
     for (const feat of character.feats) {
-        if (FOCUS_FEATS[feat.featId]) {
+        if (featGrantsFocusPoint(feat.featId)) {
             return true;
         }
     }
@@ -169,14 +235,17 @@ export function hasFocusAbilities(character: Character): boolean {
 /**
  * Get the list of Focus-granting feats for a character
  */
-export function getFocusFeats(character: Character): Array<{ featId: string; points: number }> {
-    const focusFeats: Array<{ featId: string; points: number }> = [];
+export function getFocusFeats(character: Character): Array<{ featId: string; featName: string; points: number }> {
+    const focusFeats: Array<{ featId: string; featName: string; points: number }> = [];
+    const cache = buildFeatCache();
 
     for (const feat of character.feats) {
-        if (FOCUS_FEATS[feat.featId]) {
+        if (featGrantsFocusPoint(feat.featId)) {
+            const featData = cache.get(feat.featId);
             focusFeats.push({
                 featId: feat.featId,
-                points: FOCUS_FEATS[feat.featId],
+                featName: featData?.name || feat.featId,
+                points: 1,
             });
         }
     }

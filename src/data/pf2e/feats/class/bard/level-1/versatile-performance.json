@@ -3,6 +3,7 @@
     "folder": "PjZAIwQbMpPCznpr",
     "img": "icons/sundries/books/book-red-exclamation.webp",
     "name": "Versatile Performance",
+    "nameIt": "Performance Versatile",
     "system": {
         "actionType": {
             "value": "passive"
@@ -13,6 +14,9 @@
         "category": "class",
         "description": {
             "value": "<p>You can rely on the grandeur of your performances rather than ordinary social skills. You can use Performance instead of Diplomacy to [[/act make-an-impression statistic=performance]] and instead of Intimidation to [[/act demoralize statistic=performance]]. You can also use an acting Performance instead of Deception to [[/act impersonate statistic=performance]].</p>\n<p>In addition, you can use your proficiency rank in Performance to meet the prerequisites of skill feats that require a particular proficiency rank in Deception, Diplomacy, or Intimidation.</p>"
+        },
+        "descriptionIt": {
+            "value": "<p>Puoi fare affidamento alla grandezza delle tue esibizioni piuttosto che alle abilità sociali ordinarie. Puoi usare Performance al posto di Diplomacy per [[/act make-an-impression statistic=performance]] e al posto di Intimidation per [[/act demoralize statistic=performance]]. Puoi anche usare una Performance di recitazione al posto di Deception per [[/act impersonate statistic=performance]].</p>\n>Inoltre, puoi usare il tuo grado di competenza in Performance per soddisfare i prerequisiti dei talenti di abilità che richiedono un particolare grado di competenza in Deception, Diplomacy o Intimidation.</p>"
         },
         "level": {
             "value": 1

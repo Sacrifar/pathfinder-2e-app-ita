@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { getActions } from '../../data/pf2e-loader';
-import { Proficiency } from '../../types';
+import { Proficiency, Character } from '../../types';
 import { ActionIcon } from '../../utils/actionIcons';
+import { hasVersatilePerformance } from '../../utils/prereqValidator';
 
 // Skills that use Recall Knowledge
 const RECALL_KNOWLEDGE_SKILLS = [
@@ -67,6 +68,22 @@ const SKILL_ACTION_REQUIREMENTS: Record<string, { skill: string; minProficiency:
     'Subsist': { skill: 'survival', minProficiency: 'untrained' },
 };
 
+// Versatile Performance: Actions that Performance can substitute for
+const VERSATILE_PERFORMANCE_SUBSTITUTIONS: Record<string, { originalAction: string; substitutionNote: string }> = {
+    'Make an Impression': {
+        originalAction: 'Diplomacy',
+        substitutionNote: 'Can use Performance instead of Diplomacy with Versatile Performance',
+    },
+    'Demoralize': {
+        originalAction: 'Intimidation',
+        substitutionNote: 'Can use Performance instead of Intimidation with Versatile Performance',
+    },
+    'Impersonate': {
+        originalAction: 'Deception',
+        substitutionNote: 'Can use acting Performance instead of Deception with Versatile Performance',
+    },
+};
+
 const PROFICIENCY_ORDER: Proficiency[] = ['untrained', 'trained', 'expert', 'master', 'legendary'];
 
 interface VirtualAction {
@@ -83,6 +100,7 @@ interface SkillActionsModalProps {
     onClose: () => void;
     skillName: string;
     characterProficiency: Proficiency;
+    character?: Character; // Optional: for Versatile Performance check
 }
 
 // Modal state to track expanded action
@@ -320,6 +338,7 @@ export const SkillActionsModal: React.FC<SkillActionsModalProps> = ({
     onClose,
     skillName,
     characterProficiency,
+    character,
 }) => {
     const { t } = useLanguage();
     const { expandedActionId, toggleExpanded } = useExpandedAction();
@@ -341,8 +360,34 @@ export const SkillActionsModal: React.FC<SkillActionsModalProps> = ({
             return charProfLevel >= requiredLevel;
         });
 
+        // Versatile Performance: Add Performance-based actions for Diplomacy/Intimidation/Deception
+        if (character && hasVersatilePerformance(character)) {
+            const performanceSkill = character.skills.find(s => s.name.toLowerCase() === 'performance');
+            if (performanceSkill) {
+                const performanceProfLevel = PROFICIENCY_ORDER.indexOf(performanceSkill.proficiency);
+
+                // Check which skill we're viewing and add appropriate substitutions
+                Object.entries(VERSATILE_PERFORMANCE_SUBSTITUTIONS).forEach(([actionName, substitution]) => {
+                    if (substitution.originalAction.toLowerCase() === skillNameLower) {
+                        const req = SKILL_ACTION_REQUIREMENTS[actionName];
+                        if (req && performanceProfLevel >= PROFICIENCY_ORDER.indexOf(req.minProficiency)) {
+                            const action = allActions.find(a => a.name === actionName);
+                            if (action && !actions.some(a => a.id === action.id)) {
+                                // Mark this action as using Performance instead
+                                actions.push({
+                                    ...action,
+                                    _versatilePerformance: true,
+                                    _originalSkill: substitution.originalAction,
+                                } as any);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         return actions;
-    }, [skillName, characterProficiency]);
+    }, [skillName, characterProficiency, character]);
 
     // Add Recall Knowledge for skills that use it
     const recallKnowledgeAction = useMemo(() => {
@@ -436,6 +481,7 @@ export const SkillActionsModal: React.FC<SkillActionsModalProps> = ({
                             {allDisplayActions.map(action => {
                                 const isExpanded = expandedActionId === action.id;
                                 const minProf = (action as any).minProficiency || SKILL_ACTION_REQUIREMENTS[action.name]?.minProficiency;
+                                const isVersatilePerformance = (action as any)._versatilePerformance;
 
                                 // Create short description (first sentence only)
                                 const shortDesc = action.description.split('.')[0] + '.';
@@ -450,7 +496,30 @@ export const SkillActionsModal: React.FC<SkillActionsModalProps> = ({
                                             <div className="action-cost-badge">
                                                 <ActionIcon cost={action.cost} />
                                             </div>
-                                            <h3 className="action-title">{action.name}</h3>
+                                            <div style={{ flex: 1 }}>
+                                                <h3 className="action-title">
+                                                    {action.name}
+                                                    {isVersatilePerformance && (
+                                                        <span style={{
+                                                            fontSize: '0.75em',
+                                                            color: 'var(--desktop-accent)',
+                                                            marginLeft: '8px',
+                                                            fontWeight: 'normal'
+                                                        }}>
+                                                            (via Performance)
+                                                        </span>
+                                                    )}
+                                                </h3>
+                                                {isVersatilePerformance && (
+                                                    <div style={{
+                                                        fontSize: '0.7em',
+                                                        color: 'var(--desktop-text-secondary)',
+                                                        marginTop: '2px'
+                                                    }}>
+                                                        Using Performance instead of {(action as any)._originalSkill}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <span className="action-proficiency-badge">
                                                 {minProf}
                                             </span>

@@ -65,6 +65,21 @@ const ABILITY_ALIASES: Record<string, AbilityName> = {
     'cha': 'cha',
 };
 
+// Skills that can be substituted with Performance via Versatile Performance feat
+const VERSATILE_PERFORMANCE_SKILLS = ['deception', 'diplomacy', 'intimidation'];
+
+/**
+ * Check if a character has the Versatile Performance feat
+ * This feat allows using Performance instead of Diplomacy/Intimidation/Deception
+ * for certain actions and prerequisites
+ */
+export function hasVersatilePerformance(character: Character): boolean {
+    return character.feats?.some(feat =>
+        feat.featId.toLowerCase() === 'versatile-performance' ||
+        feat.featId.toLowerCase().includes('versatile-performance')
+    ) ?? false;
+}
+
 /**
  * Check if a character meets the prerequisites for a feat
  */
@@ -143,11 +158,41 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
     }
 
     // Pattern: "trained in [skill]" / "expert in [skill]" / etc.
-    const skillProfMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+(\w+)/i);
+    // Extended to handle comma-separated lists: "expert in Arcana, Nature, Occultism, or Religion"
+    // Also handles "or" without comma: "trained in Deception or Diplomacy"
+    const skillProfMatch = prereq.match(/(untrained|trained|expert|master|legendary)\s+in\s+([\w\s,]+)/i);
     if (skillProfMatch) {
         const requiredProf = skillProfMatch[1].toLowerCase() as Proficiency;
-        const skillName = skillProfMatch[2].toLowerCase();
+        let skillsText = skillProfMatch[2];
 
+        // Check if multiple skills are listed (comma or "or" separated)
+        // First, replace " or " (with spaces) with comma to normalize delimiters
+        // This handles both "A, B, or C" and "A or B" formats
+        skillsText = skillsText.replace(/\s+or\s+/gi, ',');
+
+        // Split by commas, trim each skill name, and filter empty strings
+        const skillNames = skillsText
+            .split(',')
+            .map(s => s.trim().toLowerCase())
+            .filter(s => s.length > 0);
+
+        // If multiple skills, check if character meets requirement for ANY of them
+        if (skillNames.length > 1) {
+            for (const skillName of skillNames) {
+                const result = checkSkillProficiency(skillName, requiredProf, character);
+                if (result.met) {
+                    return { met: true }; // At least one skill meets the requirement
+                }
+            }
+            // None of the skills met the requirement - return failure with the first skill as reason
+            return {
+                met: false,
+                reason: `Requires ${requiredProf} in ${skillNames.join(' or ')}`,
+            };
+        }
+
+        // Single skill - use original logic
+        const skillName = skillNames[0];
         return checkSkillProficiency(skillName, requiredProf, character);
     }
 
@@ -323,6 +368,10 @@ function parseAndCheckPrereq(prereq: string, character: Character): SinglePrereq
 
 /**
  * Check if character has required skill proficiency
+ *
+ * Versatile Performance: If the character has Versatile Performance feat,
+ * Performance proficiency can substitute for Deception, Diplomacy, or Intimidation
+ * when checking prerequisites.
  */
 function checkSkillProficiency(
     skillName: string,
@@ -340,6 +389,20 @@ function checkSkillProficiency(
 
     if (currentIdx >= requiredIdx) {
         return { met: true };
+    }
+
+    // Versatile Performance: Check if Performance can substitute for this skill
+    if (hasVersatilePerformance(character) && VERSATILE_PERFORMANCE_SKILLS.includes(skillName.toLowerCase())) {
+        const performanceSkill = character.skills.find(s =>
+            s.name.toLowerCase() === 'performance'
+        );
+
+        if (performanceSkill) {
+            const performanceIdx = PROFICIENCY_ORDER.indexOf(performanceSkill.proficiency);
+            if (performanceIdx >= requiredIdx) {
+                return { met: true };
+            }
+        }
     }
 
     return {

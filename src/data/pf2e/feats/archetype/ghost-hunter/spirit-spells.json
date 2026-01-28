@@ -29,7 +29,28 @@
             "remaster": false,
             "title": "Pathfinder #163: Ruins of Gauntlight"
         },
-        "rules": [],
+        "rules": [
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:1",
+                        "item:tradition:occult",
+                        {
+                            "or": [
+                                "item:trait:divination",
+                                "item:trait:mental",
+                                "item:trait:necromancy"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell1",
+                "key": "ChoiceSet",
+                "prompt": "Choose 1st-rank occult spell (divination/enchantment/necromancy)"
+            }
+        ],
         "traits": {
             "rarity": "common",
             "value": [

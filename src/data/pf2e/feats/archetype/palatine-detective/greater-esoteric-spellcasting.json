@@ -29,7 +29,26 @@
             "remaster": true,
             "title": "Pathfinder Lost Omens Divine Mysteries"
         },
-        "rules": [],
+        "rules": [
+            {
+                "adjustName": false,
+                "choices": {
+                    "filter": [
+                        "item:level:4",
+                        {
+                            "or": [
+                                "item:tradition:occult",
+                                "item:tradition:divine"
+                            ]
+                        }
+                    ],
+                    "itemType": "spell"
+                },
+                "flag": "spell4",
+                "key": "ChoiceSet",
+                "prompt": "Choose 4th-rank occult or divine spell"
+            }
+        ],
         "subfeatures": {
             "proficiencies": {
                 "spellcasting": {

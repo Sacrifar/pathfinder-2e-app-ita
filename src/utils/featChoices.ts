@@ -42,7 +42,7 @@
  */
 
 import { skills } from '../data';
-import { getFeats } from '../data/pf2e-loader';
+import { getFeats, getSpells } from '../data/pf2e-loader';
 import { getDeityById } from '../data/deities';
 import type { LoadedFeat } from '../data/pf2e-loader';
 import type { SkillProficiency, Character, AbilityName } from '../types';
@@ -62,8 +62,10 @@ export interface FeatChoice {
         traits?: string[];
         itemType?: string; // 'feat', 'spell', etc.
         slugs?: string[]; // For spell slugs
+        traditions?: string[]; // For spell tradition filtering (e.g., ['occult'])
     };
     rollOption?: string; // If set, this choice sets a roll option flag (e.g., "champion-dedication")
+    minLevel?: number; // Minimum character level for this choice to be available (e.g., for spell scaling feats)
 }
 
 export interface FeatChoiceOption {
@@ -155,7 +157,8 @@ export function parseActiveEffects(feat: LoadedFeat): ActiveEffect[] {
 export function applyActiveEffects(
     character: Character,
     choices: Record<string, string>,
-    effects: ActiveEffect[]
+    effects: ActiveEffect[],
+    featId?: string
 ): SkillProficiency[] {
     let updatedSkills = [...(character.skills || [])];
 
@@ -184,6 +187,42 @@ export function applyActiveEffects(
 
         // Find or create the skill
         let skill = updatedSkills.find(s => s.name.toLowerCase() === targetSkill.toLowerCase());
+
+        // Special handling for Captivator Dedication: "become trained, or become expert if already trained"
+        if (featId === 'captivator-dedication' && effectFlag === 'skill') {
+            // Check if skill exists in character's current skills (before updates)
+            const currentSkill = character.skills?.find(s => s.name.toLowerCase() === targetSkill.toLowerCase());
+
+            if (!skill) {
+                // Create new skill entry
+                const capitalizedName = targetSkill.charAt(0).toUpperCase() + targetSkill.slice(1).toLowerCase();
+                skill = {
+                    name: capitalizedName,
+                    ability: 'int',
+                    proficiency: 'untrained'
+                };
+                updatedSkills.push(skill);
+            }
+
+            // If already trained (or higher), upgrade to expert
+            // If untrained, upgrade to trained
+            const proficiencyLevels: Array<'untrained' | 'trained' | 'expert' | 'master' | 'legendary'> =
+                ['untrained', 'trained', 'expert', 'master', 'legendary'];
+
+            if (currentSkill && currentSkill.proficiency !== 'untrained') {
+                // Already trained - upgrade to expert (rank 2)
+                const currentRank = proficiencyLevels.indexOf(skill.proficiency);
+                if (currentRank < 2) {
+                    skill.proficiency = 'expert';
+                }
+            } else {
+                // Untrained - upgrade to trained (rank 1)
+                if (skill.proficiency === 'untrained') {
+                    skill.proficiency = 'trained';
+                }
+            }
+            continue; // Skip normal processing for this effect
+        }
 
         if (!skill) {
             // Create new skill entry
@@ -386,7 +425,8 @@ export function recalculateSkillsFromFeats(
                     updatedSkills = applyActiveEffects(
                         { ...character, skills: updatedSkills },
                         choices,
-                        effectsWithChoices
+                        effectsWithChoices,
+                        feat.id
                     );
                 }
 
@@ -413,6 +453,110 @@ export function recalculateSkillsFromFeats(
 }
 
 /**
+ * Process innate spells from feat choices
+ * Adds spells selected through feat ChoiceSet rules to the character's innate spells
+ * Handles feats like Captivator Dedication that grant cantrips as innate spells
+ */
+export function processInnateSpellsFromFeats(
+    character: Character
+): Character {
+    if (!character.feats) {
+        return character;
+    }
+
+    const updated = { ...character };
+    const allFeats = getFeats();
+
+    // Initialize spellcasting and innateSpells if not present
+    if (!updated.spellcasting) {
+        updated.spellcasting = {
+            tradition: 'arcane',
+            spellcastingType: 'spontaneous',
+            keyAbility: 'int',
+            proficiency: 'untrained',
+            spellSlots: {},
+            knownSpells: [],
+            focusPool: { current: 1, max: 1 },
+            focusSpells: [],
+            rituals: [],
+            innateSpells: [],
+        };
+    }
+
+    if (!updated.spellcasting.innateSpells) {
+        updated.spellcasting.innateSpells = [];
+    }
+
+    // Track existing innate spells from feats to avoid duplicates
+    const existingInnateKeys = new Set<string>();
+    for (const innate of updated.spellcasting.innateSpells) {
+        if (innate.sourceType === 'feat') {
+            existingInnateKeys.add(`${innate.source}:${innate.spellId}`);
+        }
+    }
+
+    for (const charFeat of character.feats) {
+        // Only process feats at or below current level
+        if (charFeat.level > character.level) {
+            continue;
+        }
+
+        const feat = allFeats.find(f => f.id === charFeat.featId);
+        if (!feat || !feat.rules || !Array.isArray(feat.rules)) {
+            continue;
+        }
+
+        // Parse feat choices to find spell selections
+        const featChoices = parseFeatChoices(feat);
+        const spellChoices = featChoices.filter(c => c.type === 'spell');
+
+        if (spellChoices.length === 0) {
+            continue;
+        }
+
+        // Build choices map from feat's choices array
+        const choices: Record<string, string> = {};
+        if (charFeat.choices && Array.isArray(charFeat.choices)) {
+            charFeat.choices.forEach((choiceValue: string, index: number) => {
+                if (featChoices[index]) {
+                    choices[featChoices[index].flag] = choiceValue;
+                }
+            });
+        }
+
+        // Add each selected spell as an innate spell
+        for (const spellChoice of spellChoices) {
+            const spellId = choices[spellChoice.flag];
+            if (!spellId) continue;
+
+            const innateKey = `Feat: ${feat.name}:${spellId}`;
+
+            // Skip if already exists
+            if (existingInnateKeys.has(innateKey)) {
+                continue;
+            }
+
+            // For cantrips (level 1 spells), grant unlimited uses (-1)
+            // For higher level innate spells, uses would be specified elsewhere
+            const isCantrip = spellChoice.filter?.level === 1;
+            const maxUses = isCantrip ? -1 : 1;
+
+            updated.spellcasting.innateSpells.push({
+                spellId,
+                uses: maxUses,
+                maxUses,
+                source: `Feat: ${feat.name}`,
+                sourceType: 'feat',
+            });
+
+            existingInnateKeys.add(innateKey);
+        }
+    }
+
+    return updated;
+}
+
+/**
  * Parse feat choices from feat rules
  * Looks for ChoiceSet rules in the feat data
  */
@@ -435,6 +579,11 @@ export function parseFeatChoices(feat: LoadedFeat): FeatChoice[] {
             // Handle rollOption field (sets a flag based on choice)
             if (rule.rollOption) {
                 choice.rollOption = rule.rollOption;
+            }
+
+            // Handle minLevel field (for level-gated choices like spell scaling)
+            if (rule.minLevel !== undefined) {
+                choice.minLevel = rule.minLevel;
             }
 
             // Parse choices configuration
@@ -492,15 +641,25 @@ function parseFilterArray(filterArray: any[], choice: FeatChoice) {
                 } else if (parts[1] === 'slug') {
                     choice.filter!.slugs = choice.filter!.slugs || [];
                     choice.filter!.slugs.push(parts[2]);
+                } else if (parts[1] === 'tradition') {
+                    choice.filter!.traditions = choice.filter!.traditions || [];
+                    choice.filter!.traditions.push(parts[2]);
                 }
             }
         } else if (typeof filterItem === 'object' && filterItem.or) {
-            // Handle OR filters (like in Arcane Tattoos)
+            // Handle OR filters (like in Arcane Tattoos and Captivator Dedication)
             for (const orItem of filterItem.or) {
-                const parts = orItem.split(':');
-                if (parts[0] === 'item' && parts[1] === 'slug') {
-                    choice.filter!.slugs = choice.filter!.slugs || [];
-                    choice.filter!.slugs.push(parts[2]);
+                if (typeof orItem === 'string') {
+                    const parts = orItem.split(':');
+                    if (parts[0] === 'item') {
+                        if (parts[1] === 'slug') {
+                            choice.filter!.slugs = choice.filter!.slugs || [];
+                            choice.filter!.slugs.push(parts[2]);
+                        } else if (parts[1] === 'trait') {
+                            choice.filter!.traits = choice.filter!.traits || [];
+                            choice.filter!.traits.push(parts[2]);
+                        }
+                    }
                 }
             }
         }
@@ -708,12 +867,50 @@ export function getChoiceOptions(
             return filteredFeats.map(f => f.id);
 
         case 'spell':
-            // For spells, return slugs if available, otherwise return predefined options
+            // Return slugs if explicitly provided
             if (choice.filter?.slugs && choice.filter.slugs.length > 0) {
                 return choice.filter.slugs;
             }
-            // TODO: Load actual spells from spell data
-            return [];
+
+            // Load and filter spells from spell data
+            const allSpells = getSpells();
+            let filteredSpells = allSpells;
+
+            if (choice.filter) {
+                // Filter by level
+                // Note: Cantrips have rank 0 in the system, but level 1 in the JSON
+                // When filtering for level 1, we should also include cantrips (rank 0 with "cantrip" trait)
+                if (choice.filter.level !== undefined) {
+                    const targetLevel = choice.filter.level;
+                    filteredSpells = filteredSpells.filter(s => {
+                        // Exact match
+                        if (s.rank === targetLevel) return true;
+                        // Special case: when looking for level 1, also include cantrips (rank 0)
+                        if (targetLevel === 1 && s.rank === 0 && s.traits.includes('cantrip')) return true;
+                        return false;
+                    });
+                }
+
+                // Filter by traits (OR logic - spell must have at least one of the traits)
+                if (choice.filter.traits && choice.filter.traits.length > 0) {
+                    filteredSpells = filteredSpells.filter(s =>
+                        choice.filter!.traits!.some(trait =>
+                            s.traits.some(t => t.toLowerCase() === trait.toLowerCase())
+                        )
+                    );
+                }
+
+                // Filter by traditions (OR logic)
+                if (choice.filter.traditions && choice.filter.traditions.length > 0) {
+                    filteredSpells = filteredSpells.filter(s =>
+                        choice.filter!.traditions!.some(tradition =>
+                            s.traditions.some(t => t.toLowerCase() === tradition.toLowerCase())
+                        )
+                    );
+                }
+            }
+
+            return filteredSpells.map(s => s.id);
 
         case 'string':
         case 'ability':
@@ -773,9 +970,12 @@ export function getChoiceDisplayValue(
             return feat?.name || value;
         }
 
-        case 'spell':
-            // Convert slug to readable name
-            return value.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        case 'spell': {
+            // Look up the spell by ID and return its name
+            const allSpells = getSpells();
+            const spell = allSpells.find(s => s.id === value);
+            return spell?.name || value;
+        }
 
         case 'ability':
             // Capitalize ability score
