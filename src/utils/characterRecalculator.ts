@@ -45,6 +45,11 @@ import {
     getArchetypeSpellKeyAbility,
 } from '../data/devotionSpellSources';
 import { calculateMaxFocusPoints } from './focusCalculator';
+// Bard feat utilities
+import { initializeBardicLore, hasBardicLoreFeat } from './bardicLore';
+import { shouldUseLevelBonusForSkill } from './bardSkills';
+import { applyUltimatePolymathEffects } from './ultimatePolymath';
+import { applyDeepLoreEffects } from './deepLore';
 
 /**
  * Recalculate ALL character data from scratch
@@ -69,6 +74,8 @@ export function recalculateCharacter(character: Character): Character {
     updated = processSpellGrantingItems(updated); // Add spells from invested spell-granting items
     updated = processInnateSpells(updated); // Add innate spells from backgrounds/feats
     updated = processDevotionSpells(updated); // Add devotion spells from archetype dedications
+    updated = applyUltimatePolymathEffects(updated); // Apply Ultimate Polymath (all spells become signature)
+    updated = applyDeepLoreEffects(updated); // Apply Deep Lore (extra spells to repertoire)
     updated = updateFocusPool(updated); // Update focus pool for all characters
     updated = resetItemDailyUses(updated); // Reset daily uses for spell-granting items
 
@@ -186,7 +193,7 @@ function applyAbilityBoost(currentScore: number): number {
  * - Skill increases from level-ups
  */
 export function recalculateSkills(character: Character): Character {
-    const updated = { ...character };
+    let updated = { ...character };
     const classData = classes.find((c: any) => c.id === character.classId);
     const backgroundData = backgrounds.find((b: any) => b.id === character.backgroundId);
 
@@ -282,6 +289,11 @@ export function recalculateSkills(character: Character): Character {
 
     // Apply deity skills from archetype dedication feats (Cleric, Champion, etc.)
     updated.skills = applyDeitySkillsFromDedications(updated);
+
+    // Apply Bardic Lore feat (adds special Lore skill usable only for Recall Knowledge)
+    if (hasBardicLoreFeat(updated)) {
+        updated = initializeBardicLore(updated);
+    }
 
     // NOW apply skill increases from level-ups (levels 3, 5, 7, 9, 11, 13, 15, 17, 19)
     // This runs AFTER feat effects so we see the correct current proficiency

@@ -86,6 +86,16 @@ export const CLASS_GRANTED_FEATS_BY_NAME: ClassSpecializationGrantedFeats[] = [
                     lock: true, // This feat cannot be manually changed
                 },
             ],
+            // Zoophonia Muse → Zoophonic Communication feat
+            'muse_zoophonia': [
+                {
+                    featId: 'zoophonic-communication',
+                    grantedAtLevel: 1,
+                    source: 'class',
+                    slotType: 'class',
+                    lock: true, // This feat cannot be manually changed
+                },
+            ],
         },
     },
 

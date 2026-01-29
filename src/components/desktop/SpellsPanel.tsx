@@ -17,7 +17,9 @@ import {
     getSignatureSpellCount
 } from '../../utils/spellHeightening';
 import { hasEsotericPolymath, getEsotericPolymathAvailableSpells } from '../../utils/esotericPolymath';
+import { hasDeepLore, getDeepLoreExtraSpells, getMaxSpellRank } from '../../utils/deepLore';
 import { EsotericPolymathModal } from './EsotericPolymathModal';
+import { DeepLoreModal } from './DeepLoreModal';
 
 interface SpellsPanelProps {
     character: Character;
@@ -75,6 +77,7 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
     const [activeSubTab, setActiveSubTab] = useState<SpellSubTab>(getInitialTab());
     const [showBrowser, setShowBrowser] = useState(false);
     const [showEsotericPolymathModal, setShowEsotericPolymathModal] = useState(false);
+    const [showDeepLoreModal, setShowDeepLoreModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState<number | 'all'>('all');
     const [traditionFilter, setTraditionFilter] = useState<string>('all');
@@ -87,6 +90,11 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
         return hasEsotericPolymath(character);
     }, [character.feats]);
 
+    // Check if character has Deep Lore feat
+    const hasDeepLoreFeat = useMemo(() => {
+        return hasDeepLore(character);
+    }, [character.feats]);
+
     // Get Esoteric Polymath daily preparation info
     const esotericPolymathInfo = useMemo(() => {
         if (!hasEsotericPolymathFeat) return null;
@@ -97,6 +105,15 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
             : null;
         return { availableSpells, currentSpell };
     }, [hasEsotericPolymathFeat, character]);
+
+    // Get Deep Lore extra spells info
+    const deepLoreInfo = useMemo(() => {
+        if (!hasDeepLoreFeat) return null;
+        const extraSpells = getDeepLoreExtraSpells(character);
+        const maxRank = getMaxSpellRank(character);
+        const selectedCount = Object.keys(extraSpells).length;
+        return { extraSpells, maxRank, selectedCount };
+    }, [hasDeepLoreFeat, character]);
 
     // Calculate signature spell limit for this character
     const signatureSpellLimit = useMemo(() => {
@@ -1005,6 +1022,19 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                         )}
                     </button>
                 )}
+                {hasDeepLoreFeat && (
+                    <button
+                        className="spell-action-btn deep-lore-btn"
+                        onClick={() => setShowDeepLoreModal(true)}
+                    >
+                        📖 {t('deepLore.title') || 'Deep Lore'}
+                        {deepLoreInfo && (
+                            <span className="current-prep-badge" style={{ marginLeft: '8px' }}>
+                                {deepLoreInfo.selectedCount}/{deepLoreInfo.maxRank}
+                            </span>
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Spell Level Groups */}
@@ -1266,6 +1296,16 @@ export const SpellsPanel: React.FC<SpellsPanelProps> = ({
                 <EsotericPolymathModal
                     isOpen={showEsotericPolymathModal}
                     onClose={() => setShowEsotericPolymathModal(false)}
+                    character={character}
+                    onCharacterUpdate={onCharacterUpdate}
+                />
+            )}
+
+            {/* Deep Lore Modal */}
+            {hasDeepLoreFeat && (
+                <DeepLoreModal
+                    isOpen={showDeepLoreModal}
+                    onClose={() => setShowDeepLoreModal(false)}
                     character={character}
                     onCharacterUpdate={onCharacterUpdate}
                 />

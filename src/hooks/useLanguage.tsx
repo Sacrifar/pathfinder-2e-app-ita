@@ -801,6 +801,16 @@ const translations: Record<Language, Record<string, string>> = {
         'esotericPolymath.selectFromBook': 'Select from Spellbook',
         'esotericPolymath.noSpellsForDaily': 'No spells in your spellbook. Add spells first.',
         'search.noResults': 'No results found',
+
+        // Deep Lore
+        'deepLore.title': 'Deep Lore',
+        'deepLore.subtitle': 'Select one extra spell of each rank to add to your repertoire',
+        'deepLore.description': 'Your studies of the occult have granted you access to hidden magical knowledge. Select one extra spell of each rank you can cast. These spells are added directly to your repertoire.',
+        'deepLore.rank': 'Rank',
+        'deepLore.spell': 'Spell',
+        'deepLore.remove': 'Remove spell',
+        'deepLore.selectSpell': 'Select a spell',
+        'deepLore.selectRank': 'Select',
     },
     it: {
         // Navigation
@@ -1595,6 +1605,16 @@ const translations: Record<Language, Record<string, string>> = {
         'esotericPolymath.noSpellsForDaily': 'Nessun incantesimo nel libro. Aggiungine prima uno.',
         'search.noResults': 'Nessun risultato trovato',
         'common.close': 'Chiudi',
+
+        // Deep Lore
+        'deepLore.title': 'Saggezza Profonda',
+        'deepLore.subtitle': 'Seleziona un incantesimo extra per ogni grado da aggiungere al tuo repertorio',
+        'deepLore.description': 'I tuoi studi dell\'occulto ti hanno concesso accesso a conoscenze magiche nascoste. Seleziona un incantesimo extra per ogni grado che puoi lanciare. Questi incantesimi vengono aggiunti direttamente al tuo repertorio.',
+        'deepLore.rank': 'Grado',
+        'deepLore.spell': 'Incantesimo',
+        'deepLore.remove': 'Rimuovi incantesimo',
+        'deepLore.selectSpell': 'Seleziona un incantesimo',
+        'deepLore.selectRank': 'Seleziona',
     },
 };
 

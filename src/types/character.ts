@@ -529,6 +529,24 @@ export interface Character {
     conditions: { id: string; value?: number; duration?: number }[];
     buffs: Buff[];
 
+    // Active Compositions (Bard, etc.)
+    activeCompositions?: {
+        id: string;
+        name: string;
+        nameIt?: string;
+        duration: 'sustained' | '1 minute' | '1 round' | '10 minutes' | '1 hour' | 'until';
+        bonuses: {
+            attack?: number;
+            damage?: number;
+            savingThrows?: number;
+            perception?: number;
+            skills?: string[];
+            skillBonus?: number;
+        };
+        startedAt?: number;
+        expiresAt?: number;
+    }[];
+
     // Active conditional damage for weapons (rune IDs that are currently active)
     activeConditionalDamage: string[];
 
@@ -601,6 +619,23 @@ export interface Character {
             occultSpells: string[];  // All spells in the occult spellbook
             dailyPreparation: string | null;  // Spell ID selected for today
         };
+        deepLore?: {
+            extraSpells: Record<number, string>;  // Extra spells per rank: { 1: spellId, 2: spellId, ... }
+        };
+    };
+
+    // Daily Feat Usage Tracking
+    // Tracks usage of feats with daily uses (Studious Capacity, True Hypercognition, etc.)
+    dailyFeatUses?: {
+        studiousCapacity?: {
+            used: boolean;  // Whether used today
+            lastUsed?: string;  // ISO date string of last use
+        };
+        trueHypercognition?: {
+            actionsUsed: number[];  // Which action numbers have been used (1-5)
+            lastReset?: string;  // ISO date string of last reset
+        };
+        [featName: string]: any;
     };
 
     // Metadata
@@ -670,6 +705,7 @@ export function createEmptyCharacter(): Character {
         conditions: [],
         buffs: [],
         activeConditionalDamage: [],
+        activeCompositions: [],
         resistances: [],
         immunities: [],
         customResources: [],
@@ -847,6 +883,16 @@ export function migrateCharacter(data: any): Character {
     // Migrate spellbook (added for Esoteric Polymath feat)
     if (!character.spellbook) {
         character.spellbook = {};
+    }
+
+    // Migrate activeCompositions (added for Bard composition tracking)
+    if (!character.activeCompositions) {
+        character.activeCompositions = [];
+    }
+
+    // Migrate dailyFeatUses (added for daily feat usage tracking)
+    if (!character.dailyFeatUses) {
+        character.dailyFeatUses = {};
     }
 
     return character;

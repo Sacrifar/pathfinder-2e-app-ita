@@ -6,6 +6,7 @@ import { CharacterTabs, TabId } from './CharacterTabs';
 import { SkillDisplay } from './SkillsPanel';
 import { CombatColumn } from './CombatColumn';
 import { SurvivalHeader } from './SurvivalHeader';
+import { getFeatModifiers } from '../../utils/activeFeatBonuses';
 
 // Lazy load panels - caricate solo quando necessarie
 const WeaponsPanel = lazy(() => import('./WeaponsPanel').then(m => ({ default: m.WeaponsPanel })));
@@ -1343,6 +1344,9 @@ export const DesktopCharacterLayout: React.FC<DesktopCharacterLayoutProps> = ({
                         fortitude={calculateSavingThrow(character, 'fortitude')}
                         reflex={calculateSavingThrow(character, 'reflex')}
                         will={calculateSavingThrow(character, 'will')}
+                        fortitudeModifiers={getFeatModifiers(character, 'fortitude')}
+                        reflexModifiers={getFeatModifiers(character, 'reflex')}
+                        willModifiers={getFeatModifiers(character, 'will')}
                         onRest={handleRest}
                         onAddCondition={() => setShowConditionBrowser(true)}
                         onAddBuff={() => setShowBuffBrowser(true)}

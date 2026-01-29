@@ -188,6 +188,14 @@ const BARD_MUSES: ClassSpecialization[] = [
         description: 'Your muse is a master of martial combat. You gain War Song feat and Fear spell.',
         source: 'Player Core',
     },
+    {
+        id: 'muse_zoophonia',
+        name: 'Zoophonia',
+        nameIt: 'Zoofonia',
+        className: 'Bard',
+        description: 'Your muse is a master of animal communication. You gain Zoophonic Communication feat and Summon Animal spell.',
+        source: 'Howl of the Wild',
+    },
 ];
 
 // Cleric Doctrines

@@ -29,6 +29,9 @@ interface StatsHeaderProps {
     acModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
     perceptionModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
     speedModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    fortitudeModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    reflexModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    willModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
 }
 
 export const StatsHeader: React.FC<StatsHeaderProps> = ({
@@ -49,6 +52,9 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
     acModifiers = [],
     perceptionModifiers = [],
     speedModifiers = [],
+    fortitudeModifiers = [],
+    reflexModifiers = [],
+    willModifiers = [],
 }) => {
     const { t } = useLanguage();
     const { rollDice } = useDiceRoller();
@@ -222,35 +228,38 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
                 <>
                     {fortitude !== undefined && (
                         <div
-                            className="stat-box save-box rollable"
+                            className={`stat-box save-box rollable ${hasActiveModifiers(fortitudeModifiers) ? 'has-modifiers' : ''}`}
                             onClick={() => handleRoll('fortitude', fortitude, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.fortitude') || 'Fortitude'}`)}
                             title={`${t('dice.roll') || 'Roll'} ${t('stats.fortitude') || 'Fortitude'}`}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: 'pointer', position: 'relative' }}
                         >
                             <span className="stat-box-label">{t('stats.fortitude') || 'Fort'}</span>
                             <span className="stat-box-value">{formatModifier(fortitude)}</span>
+                            {hasActiveModifiers(fortitudeModifiers) && getModifierBadges(fortitudeModifiers)}
                         </div>
                     )}
                     {reflex !== undefined && (
                         <div
-                            className="stat-box save-box rollable"
+                            className={`stat-box save-box rollable ${hasActiveModifiers(reflexModifiers) ? 'has-modifiers' : ''}`}
                             onClick={() => handleRoll('reflex', reflex, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.reflex') || 'Reflex'}`)}
                             title={`${t('dice.roll') || 'Roll'} ${t('stats.reflex') || 'Reflex'}`}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: 'pointer', position: 'relative' }}
                         >
                             <span className="stat-box-label">{t('stats.reflex') || 'Ref'}</span>
                             <span className="stat-box-value">{formatModifier(reflex)}</span>
+                            {hasActiveModifiers(reflexModifiers) && getModifierBadges(reflexModifiers)}
                         </div>
                     )}
                     {will !== undefined && (
                         <div
-                            className="stat-box save-box rollable"
+                            className={`stat-box save-box rollable ${hasActiveModifiers(willModifiers) ? 'has-modifiers' : ''}`}
                             onClick={() => handleRoll('will', will, `${t('dice.saveRoll') || 'Save Roll'}: ${t('stats.will') || 'Will'}`)}
                             title={`${t('dice.roll') || 'Roll'} ${t('stats.will') || 'Will'}`}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: 'pointer', position: 'relative' }}
                         >
                             <span className="stat-box-label">{t('stats.will') || 'Will'}</span>
                             <span className="stat-box-value">{formatModifier(will)}</span>
+                            {hasActiveModifiers(willModifiers) && getModifierBadges(willModifiers)}
                         </div>
                     )}
                 </>

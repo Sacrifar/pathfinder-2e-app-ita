@@ -16,6 +16,10 @@ interface SurvivalHeaderProps {
     onAddCondition: () => void;
     onAddBuff: () => void;
     onHPChange?: (newHP: { current: number; temporary?: number }) => void;
+    // Save modifiers from feats
+    fortitudeModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    reflexModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
+    willModifiers?: { value: number; source: string; type: 'buff' | 'penalty' }[];
 }
 
 export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
@@ -28,6 +32,9 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
     onAddCondition,
     onAddBuff,
     onHPChange,
+    fortitudeModifiers = [],
+    reflexModifiers = [],
+    willModifiers = [],
 }) => {
     const { t } = useLanguage();
     const { rollDice } = useDiceRoller();
@@ -284,6 +291,15 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
                     <span className={`save-value ${fortitude >= 0 ? 'positive' : 'negative'}`}>
                         {fortitude >= 0 ? `+${fortitude}` : fortitude}
                     </span>
+                    {fortitudeModifiers.length > 0 && (
+                        <div className="save-modifier-badges">
+                            {fortitudeModifiers.map((mod, i) => (
+                                <span key={i} className="save-modifier-badge" title={mod.source}>
+                                    {mod.value > 0 ? '+' : ''}{mod.value}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div
                     className="save-item rollable"
@@ -297,6 +313,15 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
                     <span className={`save-value ${reflex >= 0 ? 'positive' : 'negative'}`}>
                         {reflex >= 0 ? `+${reflex}` : reflex}
                     </span>
+                    {reflexModifiers.length > 0 && (
+                        <div className="save-modifier-badges">
+                            {reflexModifiers.map((mod, i) => (
+                                <span key={i} className="save-modifier-badge" title={mod.source}>
+                                    {mod.value > 0 ? '+' : ''}{mod.value}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div
                     className="save-item rollable"
@@ -310,6 +335,15 @@ export const SurvivalHeader: React.FC<SurvivalHeaderProps> = React.memo(({
                     <span className={`save-value ${will >= 0 ? 'positive' : 'negative'}`}>
                         {will >= 0 ? `+${will}` : will}
                     </span>
+                    {willModifiers.length > 0 && (
+                        <div className="save-modifier-badges">
+                            {willModifiers.map((mod, i) => (
+                                <span key={i} className="save-modifier-badge" title={mod.source}>
+                                    {mod.value > 0 ? '+' : ''}{mod.value}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -1024,6 +1024,22 @@
     color: var(--desktop-accent-red);
 }
 
+/* Save Modifier Badges */
+.save-modifier-badges {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+}
+
+.save-modifier-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--desktop-accent-green);
+    color: white;
+    font-weight: 600;
+}
+
 /* Survival Actions Buttons */
 .survival-actions {
     display: flex;

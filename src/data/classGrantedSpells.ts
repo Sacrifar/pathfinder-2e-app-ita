@@ -176,12 +176,14 @@ export function getBardMuseSpell(character: any): string | undefined {
     const MAESTRO_ID = 'YMBsi4bndRAk5CX4';
     const POLYMATH_ID = 'y0jGimYdMGDJWrEq';
     const WARRIOR_ID = 'N03BtRvjX9TeHRa4';
+    const ZOOPHONIA_ID = 'VjQfJKeDc46cWtgk';
 
     // Spell IDs (checked from source files)
     const SURE_STRIKE_ID = 'Gb7SeieEvd0pL2Eh';
     const SOOTHE_ID = 'szIyEsvihc5e1w8n';
     const PHANTASMAL_MINION_ID = 'xqmHD8JIjak15lRk';
     const FEAR_ID = '4koZzrnMXhhosn0D';
+    const SUMMON_ANIMAL_ID = '4YnON9JHYqtLzccu';
 
     // Check class specialization first (New system)
     if (character.classSpecializationId) {
@@ -195,6 +197,7 @@ export function getBardMuseSpell(character: any): string | undefined {
             if (spec === 'muse_maestro') return SOOTHE_ID;
             if (spec === 'muse_polymath') return PHANTASMAL_MINION_ID;
             if (spec === 'muse_warrior') return FEAR_ID;
+            if (spec === 'muse_zoophonia') return SUMMON_ANIMAL_ID;
         }
     }
 
@@ -204,6 +207,7 @@ export function getBardMuseSpell(character: any): string | undefined {
         if (feat.featId === MAESTRO_ID) return SOOTHE_ID;
         if (feat.featId === POLYMATH_ID) return PHANTASMAL_MINION_ID;
         if (feat.featId === WARRIOR_ID) return FEAR_ID;
+        if (feat.featId === ZOOPHONIA_ID) return SUMMON_ANIMAL_ID;
     }
 
     return undefined;
